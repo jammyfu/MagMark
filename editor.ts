@@ -106,7 +106,12 @@ function renderPages() {
 
 function renderScroll(md: string) {
     const html = convertMarkdown(md);
-    previewArea.innerHTML = `<div class="scroll-container magmark">${html}</div>`;
+    const state = store.getState();
+    const formatClass = 'page-' + state.format;
+    previewArea.innerHTML = `
+        <div class="page ${formatClass} scrollable">
+            <div class="scroll-container magmark">${html}</div>
+        </div>`;
     paginationBar.style.display = 'none';
 }
 

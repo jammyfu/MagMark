@@ -85,10 +85,10 @@ body[data-theme="modern-minimalist"] {
 }
 
 body[data-theme="golden-hour"] {
-    --th-primary: #f4a900;
+    --th-primary: #c47a00;
     --th-accent: #c1666b;
-    --th-bg-page: #d4b896;
-    --th-text-page: #4a403a;
+    --th-bg-page: #f5ead6;
+    --th-text-page: #2d1a00;
     --th-preview-bg: #4a403a;
     --th-font-head: 'FreeSans', sans-serif;
     --th-font-body: 'FreeSans', sans-serif;
@@ -105,10 +105,10 @@ body[data-theme="arctic-frost"] {
 }
 
 body[data-theme="desert-rose"] {
-    --th-primary: #b87d6d;
-    --th-accent: #e8d5c4;
-    --th-bg-page: #d4a5a5;
-    --th-text-page: #5d2e46;
+    --th-primary: #a0635a;
+    --th-accent: #d4a5a5;
+    --th-bg-page: #fdf0ee;
+    --th-text-page: #4a1e30;
     --th-preview-bg: #5d2e46;
     --th-font-head: 'FreeSans', sans-serif;
     --th-font-body: 'FreeSans', sans-serif;
@@ -580,6 +580,7 @@ input:checked+.slider:before {
 .page.scrollable {
     min-height: auto;
     padding-bottom: 80px;
+    overflow: visible;
 }
 
 /* ---------- Page Settings Indicator ---------- */
