@@ -183,8 +183,9 @@ header#app-header {
 
 .logo-icon {
     font-size: 24px;
-    color: var(--primary);
-    text-shadow: 0 0 15px rgba(197, 160, 89, 0.4);
+    color: var(--th-primary);
+    text-shadow: 0 0 15px rgba(var(--th-primary-rgb, 212, 175, 55), 0.4);
+    transition: color 0.4s;
 }
 
 .logo-text {
@@ -195,14 +196,15 @@ header#app-header {
 }
 
 .logo-version {
-    color: var(--primary);
-    background: rgba(197, 160, 89, 0.1);
+    color: var(--th-primary);
+    background: color-mix(in srgb, var(--th-primary) 15%, transparent);
     padding: 2px 8px;
     border-radius: 6px;
     margin-left: 6px;
     font-size: 11px;
     font-weight: 800;
-    border: 1px solid rgba(197, 160, 89, 0.2);
+    border: 1px solid color-mix(in srgb, var(--th-primary) 30%, transparent);
+    transition: color 0.4s, background 0.4s;
 }
 
 .header-actions {
@@ -223,14 +225,15 @@ header#app-header {
 }
 
 .btn-primary {
-    background: var(--primary);
+    background: var(--th-primary);
     color: #fff;
+    transition: background 0.4s, transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-primary:hover {
-    background: var(--primary-hover);
+    filter: brightness(1.15);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px var(--primary-glow);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--th-primary) 35%, transparent);
 }
 
 .btn-secondary {
@@ -240,9 +243,9 @@ header#app-header {
 }
 
 .btn-secondary:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-    border-color: var(--text-secondary);
+    background: color-mix(in srgb, var(--th-primary) 12%, var(--bg-input));
+    color: var(--th-primary);
+    border-color: var(--th-primary);
 }
 
 .file-upload-btn {
@@ -256,14 +259,14 @@ header#app-header {
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all var(--transition);
+    transition: all 0.4s;
     font-family: inherit;
 }
 
 .file-upload-btn:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: var(--primary-glow);
+    border-color: var(--th-primary);
+    color: var(--th-primary);
+    background: color-mix(in srgb, var(--th-primary) 8%, transparent);
 }
 
 /* ---------- Main Layout ---------- */
@@ -389,9 +392,10 @@ header#app-header {
 }
 
 .control-label .val {
-    color: var(--primary);
+    color: var(--th-primary);
     font-family: 'JetBrains Mono', monospace;
     margin-left: 4px;
+    transition: color 0.4s;
 }
 
 select {
@@ -407,28 +411,29 @@ select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238888a0' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
-    transition: all var(--transition);
+    transition: all 0.4s;
     font-family: inherit;
 }
 
 select:hover {
-    border-color: var(--text-secondary);
+    border-color: var(--th-primary);
 }
 
 select:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-glow);
+    border-color: var(--th-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--th-primary) 25%, transparent);
 }
 
 input[type="range"] {
     width: 120px;
-    accent-color: var(--primary);
+    accent-color: var(--th-primary);
     cursor: pointer;
     height: 6px;
     background: var(--bg-input);
     border-radius: 3px;
     border: 1px solid var(--border-color);
+    transition: accent-color 0.4s;
 }
 
 .mode-toggle {
@@ -444,7 +449,7 @@ input[type="range"] {
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: var(--transition-smooth);
+    transition: all 0.4s;
     font-family: inherit;
 }
 
@@ -457,14 +462,16 @@ input[type="range"] {
 }
 
 .mode-btn:hover {
-    background: var(--primary-light);
-    color: var(--bg-app);
+    background: color-mix(in srgb, var(--th-primary) 20%, var(--bg-input));
+    color: var(--th-primary);
+    border-color: var(--th-primary);
 }
 
 .mode-btn.active {
-    background: var(--primary);
+    background: var(--th-primary);
     color: #fff;
-    border-color: var(--primary);
+    border-color: var(--th-primary);
+    transition: background 0.4s, border-color 0.4s;
 }
 
 /* ---------- Switch ---------- */
@@ -507,13 +514,14 @@ input[type="range"] {
 }
 
 input:checked+.slider {
-    background-color: var(--primary);
-    border-color: var(--primary);
+    background-color: var(--th-primary);
+    border-color: var(--th-primary);
+    transition: background-color 0.4s, border-color 0.4s;
 }
 
 input:checked+.slider:before {
     transform: translateX(14px);
-    background-color: var(--bg-app);
+    background-color: #fff;
 }
 
 
@@ -845,14 +853,14 @@ input:checked+.slider:before {
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: var(--transition-smooth);
+    transition: all 0.4s;
     min-width: 110px;
 }
 
 .page-btn:hover:not(:disabled) {
-    background: var(--primary);
-    color: var(--bg-app);
-    border-color: var(--primary);
+    background: var(--th-primary);
+    color: #fff;
+    border-color: var(--th-primary);
 }
 
 .page-btn:disabled {
@@ -863,10 +871,11 @@ input:checked+.slider:before {
 .page-info {
     font-size: 13px;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--th-primary);
     min-width: 100px;
     text-align: center;
     letter-spacing: 0.3px;
+    transition: color 0.4s;
 }
 
 /* ---------- Scrollbar ---------- */
@@ -905,37 +914,40 @@ input:checked+.slider:before {
     animation: fadeIn 0.3s ease-out;
 }
 
-/* ── Floating Toolbar (1.4 Independent Block Edit) ── */
+/* ── Floating Toolbar (compact, theme-aware) ── */
 .floating-toolbar {
     position: fixed;
     z-index: 2000;
-    background: var(--glass-bg);
-    backdrop-filter: blur(25px) saturate(200%);
-    -webkit-backdrop-filter: blur(25px) saturate(200%);
-    border: 1px solid rgba(197, 160, 89, 0.2);
-    border-radius: var(--radius-main);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-    padding: 16px 20px;
+    background: rgba(15, 15, 18, 0.92);
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid color-mix(in srgb, var(--th-primary) 35%, transparent);
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
+        0 0 0 1px color-mix(in srgb, var(--th-primary) 10%, transparent);
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 20px;
-    transform: translateY(-100%) translateY(-16px) scale(0.95);
+    gap: 12px;
+    transform: translateY(-100%) translateY(-10px) scale(0.92);
     opacity: 0;
-    animation: toolbarEntry 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation: toolbarEntry 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
     pointer-events: auto;
+    transition: border-color 0.4s;
 }
 
 @keyframes toolbarEntry {
     to {
-        transform: translateY(-100%) translateY(-16px) scale(1);
+        transform: translateY(-100%) translateY(-10px) scale(1);
         opacity: 1;
     }
 }
 
 .toolbar-item {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
 }
 
 .toolbar-item label {
@@ -945,43 +957,59 @@ input:checked+.slider:before {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0;
+    min-width: 20px;
 }
 
 .toolbar-item input[type="range"] {
-    width: 90px;
+    width: 64px;
+    height: 4px;
 }
 
 .toolbar-val {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--th-primary);
     font-family: 'JetBrains Mono', monospace;
+    min-width: 30px;
+    transition: color 0.4s;
 }
 
 .toolbar-divider {
     width: 1px;
-    height: 32px;
+    height: 24px;
     background: rgba(255, 255, 255, 0.1);
+}
+
+.toolbar-count {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--th-primary);
+    background: color-mix(in srgb, var(--th-primary) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--th-primary) 35%, transparent);
+    border-radius: 20px;
+    padding: 1px 7px;
+    white-space: nowrap;
+    transition: color 0.4s, background 0.4s;
 }
 
 .toolbar-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-muted);
     cursor: pointer;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    transition: var(--transition-smooth);
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    transition: all 0.25s;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .toolbar-btn:hover {
-    background: var(--primary);
-    color: var(--bg-app);
+    background: var(--th-primary);
+    color: #fff;
 }
 
 /* ── Block Editing Highlights ── */
@@ -993,28 +1021,79 @@ input:checked+.slider:before {
 }
 
 .magmark>*:hover {
-    outline: 2px dashed rgba(212, 175, 55, 0.3);
-    outline-offset: 4px;
+    outline: 1px dashed color-mix(in srgb, var(--th-primary) 45%, transparent);
+    outline-offset: 3px;
 }
 
+/* Primary selected block (single or first of multi) */
 .block-editing {
-    outline: 2px solid #d4af37 !important;
-    outline-offset: 4px;
-    background: rgba(212, 175, 55, 0.03);
+    outline: 2px solid var(--th-primary) !important;
+    outline-offset: 3px;
+    background: color-mix(in srgb, var(--th-primary) 4%, transparent);
     position: relative;
     z-index: 10;
+    transition: outline-color 0.4s, background 0.4s;
 }
 
 .block-editing::after {
-    content: "BLOCK EDIT";
+    content: "EDIT";
     position: absolute;
-    top: -24px;
+    top: -18px;
     right: 0;
-    background: #d4af37;
-    color: white;
-    font-size: 10px;
+    background: var(--th-primary);
+    color: #fff;
+    font-size: 9px;
     font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 1px 5px;
+    border-radius: 3px;
     pointer-events: none;
+    transition: background 0.4s;
+}
+
+/* Multi-selection (shift-click or marquee) */
+.block-selected {
+    outline: 2px solid var(--th-primary) !important;
+    outline-offset: 3px;
+    background: color-mix(in srgb, var(--th-primary) 6%, transparent);
+    position: relative;
+    z-index: 9;
+    transition: outline-color 0.4s, background 0.4s;
+}
+
+.block-selected::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--th-primary) 30%, transparent);
+    pointer-events: none;
+}
+
+/* PS-style marquee selection rect */
+#marquee-rect {
+    position: fixed;
+    z-index: 3000;
+    border: 1.5px dashed var(--th-primary);
+    background: color-mix(in srgb, var(--th-primary) 8%, transparent);
+    pointer-events: none;
+    border-radius: 2px;
+    /* Ant march animation */
+    animation: marchingAnts 0.5s linear infinite;
+    background-clip: padding-box;
+}
+
+@keyframes marchingAnts {
+    0% {
+        border-dash-offset: 0;
+    }
+
+    100% {
+        border-dash-offset: 16px;
+    }
+}
+
+/* Fallback for border-dash-offset (use SVG outline via outline trick) */
+#marquee-rect {
+    border-style: dashed;
+    outline: none;
 }

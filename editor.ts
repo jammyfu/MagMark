@@ -17,6 +17,12 @@ const paginationBar = $('#pagination-bar');
 const pageInfo = $('#page-info');
 const toolbar = $('#block-toolbar');
 
+// Multi-selection state
+let selectedBlockIds: Set<string> = new Set();
+let marqueeEl: HTMLElement | null = null;
+let marqueeStart = { x: 0, y: 0 };
+let isDraggingMarquee = false;
+
 /**
  * Debounce helper for expensive render calls
  */
@@ -108,42 +114,101 @@ function renderScroll(md: string) {
  * Interaction Logic
  */
 function attachBlockListeners() {
+    const state = store.getState();
+
     previewArea.querySelectorAll('.magmark > *').forEach(block => {
         const b = block as HTMLElement;
         const bid = b.dataset.blockId;
+        if (!bid) return;
 
-        if (bid === store.getState().selectedBlockId) {
+        // Restore selection highlights from state
+        if (bid === state.selectedBlockId) {
             b.classList.add('block-editing');
-            setTimeout(() => positionToolbar(b), 10);
+        } else if (selectedBlockIds.has(bid)) {
+            b.classList.add('block-selected');
         }
 
         b.addEventListener('click', (e) => {
             e.stopPropagation();
-            selectBlock(b);
+            const me = e as MouseEvent;
+            if (me.shiftKey) {
+                shiftSelectBlock(b);
+            } else {
+                selectBlock(b);
+            }
         });
     });
+
+    // Marquee drag on preview-area background
+    previewArea.addEventListener('mousedown', onMarqueeStart, { capture: false });
 }
 
+/** Single-click select (clears previous selection) */
 function selectBlock(el: HTMLElement) {
     const bid = el.dataset.blockId;
     if (!bid) return;
 
-    previewArea.querySelectorAll('.block-editing').forEach(b => b.classList.remove('block-editing'));
+    // Clear all highlights
+    selectedBlockIds.clear();
+    previewArea.querySelectorAll('.block-editing, .block-selected').forEach(b => {
+        b.classList.remove('block-editing', 'block-selected');
+    });
+
     store.setState({ selectedBlockId: bid });
     el.classList.add('block-editing');
 
-    showToolbar(el);
+    showToolbar([el]);
 }
 
-function showToolbar(el: HTMLElement) {
-    toolbar.style.display = 'flex';
-    positionToolbar(el);
+/** Shift-click to add/remove from multi-selection */
+function shiftSelectBlock(el: HTMLElement) {
+    const bid = el.dataset.blockId;
+    if (!bid) return;
 
-    const bid = el.dataset.blockId!;
+    if (selectedBlockIds.has(bid)) {
+        // Deselect
+        selectedBlockIds.delete(bid);
+        el.classList.remove('block-selected', 'block-editing');
+    } else {
+        selectedBlockIds.add(bid);
+        el.classList.add('block-selected');
+        // Demote any existing block-editing to block-selected too
+        const state = store.getState();
+        if (state.selectedBlockId && state.selectedBlockId !== bid) {
+            selectedBlockIds.add(state.selectedBlockId);
+            const prev = previewArea.querySelector(`[data-block-id="${state.selectedBlockId}"]`);
+            prev?.classList.remove('block-editing');
+            prev?.classList.add('block-selected');
+        }
+    }
+
+    // If there are multi-selected blocks, show combined toolbar
+    const allSelected = Array.from(
+        previewArea.querySelectorAll('.block-selected, .block-editing')
+    ) as HTMLElement[];
+
+    if (allSelected.length > 0) {
+        store.setState({ selectedBlockId: allSelected[0].dataset.blockId || null });
+        showToolbar(allSelected);
+    } else {
+        toolbar.style.display = 'none';
+        store.setState({ selectedBlockId: null });
+    }
+}
+
+function showToolbar(els: HTMLElement | HTMLElement[]) {
+    const elArray = Array.isArray(els) ? els : [els];
+    if (elArray.length === 0) return;
+
+    const primary = elArray[0];
+    toolbar.style.display = 'flex';
+    positionToolbar(primary);
+
+    const bid = primary.dataset.blockId!;
     const state = store.getState();
     const over = state.blockOverrides[bid] || {
-        fontSize: parseInt(getComputedStyle(el).fontSize),
-        lineHeight: parseFloat(getComputedStyle(el).lineHeight) / parseInt(getComputedStyle(el).fontSize) || 1.75,
+        fontSize: parseInt(getComputedStyle(primary).fontSize),
+        lineHeight: parseFloat(getComputedStyle(primary).lineHeight) / parseInt(getComputedStyle(primary).fontSize) || 1.75,
         letterSpacing: 0
     };
 
@@ -153,13 +218,104 @@ function showToolbar(el: HTMLElement) {
     $('#toolbar-val-lineheight').textContent = over.lineHeight.toFixed(2);
     $<HTMLInputElement>('#toolbar-letterspacing').value = String(over.letterSpacing);
     $('#toolbar-val-letterspacing').textContent = over.letterSpacing.toFixed(2);
+
+    // Show count badge if multi-select
+    const count = elArray.length + selectedBlockIds.size;
+    const countBadge = $('#toolbar-count');
+    if (countBadge) {
+        countBadge.textContent = count > 1 ? `${count} 块已选` : '';
+        (countBadge as HTMLElement).style.display = count > 1 ? 'block' : 'none';
+    }
 }
 
 function positionToolbar(el: HTMLElement) {
     if (toolbar.style.display === 'none') return;
     const rect = el.getBoundingClientRect();
-    toolbar.style.top = `${rect.top}px`;
-    toolbar.style.left = `${rect.left}px`;
+    // Position above the element
+    const tbHeight = toolbar.offsetHeight || 48;
+    toolbar.style.top = `${rect.top - tbHeight - 10}px`;
+    toolbar.style.left = `${Math.max(8, rect.left)}px`;
+}
+
+/* ── Marquee (PS Box Select) ── */
+function onMarqueeStart(e: MouseEvent) {
+    // Only start marquee if dragging on the preview background (not on a block)
+    const target = e.target as HTMLElement;
+    if (target.closest('.magmark > *') || target.closest('.floating-toolbar')) return;
+    if (e.button !== 0) return;
+
+    isDraggingMarquee = false;
+    marqueeStart = { x: e.clientX, y: e.clientY };
+
+    const onMove = (ev: MouseEvent) => {
+        const dx = ev.clientX - marqueeStart.x;
+        const dy = ev.clientY - marqueeStart.y;
+        if (!isDraggingMarquee && Math.abs(dx) + Math.abs(dy) > 6) {
+            isDraggingMarquee = true;
+            marqueeEl = document.createElement('div');
+            marqueeEl.id = 'marquee-rect';
+            document.body.appendChild(marqueeEl);
+        }
+        if (!isDraggingMarquee || !marqueeEl) return;
+
+        const x = Math.min(ev.clientX, marqueeStart.x);
+        const y = Math.min(ev.clientY, marqueeStart.y);
+        const w = Math.abs(dx);
+        const h = Math.abs(dy);
+        marqueeEl.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+    };
+
+    const onUp = (ev: MouseEvent) => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+
+        if (isDraggingMarquee && marqueeEl) {
+            applyMarqueeSelection(ev);
+            marqueeEl.remove();
+            marqueeEl = null;
+        }
+        isDraggingMarquee = false;
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+}
+
+function applyMarqueeSelection(endEvent: MouseEvent) {
+    const x1 = Math.min(endEvent.clientX, marqueeStart.x);
+    const y1 = Math.min(endEvent.clientY, marqueeStart.y);
+    const x2 = Math.max(endEvent.clientX, marqueeStart.x);
+    const y2 = Math.max(endEvent.clientY, marqueeStart.y);
+
+    if (x2 - x1 < 6 && y2 - y1 < 6) return;
+
+    // Clear old selection
+    selectedBlockIds.clear();
+    previewArea.querySelectorAll('.block-editing, .block-selected').forEach(b => {
+        b.classList.remove('block-editing', 'block-selected');
+    });
+    store.setState({ selectedBlockId: null });
+
+    const hit: HTMLElement[] = [];
+    previewArea.querySelectorAll('.magmark > *').forEach(block => {
+        const b = block as HTMLElement;
+        const bid = b.dataset.blockId;
+        if (!bid) return;
+        const r = b.getBoundingClientRect();
+        const overlaps = r.left < x2 && r.right > x1 && r.top < y2 && r.bottom > y1;
+        if (overlaps) {
+            hit.push(b);
+            selectedBlockIds.add(bid);
+        }
+    });
+
+    if (hit.length === 0) return;
+
+    // First element = primary (block-editing), rest = block-selected
+    hit[0].classList.add('block-editing');
+    hit.slice(1).forEach(b => b.classList.add('block-selected'));
+    store.setState({ selectedBlockId: hit[0].dataset.blockId! });
+    showToolbar(hit);
 }
 
 /**
@@ -357,7 +513,10 @@ function initToolbar() {
     $('#toolbar-close').addEventListener('click', () => {
         toolbar.style.display = 'none';
         store.setState({ selectedBlockId: null });
-        previewArea.querySelectorAll('.block-editing').forEach(b => b.classList.remove('block-editing'));
+        selectedBlockIds.clear();
+        previewArea.querySelectorAll('.block-editing, .block-selected').forEach(b => {
+            b.classList.remove('block-editing', 'block-selected');
+        });
     });
 }
 
@@ -366,21 +525,29 @@ function updateBlockStyle(prop: keyof PageSetting, val: number) {
     const bid = state.selectedBlockId;
     if (!bid) return;
 
+    // Collect all selected block IDs (primary + multi-select)
+    const allBids = new Set<string>([bid, ...selectedBlockIds]);
     const blockStyles = { ...state.blockOverrides };
-    blockStyles[bid] = {
-        ...(blockStyles[bid] || { fontSize: state.fontSize, lineHeight: state.lineHeight, letterSpacing: state.letterSpacing }),
-        [prop]: val
-    };
+
+    allBids.forEach(id => {
+        blockStyles[id] = {
+            ...(blockStyles[id] || { fontSize: state.fontSize, lineHeight: state.lineHeight, letterSpacing: state.letterSpacing }),
+            [prop]: val
+        };
+        // Instant DOM feedback for all selected blocks
+        const el = previewArea.querySelector(`[data-block-id="${id}"]`) as HTMLElement;
+        if (el) {
+            if (prop === 'fontSize') el.style.fontSize = val + 'px';
+            if (prop === 'lineHeight') el.style.lineHeight = String(val);
+            if (prop === 'letterSpacing') el.style.letterSpacing = val + 'em';
+        }
+    });
+
     store.setState({ blockOverrides: blockStyles });
 
-    // Instant DOM feedback
-    const el = previewArea.querySelector(`[data-block-id="${bid}"]`) as HTMLElement;
-    if (el) {
-        if (prop === 'fontSize') el.style.fontSize = val + 'px';
-        if (prop === 'lineHeight') el.style.lineHeight = String(val);
-        if (prop === 'letterSpacing') el.style.letterSpacing = val + 'em';
-        positionToolbar(el);
-    }
+    // Reposition toolbar to primary
+    const primary = previewArea.querySelector(`[data-block-id="${bid}"]`) as HTMLElement;
+    if (primary) positionToolbar(primary);
 }
 
 async function exportPng() {
