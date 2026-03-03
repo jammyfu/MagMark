@@ -538,6 +538,8 @@ input:checked+.slider:before {
     scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;
+    /* Prevent text selection when drag-marquee is used */
+    user-select: none;
 }
 
 /* ---------- Page ---------- */
@@ -1079,27 +1081,48 @@ input:checked+.slider:before {
 #marquee-rect {
     position: fixed;
     z-index: 3000;
-    border: 1.5px dashed var(--th-primary);
-    background: color-mix(in srgb, var(--th-primary) 8%, transparent);
     pointer-events: none;
     border-radius: 2px;
-    /* Ant march animation */
-    animation: marchingAnts 0.5s linear infinite;
-    background-clip: padding-box;
+    /* Use outline trick for always-visible border */
+    border: 1.5px dashed var(--th-primary, #d4af37);
+    background: color-mix(in srgb, var(--th-primary, #d4af37) 10%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--th-primary, #d4af37) 20%, transparent);
+    /* Marching ants via background animation */
+    background-image:
+        repeating-linear-gradient(90deg,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 0,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 6px,
+            transparent 6px,
+            transparent 12px),
+        repeating-linear-gradient(0deg,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 0,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 6px,
+            transparent 6px,
+            transparent 12px),
+        repeating-linear-gradient(90deg,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 0,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 6px,
+            transparent 6px,
+            transparent 12px),
+        repeating-linear-gradient(0deg,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 0,
+            color-mix(in srgb, var(--th-primary, #d4af37) 50%, transparent) 6px,
+            transparent 6px,
+            transparent 12px);
+    background-size: 12px 2px, 2px 12px, 12px 2px, 2px 12px;
+    background-position: 0 0, 100% 0, 0 100%, 0 0;
+    background-repeat: repeat-x, repeat-y, repeat-x, repeat-y;
+    background-color: color-mix(in srgb, var(--th-primary, #d4af37) 8%, transparent);
+    border: none;
+    animation: marchingAnts 0.4s linear infinite;
 }
 
 @keyframes marchingAnts {
     0% {
-        border-dash-offset: 0;
+        background-position: 0 0, 100% 0, 0 100%, 0 0;
     }
 
     100% {
-        border-dash-offset: 16px;
+        background-position: 12px 0, 100% 12px, -12px 100%, 0 -12px;
     }
-}
-
-/* Fallback for border-dash-offset (use SVG outline via outline trick) */
-#marquee-rect {
-    border-style: dashed;
-    outline: none;
 }

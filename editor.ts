@@ -150,9 +150,7 @@ function attachBlockListeners() {
             }
         });
     });
-
-    // Marquee drag on preview-area background
-    previewArea.addEventListener('mousedown', onMarqueeStart, { capture: false });
+    // Note: marquee mousedown is bound once in init()
 }
 
 /** Single-click select (clears previous selection) */
@@ -250,11 +248,16 @@ function positionToolbar(el: HTMLElement) {
 }
 
 /* ── Marquee (PS Box Select) ── */
+let justFinishedMarquee = false;
+
 function onMarqueeStart(e: MouseEvent) {
-    // Only start marquee if dragging on the preview background (not on a block)
+    // Only start marquee if clicking on the preview background (not on a block)
     const target = e.target as HTMLElement;
     if (target.closest('.magmark > *') || target.closest('.floating-toolbar')) return;
     if (e.button !== 0) return;
+
+    // Prevent browser text selection during drag
+    e.preventDefault();
 
     isDraggingMarquee = false;
     marqueeStart = { x: e.clientX, y: e.clientY };
@@ -264,8 +267,11 @@ function onMarqueeStart(e: MouseEvent) {
         const dy = ev.clientY - marqueeStart.y;
         if (!isDraggingMarquee && Math.abs(dx) + Math.abs(dy) > 6) {
             isDraggingMarquee = true;
+            // Disable text selection on entire page while dragging
+            document.body.style.userSelect = 'none';
             marqueeEl = document.createElement('div');
             marqueeEl.id = 'marquee-rect';
+            // Inherit theme variables
             document.body.appendChild(marqueeEl);
         }
         if (!isDraggingMarquee || !marqueeEl) return;
@@ -274,17 +280,24 @@ function onMarqueeStart(e: MouseEvent) {
         const y = Math.min(ev.clientY, marqueeStart.y);
         const w = Math.abs(dx);
         const h = Math.abs(dy);
-        marqueeEl.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+        // Keep CSS class styles; only override position/size
+        marqueeEl.style.cssText =
+            `position:fixed;z-index:3000;left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
     };
 
     const onUp = (ev: MouseEvent) => {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        // Re-enable text selection
+        document.body.style.userSelect = '';
 
         if (isDraggingMarquee && marqueeEl) {
             applyMarqueeSelection(ev);
             marqueeEl.remove();
             marqueeEl = null;
+            // Signal to the click handler not to clear selection
+            justFinishedMarquee = true;
+            setTimeout(() => { justFinishedMarquee = false; }, 50);
         }
         isDraggingMarquee = false;
     };
@@ -451,8 +464,12 @@ function init() {
         render();
     });
 
-    // Click on preview bg → deselect all
+    // Marquee drag \u2014 bind ONCE here, not in attachBlockListeners
+    previewArea.addEventListener('mousedown', onMarqueeStart);
+
+    // Click on preview bg \u2192 deselect all (skip immediately after marquee)
     previewArea.addEventListener('click', (e) => {
+        if (justFinishedMarquee) return;
         const target = e.target as HTMLElement;
         if (!target.closest('.magmark > *') && !target.closest('.floating-toolbar')) {
             clearSelection();
