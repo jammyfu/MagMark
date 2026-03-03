@@ -1,0 +1,875 @@
+/* =========================================
+   MagMark 2.0 — Editor Design System
+   ========================================= */
+
+/* ---------- CSS Variables ---------- */
+:root {
+    --primary: #e63946;
+    --primary-hover: #c62d39;
+    --primary-glow: rgba(230, 57, 70, 0.15);
+    --accent: #457b9d;
+
+    --bg-body: #111118;
+    --bg-panel: #1a1a24;
+    --bg-input: #22222e;
+    --bg-hover: #2a2a38;
+    --bg-preview: #0e0e14;
+
+    --text-primary: #eaeaf0;
+    --text-secondary: #8888a0;
+    --text-muted: #55556a;
+
+    --border: #2e2e3e;
+    --border-light: #3e3e50;
+
+    --radius: 8px;
+    --radius-lg: 12px;
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Typography (updated via JS) */
+    --mm-font-size: 14px;
+    --mm-line-height: 1.75;
+    --mm-letter-spacing: 0.01em;
+    --mm-font-family: 'Source Han Serif SC', 'Noto Serif SC', serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+    background: var(--bg-body);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Header ---------- */
+header#app-header {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-icon {
+    font-size: 22px;
+    color: var(--primary);
+    filter: drop-shadow(0 0 6px var(--primary-glow));
+}
+
+.logo-text {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+}
+
+.logo-version {
+    color: #ffd700;
+    /* 1.4 黄金色版本标识 */
+    font-size: 13px;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn {
+    padding: 7px 16px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.btn-secondary {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.file-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 16px;
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+.file-upload-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-glow);
+}
+
+/* ---------- Main Layout ---------- */
+.main-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ---------- Editor Panel ---------- */
+.editor-panel {
+    width: 38%;
+    min-width: 300px;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-body);
+    border-right: 1px solid var(--border);
+}
+
+.panel-header {
+    background: var(--bg-panel);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.char-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+#markdown-input {
+    flex: 1;
+    width: 100%;
+    padding: 20px;
+    background: var(--bg-body);
+    color: var(--text-primary);
+    border: none;
+    resize: none;
+    font-family: 'JetBrains Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 13.5px;
+    line-height: 1.7;
+    outline: none;
+    tab-size: 4;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+#markdown-input:focus {
+    box-shadow: inset 2px 0 0 var(--primary);
+}
+
+#markdown-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ---------- Resize Handle ---------- */
+.resize-handle {
+    width: 5px;
+    cursor: col-resize;
+    background: var(--border);
+    transition: background var(--transition);
+    flex-shrink: 0;
+}
+
+.resize-handle:hover,
+.resize-handle.active {
+    background: var(--primary);
+}
+
+/* ---------- Preview Panel ---------- */
+.preview-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-body);
+}
+
+/* ---------- Controls Bar ---------- */
+.controls-bar {
+    background: var(--bg-panel);
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.control-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.val {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+select {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    padding: 6px 32px 6px 10px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238888a0' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+select:hover {
+    border-color: var(--text-secondary);
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+input[type="range"] {
+    width: 120px;
+    accent-color: var(--primary);
+    cursor: pointer;
+    height: 4px;
+}
+
+.mode-toggle {
+    display: flex;
+    gap: 2px;
+}
+
+.mode-btn {
+    padding: 5px 14px;
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+.mode-btn:first-child {
+    border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.mode-btn:last-child {
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.mode-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.mode-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+/* ---------- Switch ---------- */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-input);
+    transition: .4s;
+    border-radius: 20px;
+    border: 1px solid var(--border-light);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background-color: var(--text-secondary);
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+input:checked+.slider:before {
+    transform: translateX(14px);
+    background-color: white;
+}
+
+
+/* ---------- Preview Area ---------- */
+.preview-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    background: var(--bg-preview);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* ---------- Page ---------- */
+.page {
+    background: #fff;
+    color: #1a1a2e;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 8px 24px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: box-shadow var(--transition);
+}
+
+.page:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.page-a4 {
+    width: 595px;
+    min-height: 842px;
+    padding: 56px 52px 40px;
+}
+
+.page-mobile {
+    width: 393px;
+    min-height: 852px;
+    padding: 32px 24px 32px;
+}
+
+.page-desktop {
+    width: 800px;
+    min-height: 1000px;
+    padding: 64px 72px 40px;
+}
+
+.page.scrollable {
+    min-height: auto;
+    padding-bottom: 80px;
+}
+
+/* ---------- Page Settings Indicator ---------- */
+.page-setting-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--primary);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    opacity: 0.8;
+}
+
+/* ---------- Page Footer ---------- */
+.page-footer {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 9px;
+    color: #bbb;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ---------- Placeholder ---------- */
+.placeholder {
+    text-align: center;
+    padding: 80px 20px;
+    color: #999;
+}
+
+.placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+}
+
+.placeholder p {
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+/* =========================================
+   MagMark Typography (Preview Content)
+   ========================================= */
+.magmark {
+    font-size: var(--mm-font-size);
+    line-height: var(--mm-line-height);
+    letter-spacing: var(--mm-letter-spacing);
+    font-family: var(--mm-font-family);
+}
+
+.magmark h1 {
+    font-size: calc(var(--mm-font-size) * 2.2);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: calc(var(--mm-font-size) * 1);
+    color: #1a1a2e;
+    letter-spacing: -0.5px;
+    border-bottom: 3px solid #eee;
+    padding-bottom: 12px;
+}
+
+.magmark h2 {
+    font-size: calc(var(--mm-font-size) * 1.65);
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: calc(var(--mm-font-size) * 1.6);
+    margin-bottom: calc(var(--mm-font-size) * 0.8);
+    color: #2d2d44;
+    border-bottom: 2px solid #f0f0f5;
+    padding-bottom: 8px;
+}
+
+.magmark h3 {
+    font-size: calc(var(--mm-font-size) * 1.35);
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: calc(var(--mm-font-size) * 1.3);
+    margin-bottom: calc(var(--mm-font-size) * 0.5);
+    color: #3a3a55;
+}
+
+.magmark h4 {
+    font-size: calc(var(--mm-font-size) * 1.15);
+    font-weight: 600;
+    margin-top: 1em;
+    margin-bottom: 0.4em;
+}
+
+.magmark p {
+    text-align: justify;
+    text-justify: inter-character;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    margin-bottom: calc(var(--mm-font-size) * 1.1);
+    word-break: break-all;
+    /* CJK 强制换行 */
+    letter-spacing: 0.01em;
+    hanging-punctuation: first last;
+    /* 1.4 高级标点悬挂 */
+}
+
+.magmark strong {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.magmark em {
+    font-style: italic;
+}
+
+.magmark a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.magmark code {
+    font-family: 'JetBrains Mono', 'Monaco', monospace;
+    background: #f4f4f8;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #c0392b;
+    font-size: 0.88em;
+    border: 1px solid #e8e8ee;
+}
+
+.magmark pre {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 20px 24px;
+    border-radius: 10px;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: calc(var(--mm-font-size) * 1.5) 0;
+    border-left: 4px solid var(--primary);
+    font-family: 'JetBrains Mono', 'Monaco', monospace;
+    font-size: calc(var(--mm-font-size) * 0.82);
+    line-height: 1.6;
+    letter-spacing: 0;
+    /* 代码通常不需要额外字间距 */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.magmark pre code {
+    background: none;
+    padding: 0;
+    border: none;
+    color: inherit;
+    font-size: inherit;
+}
+
+.magmark blockquote {
+    border-left: 4px solid var(--primary);
+    margin: calc(var(--mm-font-size) * 1.5) 0;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, rgba(230, 57, 70, 0.04) 0%, transparent 100%);
+    font-style: italic;
+    color: #555;
+    border-radius: 0 10px 10px 0;
+    position: relative;
+}
+
+.magmark blockquote::before {
+    content: "«";
+    font-size: 2.2em;
+    color: var(--primary);
+    opacity: 0.15;
+    position: absolute;
+    top: 8px;
+    left: 12px;
+}
+
+.magmark blockquote p {
+    margin-bottom: 0.4em;
+}
+
+.magmark ul,
+.magmark ol {
+    padding-left: 28px;
+    margin-bottom: calc(var(--mm-font-size) * 1.1);
+}
+
+.magmark li {
+    margin-bottom: 4px;
+    line-height: var(--mm-line-height);
+}
+
+.magmark li::marker {
+    color: var(--primary);
+}
+
+.magmark table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: calc(var(--mm-font-size) * 1.5) 0;
+    border: 1px solid #e0e0e8;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 0.92em;
+}
+
+.magmark th,
+.magmark td {
+    border: 1px solid #e8e8ee;
+    padding: 10px 14px;
+    text-align: left;
+}
+
+.magmark th {
+    background: linear-gradient(to bottom, #fafafe, #f0f0f5);
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 0.2px;
+}
+
+.magmark tr:nth-child(even) {
+    background: #fafaff;
+}
+
+.magmark hr {
+    border: none;
+    border-top: 2px solid #eee;
+    margin: calc(var(--mm-font-size) * 2) 0;
+}
+
+.magmark img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
+/* ---------- Pagination Bar ---------- */
+.pagination-bar {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.page-btn {
+    padding: 6px 20px;
+    border: 1px solid var(--border-light);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    min-width: 100px;
+    font-family: inherit;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    min-width: 100px;
+    text-align: center;
+    letter-spacing: 0.3px;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-light);
+}
+
+/* ---------- Animations ---------- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ── Floating Toolbar (1.4 Independent Block Edit) ── */
+.floating-toolbar {
+    position: fixed;
+    z-index: 2000;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transform: translateY(-100%) translateY(-12px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: auto;
+}
+
+.toolbar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.toolbar-item label {
+    font-size: 11px;
+    color: #666;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.toolbar-item input[type="range"] {
+    width: 80px;
+    cursor: pointer;
+}
+
+.toolbar-val {
+    font-size: 12px;
+    font-weight: 700;
+    color: #d4af37;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toolbar-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+/* ── Block Editing Highlights ── */
+.magmark>* {
+    transition: outline 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+    border-radius: 4px;
+}
+
+.magmark>*:hover {
+    outline: 2px dashed rgba(212, 175, 55, 0.3);
+    outline-offset: 4px;
+}
+
+.block-editing {
+    outline: 2px solid #d4af37 !important;
+    outline-offset: 4px;
+    background: rgba(212, 175, 55, 0.03);
+    position: relative;
+    z-index: 10;
+}
+
+.block-editing::after {
+    content: "BLOCK EDIT";
+    position: absolute;
+    top: -24px;
+    right: 0;
+    background: #d4af37;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+}

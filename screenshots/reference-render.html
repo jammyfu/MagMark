@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagMark 2.0 - Visual Test Suite</title>
+    <style>
+        :root {
+            --primary: #d32f2f;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --bg: #ffffff;
+            --border: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Han Serif SC', 'Noto Serif SC', 'SimSun', serif;
+            font-size: 14pt;
+            line-height: 1.75;
+            color: var(--text-primary);
+            background: #f5f5f5;
+            padding: 2rem;
+        }
+
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 32pt;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1.5em;
+            color: var(--primary);
+        }
+
+        h2 {
+            font-size: 24pt;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-top: 2em;
+            margin-bottom: 1em;
+            padding-bottom: 0.5em;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            font-size: 18pt;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 1.5em;
+            margin-bottom: 0.75em;
+        }
+
+        p {
+            margin-bottom: 1.5em;
+            text-align: justify;
+        }
+
+        strong {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        code {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12pt;
+            background: #f5f5f5;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            color: var(--primary);
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 1.5em;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11pt;
+            line-height: 1.6;
+            margin: 1.5em 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        blockquote {
+            margin: 1.5em 0;
+            padding: 1.5em 2em;
+            border-left: 4px solid var(--primary);
+            background: linear-gradient(to right, #fafafa, white);
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        blockquote cite {
+            display: block;
+            margin-top: 1em;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-style: normal;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2em 0;
+        }
+
+        th, td {
+            padding: 1em;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th {
+            background: #fafafa;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #fdfdfd;
+        }
+
+        ul, ol {
+            margin: 1.5em 0;
+            padding-left: 2em;
+        }
+
+        li {
+            margin: 0.75em 0;
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5em;
+            margin: 2em 0;
+        }
+
+        .platform-card {
+            padding: 1.5em;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fafafa;
+            text-align: center;
+        }
+
+        .platform-card h4 {
+            font-size: 16pt;
+            margin-bottom: 0.5em;
+            color: var(--primary);
+        }
+
+        .tag {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.2em 0.8em;
+            border-radius: 20px;
+            font-size: 10pt;
+            margin-right: 0.5em;
+            margin-top: 0.5em;
+        }
+
+        .metadata {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2em;
+            padding-bottom: 1.5em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .date {
+            color: var(--text-secondary);
+            margin-left: 1em;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .test-container {
+                box-shadow: none;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <header>
+            <h1>🎨 MagMark 2.0</h1>
+            <p><strong>专业杂志级 Markdown 转换器</strong></p>
+            
+            <div class="metadata">
+                <span class="author">Jammy Fu · Founder & Lead Architect</span>
+                <time class="date" datetime="2026-03-03">March 3, 2026</time>
+            </div>
+        </header>
+
+        <section>
+            <blockquote>
+                "MagMark 将普通的 Markdown 文档转变为具有顶级杂志排版质量的出版级内容。每一处细节都经过精心设计，确保最终成果媲美专业印刷品。"
+                <cite>— MagMark Team</cite>
+            </blockquote>
+
+            <h2>核心特性</h2>
+            
+            <div class="platform-grid">
+                <div class="platform-card">
+                    <h4>✨ Typography</h4>
+                    <p>精准行高 1.75x<br>中英自动空格<br>标点悬挂控制</p>
+                </div>
+                <div class="platform-card">
+                    <h4>📄 Pagination</h4>
+                    <p>Paged.js<br>基线网格<br>手动分页标记</p>
+                </div>
+                <div class="platform-card">
+                    <h4>🖼️ Multi-Platform</h4>
+                    <p>小红书 / 微信<br>PDF / Web<br>多分辨率导出</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>技术实现</h2>
+            <pre><code>// Basic usage example
+const magmark = new MagMark({ platform: 'web' });
+
+const html = await magmark.render(`
+# Hello World
+
+This is **magazine-quality** content.
+`);</code></pre>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Status</th>
+                        <th>Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>CJK Spacing</td>
+                        <td>✅ Complete</td>
+                        <td>&lt;5ms</td>
+                    </tr>
+                    <tr>
+                        <td>Widow Prevention</td>
+                        <td>✅ Complete</td>
+                        <td>O(n²)</td>
+                    </tr>
+                    <tr>
+                        <td>Typst Export</td>
+                        <td>✅ Complete</td>
+                        <td>&lt;200ms/page</td>
+                    </tr>
+                    <tr>
+                        <td>Baseline Grid</td>
+                        <td>✅ Complete</td>
+                        <td>N/A</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>高级功能演示</h2>
+            
+            <h3>智能引用块</h3>
+            <blockquote>
+                "设计不是看起来像什么，而是它如何工作。"— Steve Jobs
+            </blockquote>
+
+            <h3>代码高亮</h3>
+            <pre><code>import { generateArticleSchema } from 'magmark-2.0/seo';
+
+const schema = generateArticleSchema({
+  headline: 'MagMark 2.0 Guide',
+  description: 'Complete documentation',
+  author: 'Jammy Fu',
+  datePublished: '2026-03-03T08:00:00Z',
+  image: '/images/cover.jpg'
+});</code></pre>
+
+            <h3>数据表格展示</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Platform</th>
+                        <th>Size</th>
+                        <th>Ratio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Xiaohongshu</td>
+                        <td>1080×1440px</td>
+                        <td>3:4</td>
+                    </tr>
+                    <tr>
+                        <td>WeChat</td>
+                        <td>1080px × Auto</td>
+                        <td>Vertical</td>
+                    </tr>
+                    <tr>
+                        <td>A4 PDF</td>
+                        <td>210×297mm</td>
+                        <td>√2</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>标签系统</h3>
+            <span class="tag">#Typography</span>
+            <span class="tag">#SEO</span>
+            <span class="tag">#Multimedia</span>
+            <span class="tag">#Accessibility</span>
+        </section>
+
+        <footer style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary);">
+            <p>Made with ❤️ for beautiful publishing</p>
+            <p style="font-size: 11pt; margin-top: 0.5em;">v2.0 • © 2026 MagMark Team • MIT License</p>
+        </footer>
+    </div>
+
+    <script>
+        // Add visual debug overlay (optional)
+        console.log('MagMark 2.0 Visual Test Suite Loaded');
+    </script>
+</body>
+</html>

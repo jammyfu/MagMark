@@ -1,0 +1,388 @@
+/**
+ * MagMark 2.0 - Editor Styles
+ * Magazine-quality editor styling
+ */
+
+/* ===== Container ===== */
+.mm-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+  font-family: 'Source Han Serif SC', 'Noto Serif SC', 'SimSun', serif;
+}
+
+/* ===== Mode Switcher ===== */
+.mm-mode-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mm-mode-switcher button {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.mm-mode-switcher button:hover {
+  background: #e0e0e0;
+}
+
+.mm-mode-switcher button.mm-mode-btn--active {
+  background: #d32f2f;
+  color: white;
+}
+
+/* ===== Toolbar ===== */
+.mm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.mm-toolbar-group {
+  display: flex;
+  gap: 2px;
+}
+
+.mm-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #e0e0e0;
+  margin: 0 4px;
+}
+
+.mm-toolbar-btn {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  min-width: 32px;
+}
+
+.mm-toolbar-btn:hover {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.mm-toolbar-btn--active {
+  background: #d32f2f;
+  color: white;
+}
+
+.mm-toolbar-btn--active:hover {
+  background: #b71c1c;
+}
+
+/* ===== Editor Panels ===== */
+.mm-editor-panels {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.mm-wysiwyg-panel,
+.mm-source-panel {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+
+.mm-wysiwyg-panel {
+  border-right: 1px solid #e0e0e0;
+}
+
+/* ===== Editor Wrapper ===== */
+.mm-editor-wrapper {
+  max-width: 680px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ===== ProseMirror Editor ===== */
+.mm-editor .ProseMirror {
+  outline: none;
+  min-height: 400px;
+  line-height: 1.75;
+  color: #1a1a1a;
+}
+
+/* Typography */
+.mm-editor .ProseMirror p {
+  margin: 0 0 1.5em 0;
+  font-size: 14px;
+  line-height: 1.75;
+  orphans: 2;
+  widows: 2;
+}
+
+.mm-editor .ProseMirror h1 {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 1.5em 0 0.75em 0;
+  color: #1a1a1a;
+  orphans: 2;
+  widows: 2;
+}
+
+.mm-editor .ProseMirror h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.5em 0 0.75em 0;
+  color: #1a1a1a;
+}
+
+.mm-editor .ProseMirror h3 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.25em 0 0.5em 0;
+  color: #1a1a1a;
+}
+
+.mm-editor .ProseMirror h4 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 1em 0 0.5em 0;
+  color: #1a1a1a;
+}
+
+/* Lists */
+.mm-editor .ProseMirror ul,
+.mm-editor .ProseMirror ol {
+  margin: 0 0 1.5em 0;
+  padding-left: 2em;
+}
+
+.mm-editor .ProseMirror li {
+  margin: 0.5em 0;
+  line-height: 1.75;
+}
+
+.mm-editor .ProseMirror ul li {
+  list-style-type: disc;
+}
+
+.mm-editor .ProseMirror ol li {
+  list-style-type: decimal;
+}
+
+/* Blockquotes */
+.mm-editor .ProseMirror blockquote {
+  margin: 1.5em 0;
+  padding: 1em 1.5em;
+  border-left: 4px solid #d32f2f;
+  background: #fafafa;
+  font-style: italic;
+}
+
+.mm-editor .ProseMirror blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Code */
+.mm-editor .ProseMirror code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.9em;
+}
+
+.mm-editor .ProseMirror pre {
+  background: #f5f5f5;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.mm-editor .ProseMirror pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Images */
+.mm-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5em auto;
+}
+
+.mm-editor .ProseMirror figure {
+  margin: 1.5em 0;
+}
+
+.mm-editor .ProseMirror figcaption {
+  font-size: 12px;
+  color: #666666;
+  text-align: center;
+  margin-top: 0.5em;
+}
+
+/* Links */
+.mm-editor .ProseMirror a {
+  color: #d32f2f;
+  text-decoration: underline;
+}
+
+/* Selection */
+.mm-editor .ProseMirror ::selection {
+  background: rgba(211, 47, 47, 0.2);
+}
+
+/* Placeholder */
+.mm-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #999999;
+  pointer-events: none;
+  height: 0;
+}
+
+/* ===== Page Break Widget ===== */
+.mm-page-break-widget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  margin: 16px 0;
+  color: #999999;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.mm-page-break-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+}
+
+.mm-page-break-icon {
+  font-size: 16px;
+}
+
+.mm-page-break-text {
+  white-space: nowrap;
+}
+
+/* ===== Source Editor ===== */
+.mm-source-editor {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  background: #fafafa;
+  padding: 24px;
+}
+
+/* ===== Baseline Grid Overlay ===== */
+.mm-baseline-grid-overlay {
+  pointer-events: none;
+}
+
+/* ===== Status Bar ===== */
+.mm-status-bar {
+  display: flex;
+  gap: 24px;
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+  font-size: 12px;
+  color: #666666;
+}
+
+.mm-status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ===== Magazine Nodes ===== */
+.mm-figure--full-bleed {
+  margin-left: -24px;
+  margin-right: -24px;
+  width: calc(100% + 48px);
+}
+
+.mm-image--full-bleed {
+  width: 100%;
+  border-radius: 0;
+}
+
+.mm-pull-quote {
+  position: relative;
+  padding: 1.5em 2em;
+  margin: 1.5em 0;
+  background: #fafafa;
+  border-left: 4px solid #d32f2f;
+}
+
+.mm-pull-quote--right {
+  border-left: none;
+  border-right: 4px solid #d32f2f;
+  text-align: right;
+}
+
+.mm-pull-quote--full {
+  border-left: none;
+  border-top: 4px solid #d32f2f;
+  border-bottom: 4px solid #d32f2f;
+  text-align: center;
+}
+
+.mm-grid-container {
+  display: grid;
+  gap: 24px;
+  margin: 1.5em 0;
+}
+
+.mm-page-break {
+  display: block;
+  page-break-after: always;
+  break-after: page;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .mm-editor-panels {
+    flex-direction: column;
+  }
+  
+  .mm-wysiwyg-panel {
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .mm-toolbar {
+    padding: 8px;
+  }
+  
+  .mm-toolbar-group {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagMark 1.4 — Ultra-Precision & Smart Hyphenation Editor</title>
+    <meta name="description" content="MagMark 1.4 终极优化版：彻底告别 PDF 存图，强制齐行 + 自动连字符，高精度 Canvas 导出。">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/editor.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <div class="logo">
+            <span class="logo-icon">✦</span>
+            <span class="logo-text">MagMark <span class="logo-version">1.4</span></span>
+        </div>
+        <div class="header-actions">
+            <label class="file-upload-btn" id="file-upload-label">
+                <span>📂 打开文件</span>
+                <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden>
+            </label>
+            <button class="btn btn-secondary" id="btn-save" title="保存 Markdown">💾 保存</button>
+            <button class="btn btn-primary" id="btn-export" title="导出高精度 PNG">📸 导出 PNG</button>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="main-container">
+        <!-- Left: Editor Panel -->
+        <div class="editor-panel" id="editor-panel">
+            <div class="panel-header">
+                <span class="panel-title">📝 Markdown 编辑器</span>
+                <span class="char-count" id="char-count">0 字符</span>
+            </div>
+            <textarea id="markdown-input" spellcheck="false"
+                placeholder="# 在此输入 Markdown…&#10;&#10;开始输入即可看到实时预览和智能分页效果。"></textarea>
+        </div>
+
+        <!-- Resize Handle -->
+        <div class="resize-handle" id="resize-handle"></div>
+
+        <!-- Right: Preview Panel -->
+        <div class="preview-panel" id="preview-panel">
+            <!-- Controls Bar -->
+            <div class="controls-bar" id="controls-bar">
+                <div class="control-group">
+                    <label class="control-label">字体</label>
+                    <select id="ctrl-font">
+                        <option value="'Source Han Serif SC', 'Noto Serif SC', serif">衬线体 (杂志)</option>
+                        <option value="'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif">无衬线体</option>
+                        <option value="'Helvetica Neue', Arial, sans-serif">Helvetica</option>
+                        <option value="'JetBrains Mono', 'Monaco', 'Menlo', monospace">等宽字体</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">字号 <span class="val" id="val-fontsize">14pt</span></label>
+                    <input type="range" id="ctrl-fontsize" min="10" max="24" value="14">
+                </div>
+                <div class="control-group">
+                    <label class="control-label">行高 <span class="val" id="val-lineheight">1.75×</span></label>
+                    <input type="range" id="ctrl-lineheight" min="1" max="3" step="0.05" value="1.75">
+                </div>
+                <div class="control-group">
+                    <label class="control-label">字间距 <span class="val" id="val-letterspacing">0.01em</span></label>
+                    <input type="range" id="ctrl-letterspacing" min="-0.05" max="0.2" step="0.01" value="0.01">
+                </div>
+                <div class="control-group">
+                    <label class="control-label">页面格式</label>
+                    <select id="ctrl-format">
+                        <option value="a4">A4 打印</option>
+                        <option value="mobile">手机 (393px)</option>
+                        <option value="desktop">桌面 (800px)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">视图</label>
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" id="btn-multi" data-mode="multi">分页</button>
+                        <button class="mode-btn" id="btn-scroll" data-mode="scroll">长文</button>
+                    </div>
+                </div>
+                <div class="control-group" id="page-override-group" style="display: flex;">
+                    <label class="control-label">单页独立</label>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-page-override">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="control-group" id="manual-pag-group" style="display: flex;">
+                    <label class="control-label">手动分页</label>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-manual-pagination">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Preview Area -->
+            <div class="preview-area" id="preview-area">
+                <div class="page page-a4" id="page-initial">
+                    <div class="page-content magmark" id="render-target">
+                        <div class="placeholder">
+                            <div class="placeholder-icon">✦</div>
+                            <p>在左侧输入 Markdown，预览将在这里实时呈现</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" id="pagination-bar" style="display:none;">
+                <button class="page-btn" id="btn-prev" disabled>← 上一页</button>
+                <span class="page-info" id="page-info">第 1 / 1 页</span>
+                <button class="page-btn" id="btn-next" disabled>下一页 →</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Block Floating Toolbar -->
+    <div id="block-toolbar" class="floating-toolbar" style="display: none;">
+        <div class="toolbar-item">
+            <label>字号</label>
+            <input type="range" id="toolbar-fontsize" min="10" max="64" step="1">
+            <span class="toolbar-val" id="toolbar-val-fontsize">14pt</span>
+        </div>
+        <div class="toolbar-item">
+            <label>行高</label>
+            <input type="range" id="toolbar-lineheight" min="1" max="3" step="0.05">
+            <span class="toolbar-val" id="toolbar-val-lineheight">1.75</span>
+        </div>
+        <div class="toolbar-item">
+            <label>间距</label>
+            <input type="range" id="toolbar-letterspacing" min="-0.1" max="0.5" step="0.01">
+            <span class="toolbar-val" id="toolbar-val-letterspacing">0.01</span>
+        </div>
+        <div class="toolbar-divider"></div>
+        <button id="toolbar-close" class="toolbar-btn">✕</button>
+    </div>
+
+    <script type="module" src="/editor.ts"></script>
+</body>
+
+</html>
