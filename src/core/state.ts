@@ -21,6 +21,7 @@ export interface AppState {
     selectedBlockId: string | null;
     isProcessing: boolean;
     theme: string;
+    scale: number;
 }
 
 export const initialState: AppState = {
@@ -40,6 +41,7 @@ export const initialState: AppState = {
     selectedBlockId: null,
     isProcessing: false,
     theme: 'elite',
+    scale: 1,
 };
 
 class StateManager {

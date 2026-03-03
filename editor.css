@@ -561,23 +561,27 @@ input:checked+.slider:before {
 
 .page-a4 {
     width: 595px;
-    min-height: 842px;
+    height: 842px;
     padding: 56px 52px 40px;
+    overflow: hidden;
 }
 
 .page-mobile {
     width: 393px;
-    min-height: 852px;
+    height: 852px;
     padding: 32px 24px 32px;
+    overflow: hidden;
 }
 
 .page-desktop {
     width: 800px;
-    min-height: 1000px;
+    height: 1000px;
     padding: 64px 72px 40px;
+    overflow: hidden;
 }
 
 .page.scrollable {
+    height: auto;
     min-height: auto;
     padding-bottom: 80px;
     overflow: visible;
@@ -641,7 +645,8 @@ input:checked+.slider:before {
     font-size: var(--mm-font-size);
     line-height: var(--mm-line-height);
     letter-spacing: var(--mm-letter-spacing);
-    font-family: var(--th-font-body, var(--mm-font-family));
+    /* Priority: user-selected > theme > default mm-font-family */
+    font-family: var(--user-font-family, var(--th-font-body, var(--mm-font-family)));
 }
 
 .magmark h1 {
@@ -650,7 +655,7 @@ input:checked+.slider:before {
     line-height: 1.2;
     margin-bottom: calc(var(--mm-font-size) * 1);
     color: var(--th-primary);
-    font-family: var(--th-font-head, inherit);
+    font-family: var(--user-font-family, var(--th-font-head, inherit));
     letter-spacing: -0.5px;
     border-bottom: 3px solid var(--th-accent);
     padding-bottom: 12px;
@@ -664,7 +669,7 @@ input:checked+.slider:before {
     margin-bottom: calc(var(--mm-font-size) * 0.8);
     color: var(--th-primary);
     opacity: 0.95;
-    font-family: var(--th-font-head, inherit);
+    font-family: var(--user-font-family, var(--th-font-head, inherit));
     border-bottom: 2px solid var(--th-accent);
     padding-bottom: 8px;
 }

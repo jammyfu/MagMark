@@ -82,6 +82,13 @@ function renderPages() {
         page.dataset.page = String(pageNum);
         page.style.display = pageNum === state.currentPage ? 'block' : 'none';
 
+        // Apply scale transform (origin top-center so it stays centered)
+        page.style.transformOrigin = 'top center';
+        page.style.transform = `scale(${state.scale})`;
+        // Adjust margin so gaps between pages look correct at any zoom
+        const dims = getPageDimensions(state.format);
+        page.style.marginBottom = `${(dims.h * state.scale - dims.h) + 32}px`;
+
         // Apply page-level styles
         const s = pageData.settings;
         page.style.setProperty('--mm-font-size', s.fontSize + 'px');
@@ -109,7 +116,7 @@ function renderScroll(md: string) {
     const state = store.getState();
     const formatClass = 'page-' + state.format;
     previewArea.innerHTML = `
-        <div class="page ${formatClass} scrollable">
+        <div class="page ${formatClass} scrollable" style="transform-origin:top center;transform:scale(${state.scale})">
             <div class="scroll-container magmark">${html}</div>
         </div>`;
     paginationBar.style.display = 'none';
@@ -323,6 +330,16 @@ function applyMarqueeSelection(endEvent: MouseEvent) {
     showToolbar(hit);
 }
 
+/** Clears all block selections and hides the floating toolbar */
+function clearSelection() {
+    selectedBlockIds.clear();
+    store.setState({ selectedBlockId: null });
+    previewArea.querySelectorAll('.block-editing, .block-selected').forEach(b => {
+        b.classList.remove('block-editing', 'block-selected');
+    });
+    toolbar.style.display = 'none';
+}
+
 /**
  * Utility: Simplified Markdown (Real version should use unified/remark)
  * For the sake of the refactor script, we'll use a placeholder or keep previous logic if accessible
@@ -415,7 +432,36 @@ function init() {
         const theme = (e.target as HTMLSelectElement).value;
         store.setState({ theme });
         applyTheme();
-        render(); // Re-render to ensure layouts handle new fonts
+        render();
+    });
+
+    // Font selector — sets user override variable so it wins over theme fonts
+    $<HTMLSelectElement>('#ctrl-font').addEventListener('change', (e) => {
+        const val = (e.target as HTMLSelectElement).value;
+        store.setState({ fontFamily: val });
+        document.documentElement.style.setProperty('--user-font-family', val);
+        applyGlobalStyles();
+        debouncedRender();
+    });
+
+    // Scale selector
+    $<HTMLSelectElement>('#ctrl-scale').addEventListener('change', (e) => {
+        const scale = parseFloat((e.target as HTMLSelectElement).value);
+        store.setState({ scale });
+        render();
+    });
+
+    // Click on preview bg → deselect all
+    previewArea.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.magmark > *') && !target.closest('.floating-toolbar')) {
+            clearSelection();
+        }
+    });
+
+    // Esc key also deselects
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') clearSelection();
     });
 
     // View Mode
