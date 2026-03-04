@@ -1,10 +1,10 @@
-# MagMark 1.4 🎨✨
+# MagMark 1.4.1 🎨✨
 
 **世界级杂志级 Markdown 排版引擎 — 终极优化版**
 
 将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 1.4 彻底革新了导出流水线，带来了媲美《VOGUE》等高端纸媒的视觉体验。
 
-[![版本](https://img.shields.io/badge/version-1.4.0-gold.svg)](https://github.com/magmark/magmark-1.4)
+[![版本](https://img.shields.io/badge/version-1.4.1-gold.svg)](https://github.com/jammyfu/MagMark)
 [![许可](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -123,4 +123,4 @@ magmark-1.4/
 
 **为追求极致排版美学的创作者而生 ❤️**
 
-*最近更新：2026-03-03*
+*最近更新：2026-03-04 · v1.4.1*

@@ -10,7 +10,7 @@ export interface AppState {
     lineHeight: number;
     letterSpacing: number;
     fontFamily: string;
-    format: 'a4' | 'mobile' | 'desktop';
+    format: 'a4' | 'mobile' | 'desktop' | 'xiaohongshu';
     viewMode: 'multi' | 'scroll';
     manualPagination: boolean;
     currentPage: number;

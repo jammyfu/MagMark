@@ -66,49 +66,74 @@ async function render() {
 }
 
 const debouncedRender = debounce(render, 300);
+// Slower debounce for style sliders: instant visual update, lazy re-paginate
+const debouncedRenderSlow = debounce(render, 1000);
 
 /**
  * Multi-Page Display Logic
  */
+/**
+ * Multi-Page Display Logic
+ * Uses opacity fade to prevent flash-of-blank during re-render
+ */
 function renderPages() {
     const state = store.getState();
-    previewArea.innerHTML = '';
 
-    state.pageHtmls.forEach((pageData, i) => {
-        const pageNum = i + 1;
-        const page = document.createElement('div');
-        const formatClass = 'page-' + state.format;
-        page.className = `page ${formatClass}`;
-        page.dataset.page = String(pageNum);
-        page.style.display = pageNum === state.currentPage ? 'block' : 'none';
+    // Fade-to-invisible first to prevent blank flash
+    previewArea.style.opacity = '0';
+    previewArea.style.transition = 'opacity 0.12s ease';
 
-        // Apply scale transform (origin top-center so it stays centered)
-        page.style.transformOrigin = 'top center';
-        page.style.transform = `scale(${state.scale})`;
-        // Adjust margin so gaps between pages look correct at any zoom
-        const dims = getPageDimensions(state.format);
-        page.style.marginBottom = `${(dims.h * state.scale - dims.h) + 32}px`;
+    // Use requestAnimationFrame to allow paint before rebuilding
+    requestAnimationFrame(() => {
+        previewArea.innerHTML = '';
 
-        // Apply page-level styles
-        const s = pageData.settings;
-        page.style.setProperty('--mm-font-size', s.fontSize + 'px');
-        page.style.setProperty('--mm-line-height', String(s.lineHeight));
-        page.style.setProperty('--mm-letter-spacing', s.letterSpacing + 'em');
-        page.style.setProperty('--mm-font-family', state.fontFamily);
+        state.pageHtmls.forEach((pageData, i) => {
+            const pageNum = i + 1;
+            const page = document.createElement('div');
+            const formatClass = 'page-' + state.format;
+            page.className = `page ${formatClass}`;
+            page.dataset.page = String(pageNum);
+            page.style.display = pageNum === state.currentPage ? 'block' : 'none';
 
-        let indicator = state.pageOverrides[pageNum] ? '<div class="page-setting-indicator">独立样式</div>' : '';
+            // Apply scale transform
+            const scale = state.scale;
+            const dims = getPageDimensions(state.format);
+            page.style.transformOrigin = 'top center';
+            page.style.transform = `scale(${scale})`;
+            // Compensate margin so scaled page doesn't leave too much gap or overlap
+            const scaledH = dims.h * scale;
+            const deltaH = scaledH - dims.h;
+            page.style.marginBottom = `${Math.max(0, deltaH) + 32}px`;
 
-        page.innerHTML = `
-            ${indicator}
-            <div class="page-content magmark">${pageData.html}</div>
-            <div class="page-footer">PAGE ${pageNum} / ${state.totalPages}</div>
-        `;
-        previewArea.appendChild(page);
+            // Apply page-level styles
+            const s = pageData.settings;
+            page.style.setProperty('--mm-font-size', s.fontSize + 'px');
+            page.style.setProperty('--mm-line-height', String(s.lineHeight));
+            page.style.setProperty('--mm-letter-spacing', s.letterSpacing + 'em');
+            page.style.setProperty('--mm-font-family', state.fontFamily);
+
+            let indicator = state.pageOverrides[pageNum] ? '<div class="page-setting-indicator">独立样式</div>' : '';
+            const footer = state.format === 'xiaohongshu'
+                ? ''
+                : `<div class="page-footer">PAGE ${pageNum} / ${state.totalPages}</div>`;
+
+            page.innerHTML = `
+                ${indicator}
+                <div class="page-content magmark">${pageData.html}</div>
+                ${footer}
+            `;
+            previewArea.appendChild(page);
+        });
+
+        // Re-attach block listeners
+        attachBlockListeners();
+        updatePaginationUI();
+
+        // Fade back in
+        requestAnimationFrame(() => {
+            previewArea.style.opacity = '1';
+        });
     });
-
-    // Re-attach block listeners
-    attachBlockListeners();
-    updatePaginationUI();
 }
 
 function renderScroll(md: string) {
@@ -354,25 +379,113 @@ function clearSelection() {
 }
 
 /**
- * Utility: Simplified Markdown (Real version should use unified/remark)
- * For the sake of the refactor script, we'll use a placeholder or keep previous logic if accessible
+ * Robust line-by-line Markdown → HTML converter.
+ * Returns a string of top-level block elements (h1, h2, p, pre, ul, ol, blockquote, hr).
+ * Each top-level element becomes one paginate block.
  */
 function convertMarkdown(md: string): string {
-    // In a real Google-grade app, we'd use a robust renderer plugin
-    // Here we'll implement a basic one or wrap the existing library if available
-    // For this demonstration, we'll use a simple regex-based one (mock)
-    let html = md
-        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-        .replace(/^\> (.*$)/gm, '<blockquote>$1</blockquote>')
-        .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*)\*/g, '<em>$1</em>')
-        .replace(/---/g, '<hr>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/```(\w+)?\n([\s\S]*?)\n```/g, '<pre><code>$2</code></pre>');
+    // Normalize line endings
+    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    const blocks: string[] = [];
 
-    return `<p>${html}</p>`.replace(/<p><h/g, '<h').replace(/<\/h(\d)><\/p>/g, '</h$1>');
+    let i = 0;
+    while (i < lines.length) {
+        const line = lines[i];
+
+        // ── Fenced code block ──────────────────────────────
+        if (line.startsWith('```')) {
+            const lang = line.slice(3).trim();
+            const codeLines: string[] = [];
+            i++;
+            while (i < lines.length && !lines[i].startsWith('```')) {
+                codeLines.push(escapeHtml(lines[i]));
+                i++;
+            }
+            i++; // skip closing ```
+            blocks.push(`<pre><code class="language-${lang}">${codeLines.join('\n')}</code></pre>`);
+            continue;
+        }
+
+        // ── Headings ────────────────────────────────────────
+        const h3 = line.match(/^### (.+)$/);
+        if (h3) { blocks.push(`<h3>${inlineMarkdown(h3[1])}</h3>`); i++; continue; }
+        const h2 = line.match(/^## (.+)$/);
+        if (h2) { blocks.push(`<h2>${inlineMarkdown(h2[1])}</h2>`); i++; continue; }
+        const h1 = line.match(/^# (.+)$/);
+        if (h1) { blocks.push(`<h1>${inlineMarkdown(h1[1])}</h1>`); i++; continue; }
+
+        // ── HR ──────────────────────────────────────────────
+        if (/^---+$/.test(line.trim())) { blocks.push('<hr>'); i++; continue; }
+
+        // ── Blockquote ──────────────────────────────────────
+        if (line.startsWith('> ')) {
+            const quoteLines: string[] = [];
+            while (i < lines.length && lines[i].startsWith('> ')) {
+                quoteLines.push(inlineMarkdown(lines[i].slice(2)));
+                i++;
+            }
+            blocks.push(`<blockquote>${quoteLines.join('<br>')}</blockquote>`);
+            continue;
+        }
+
+        // ── Unordered list ──────────────────────────────────
+        if (/^[-*] /.test(line)) {
+            const items: string[] = [];
+            while (i < lines.length && /^[-*] /.test(lines[i])) {
+                items.push(`<li>${inlineMarkdown(lines[i].slice(2))}</li>`);
+                i++;
+            }
+            blocks.push(`<ul>${items.join('')}</ul>`);
+            continue;
+        }
+
+        // ── Ordered list ────────────────────────────────────
+        if (/^\d+\. /.test(line)) {
+            const items: string[] = [];
+            while (i < lines.length && /^\d+\. /.test(lines[i])) {
+                items.push(`<li>${inlineMarkdown(lines[i].replace(/^\d+\. /, ''))}</li>`);
+                i++;
+            }
+            blocks.push(`<ol>${items.join('')}</ol>`);
+            continue;
+        }
+
+        // ── Blank line: skip ────────────────────────────────
+        if (line.trim() === '') { i++; continue; }
+
+        // ── Paragraph: collect consecutive non-blank lines ─
+        const paraLines: string[] = [];
+        while (i < lines.length && lines[i].trim() !== '' &&
+            !lines[i].startsWith('#') && !lines[i].startsWith('```') &&
+            !lines[i].startsWith('> ') && !/^[-*] /.test(lines[i]) &&
+            !/^\d+\. /.test(lines[i]) && !/^---+$/.test(lines[i].trim())) {
+            paraLines.push(inlineMarkdown(lines[i]));
+            i++;
+        }
+        if (paraLines.length > 0) {
+            blocks.push(`<p>${paraLines.join('<br>')}</p>`);
+        }
+    }
+
+    return blocks.join('\n');
+}
+
+/** Inline markdown: bold, italic, code, links */
+function inlineMarkdown(text: string): string {
+    return text
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+}
+
+/** Escape HTML special chars for code blocks */
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 /**
@@ -397,8 +510,9 @@ function init() {
             store.setState({ fontSize: val, pageOverrides: {} });
         }
         $('#val-fontsize').textContent = val + 'pt';
-        applyGlobalStyles();
-        debouncedRender();
+        // Instant preview, re-paginate after 800ms to handle overflow
+        applyStylesOnly();
+        debouncedRenderSlow();
     });
 
     $<HTMLInputElement>('#ctrl-lineheight').addEventListener('input', (e) => {
@@ -412,8 +526,8 @@ function init() {
             store.setState({ lineHeight: val, pageOverrides: {} });
         }
         $('#val-lineheight').textContent = val.toFixed(2) + '×';
-        applyGlobalStyles();
-        debouncedRender();
+        // Instant CSS-only update — never re-paginates, zero flicker
+        applyStylesOnly();
     });
 
     $<HTMLInputElement>('#ctrl-letterspacing').addEventListener('input', (e) => {
@@ -427,12 +541,22 @@ function init() {
             store.setState({ letterSpacing: val, pageOverrides: {} });
         }
         $('#val-letterspacing').textContent = val.toFixed(2) + 'em';
-        applyGlobalStyles();
-        debouncedRender();
+        // Instant CSS-only update — never re-paginates, zero flicker
+        applyStylesOnly();
     });
 
     $<HTMLSelectElement>('#ctrl-format').addEventListener('change', (e) => {
-        store.setState({ format: (e.target as HTMLSelectElement).value as any, pageOverrides: {} });
+        const fmt = (e.target as HTMLSelectElement).value as AppState['format'];
+        // Auto-scale: xiaohongshu 1080px @ 75% is comfortable on most screens
+        const autoScale = fmt === 'xiaohongshu' ? 0.75 : 1;
+        store.setState({ format: fmt, pageOverrides: {}, scale: autoScale });
+        // Sync the scale dropdown to the nearest available option
+        const scaleEl = $<HTMLSelectElement>('#ctrl-scale');
+        const options = Array.from(scaleEl.options);
+        const best = options.reduce((prev, opt) =>
+            Math.abs(parseFloat(opt.value) - autoScale) < Math.abs(parseFloat(prev.value) - autoScale) ? opt : prev
+        );
+        scaleEl.value = best.value;
         render();
     });
 
@@ -506,6 +630,31 @@ function init() {
     // Export PNG
     $('#btn-export').addEventListener('click', exportPng);
 
+    // Reset all settings
+    $('#btn-reset').addEventListener('click', () => {
+        if (confirm('确定要重置所有排版设置到默认值吗？\n（内容不会清除）')) {
+            resetAll();
+        }
+    });
+
+    // File open
+    $<HTMLInputElement>('#file-input').addEventListener('change', (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target?.result as string;
+            if (text) {
+                markdownInput.value = text;
+                $('#char-count').textContent = text.length + ' 字符';
+                render();
+            }
+        };
+        reader.readAsText(file, 'utf-8');
+        // Reset so same file can be re-loaded
+        (e.target as HTMLInputElement).value = '';
+    });
+
     // Initial Load
     loadDefault();
     applyTheme();
@@ -539,6 +688,25 @@ function applyGlobalStyles() {
     document.documentElement.style.setProperty('--mm-font-size', s.fontSize + 'px');
     document.documentElement.style.setProperty('--mm-line-height', String(s.lineHeight));
     document.documentElement.style.setProperty('--mm-letter-spacing', s.letterSpacing + 'em');
+}
+
+/**
+ * Lightweight style-only update: updates CSS vars on existing page elements
+ * WITHOUT rebuilding the DOM. Eliminates flicker on slider drag.
+ */
+function applyStylesOnly() {
+    const s = store.getState();
+    // Update root vars
+    document.documentElement.style.setProperty('--mm-font-size', s.fontSize + 'px');
+    document.documentElement.style.setProperty('--mm-line-height', String(s.lineHeight));
+    document.documentElement.style.setProperty('--mm-letter-spacing', s.letterSpacing + 'em');
+    // Patch all existing page elements directly
+    previewArea.querySelectorAll('.page').forEach(page => {
+        const p = page as HTMLElement;
+        p.style.setProperty('--mm-font-size', s.fontSize + 'px');
+        p.style.setProperty('--mm-line-height', String(s.lineHeight));
+        p.style.setProperty('--mm-letter-spacing', s.letterSpacing + 'em');
+    });
 }
 
 function applyTheme() {
@@ -646,19 +814,55 @@ async function exportPng() {
 }
 
 function loadDefault() {
-    markdownInput.value = `# MagMark 1.4 — 极致排版重构版
+    markdownInput.value = `# MagMark 1.4 🎨✨
 
-**Editorial Elite 配色系统已激活**
-在这里开启您的顶级杂志排版之旅。点击文字块，调节独立样式。
+**世界级杂志级 Markdown 排版引擎 — 终极优化版**
 
-## 🌟 重构核心亮点
-1. **模块化物理拆分**：逻辑解理，速度提升。
-2. **Editorial Elite 主色调**：金石配色，极致专业。
-3. **响应式排版算法**：支持复杂块级覆盖。
+将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 1.4 彻底革新了导出流水线，带来了媲美《VOGUE》等高端纸媒的视觉体验。
+
+## 🏷️ 为什么叫 MagMark？
+
+**MagMark** 是由两个核心概念组合而成的：
+
+- **Mag** (取自 **Magazine**)：打破 Markdown 预览"简陋"的印象，赋予文字现代杂志感。
+- **Mark** (取自 **Markdown**)：坚持轻量级创作体验，让您专注于内容本身。
+
+**MagMark = 像写 Markdown 一样简单，像做杂志一样精美。**
 
 ---
 
-*Google Engineer & Designer Philosophy | 2026*
+## 🚀 1.4 核心升级
+
+### 🎞️ 彻底抛弃 PDF 中间层
+直接采用 **高精度 Canvas + SVG 混合采样**，输出 3x 超采样 600DPI 级别超清 PNG，字体嵌入完美，所见即所得。
+
+### 🖱️ 块级点击浮动微调 ✨
+**像编辑纸媒一样编辑预览！** 点击任何段落，立即激活浮动工具栏，支持 Shift 点击与拖拽框选多块同步调整。
+
+### 🎨 11 套专业主题
+覆盖从东方金石到北欧极简，从科幻科技到自然植物的全系列设计风格，一键切换风格。
+
+### 📄 智能分页控制
+- 手动分页：\`---\` 仅在开启"手动分页"时生效
+- 单页独立样式：每页可独立设置字号、行距
+- 预览比例：50% ～ 150% 自由缩放
+
+---
+
+## 🛠️ 本地开发
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+访问 http://localhost:5173 开启排版之旅。
+
+---
+
+**为追求极致排版美学的创作者而生 ❤️**
+
+*MagMark 1.4 · 2026*
 `;
     render();
 }
@@ -672,3 +876,50 @@ window.addEventListener('resize', () => {
         if (el) positionToolbar(el);
     }
 });
+
+/**
+ * Reset all settings to factory defaults
+ */
+function resetAll() {
+    const defaults = {
+        fontSize: 14,
+        lineHeight: 1.75,
+        letterSpacing: 0.01,
+        fontFamily: "'Source Han Serif SC', 'Noto Serif SC', serif",
+        format: 'a4' as AppState['format'],
+        viewMode: 'multi' as AppState['viewMode'],
+        manualPagination: false,
+        theme: 'elite',
+        scale: 1,
+        pageOverrides: {} as Record<number, any>,
+        blockOverrides: {} as Record<string, any>,
+        selectedBlockId: null,
+        currentPage: 1,
+    };
+    store.setState(defaults);
+
+    // Sync UI controls
+    $<HTMLInputElement>('#ctrl-fontsize').value = String(defaults.fontSize);
+    $('#val-fontsize').textContent = defaults.fontSize + 'pt';
+    $<HTMLInputElement>('#ctrl-lineheight').value = String(defaults.lineHeight);
+    $('#val-lineheight').textContent = defaults.lineHeight.toFixed(2) + '×';
+    $<HTMLInputElement>('#ctrl-letterspacing').value = String(defaults.letterSpacing);
+    $('#val-letterspacing').textContent = defaults.letterSpacing.toFixed(2) + 'em';
+    $<HTMLSelectElement>('#ctrl-font').value = defaults.fontFamily;
+    $<HTMLSelectElement>('#ctrl-format').value = defaults.format;
+    $<HTMLSelectElement>('#ctrl-scale').value = String(defaults.scale);
+    $<HTMLSelectElement>('#ctrl-theme').value = defaults.theme;
+    $<HTMLInputElement>('#chk-manual-pagination').checked = false;
+    $<HTMLInputElement>('#chk-page-override').checked = false;
+
+    // Reset mode buttons
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    $('#btn-multi').classList.add('active');
+
+    // Reset user font override
+    document.documentElement.style.removeProperty('--user-font-family');
+
+    applyTheme();
+    applyGlobalStyles();
+    render();
+}

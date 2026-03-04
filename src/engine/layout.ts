@@ -5,11 +5,22 @@ export interface PageResult {
     settings: PageSetting;
 }
 
+/**
+ * Page dimensions MUST stay in sync with editor.css .page-a4 / .page-mobile / .page-desktop
+ * w: CSS width, h: CSS height
+ * pt: padding-top, pb: padding-bottom, pl: padding-left, pr: padding-right
+ * safetyMargin: extra buffer so content never reaches the exact bottom edge
+ */
 export function getPageDimensions(format: AppState['format']) {
     const formats = {
-        a4: { w: 794, h: 1123, pt: 60, pb: 60 },
-        mobile: { w: 393, h: 852, pt: 40, pb: 40 },
-        desktop: { w: 800, h: 1200, pt: 50, pb: 50 }
+        // .page-a4: width:595px; height:842px; padding:56px 52px 40px
+        a4: { w: 595, h: 842, pt: 56, pb: 40, pl: 52, pr: 52, safetyMargin: 24 },
+        // .page-mobile: width:393px; height:852px; padding:32px 24px 32px
+        mobile: { w: 393, h: 852, pt: 32, pb: 32, pl: 24, pr: 24, safetyMargin: 20 },
+        // .page-desktop: width:800px; height:1000px; padding:64px 72px 40px
+        desktop: { w: 800, h: 1000, pt: 64, pb: 40, pl: 72, pr: 72, safetyMargin: 24 },
+        // .page-xiaohongshu: 1080×1440px 原尺寸 (官方标准 3:4)，safetyMargin 要大
+        xiaohongshu: { w: 1080, h: 1440, pt: 80, pb: 80, pl: 64, pr: 64, safetyMargin: 80 },
     };
     return formats[format];
 }
@@ -20,11 +31,13 @@ export async function paginate(
     manualPagination: boolean
 ): Promise<PageResult[]> {
     const dim = getPageDimensions(state.format);
-    const availableHeight = dim.h - dim.pt - dim.pb;
+    // How many CSS pixels of content can fit vertically on one page
+    const availableHeight = dim.h - dim.pt - dim.pb - dim.safetyMargin;
 
     const measurer = document.createElement('div');
     measurer.className = 'magmark-measurer magmark';
-    measurer.style.width = `${dim.w - 80}px`; // 40px padding each side
+    // Match exact content-box width of the page
+    measurer.style.width = `${dim.w - dim.pl - dim.pr}px`;
     measurer.style.visibility = 'hidden';
     measurer.style.position = 'absolute';
     measurer.style.top = '-9999px';
@@ -34,9 +47,6 @@ export async function paginate(
     let currentPageBlocks: string[] = [];
     let currentHeight = 0;
     let blockIdx = 0;
-
-    // Measurement cache to avoid DOM thrashing
-    const heightCache = new Map<string, number>();
 
     while (blockIdx < blocks.length) {
         const pageNum = pages.length + 1;

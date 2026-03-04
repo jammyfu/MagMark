@@ -55,11 +55,11 @@ body[data-theme="ocean-depths"] {
 }
 
 body[data-theme="sunset-boulevard"] {
-    --th-primary: #e76f51;
+    --th-primary: #d4572a;
     --th-accent: #f4a261;
-    --th-bg-page: #e9c46a;
-    --th-text-page: #264653;
-    --th-preview-bg: #264653;
+    --th-bg-page: #fff8ed;
+    --th-text-page: #1d3340;
+    --th-preview-bg: #3b2a1a;
     --th-font-head: 'DejaVu Serif', serif;
     --th-font-body: 'DejaVu Sans', sans-serif;
 }
@@ -524,6 +524,38 @@ input:checked+.slider:before {
     background-color: #fff;
 }
 
+/* ---------- Reset Button ---------- */
+.ctrl-reset-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--th-primary) 50%, transparent);
+    border-radius: 6px;
+    color: var(--th-primary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.ctrl-reset-btn:hover {
+    background: color-mix(in srgb, var(--th-primary) 12%, transparent);
+    border-color: var(--th-primary);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--th-primary) 25%, transparent);
+}
+
+.ctrl-reset-btn svg {
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.ctrl-reset-btn:hover svg {
+    transform: rotate(-180deg);
+}
+
 
 /* ---------- Preview Area ---------- */
 .preview-area {
@@ -580,6 +612,30 @@ input:checked+.slider:before {
     height: 1000px;
     padding: 64px 72px 40px;
     overflow: hidden;
+}
+
+/* ---------- 小红书 3:4 竖版 原尺寸 1080×1440 ---------- */
+.page-xiaohongshu {
+    width: 1080px;
+    height: 1440px;
+    padding: 80px 64px;
+    /* Use visible overflow so any measurement inaccuracy doesn't clip content */
+    overflow: visible;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    /* Clip the background to the page box while allowing content to peek out */
+    outline: 3px solid color-mix(in srgb, var(--th-primary) 30%, transparent);
+    outline-offset: -1px;
+    position: relative;
+}
+
+/* 小红书格式字号放大，适配大画布 */
+.page-xiaohongshu .magmark {
+    --mm-font-size: 32px;
+    --mm-line-height: 1.8;
 }
 
 .page.scrollable {
@@ -649,6 +705,8 @@ input:checked+.slider:before {
     letter-spacing: var(--mm-letter-spacing);
     /* Priority: user-selected > theme > default mm-font-family */
     font-family: var(--user-font-family, var(--th-font-body, var(--mm-font-family)));
+    /* Smooth typography transitions — no visual flicker on slider drag */
+    transition: line-height 0.15s ease, letter-spacing 0.15s ease, font-size 0.15s ease;
 }
 
 .magmark h1 {
@@ -795,7 +853,7 @@ input:checked+.slider:before {
 }
 
 .magmark li::marker {
-    color: var(--primary);
+    color: var(--th-primary);
 }
 
 .magmark table {
