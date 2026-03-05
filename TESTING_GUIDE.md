@@ -1,14 +1,14 @@
-# 🧪 MagMark 2.0 - Manual Testing Guide
+# 🧪 MagMark 1.4 - 手动测试指南
 
-这份文档指导真人测试员如何对 MagMark 2.0 进行全面的视觉和功能测试。
+这份文档指导测试人员如何对 MagMark 1.4 进行全面的视觉和功能测试。
 
 ---
 
 ## 📋 测试概述
 
-**测试目的**: 验证 MagMark 2.0 的杂志级排版质量和多平台导出能力  
-**测试版本**: v2.0  
-**测试日期**: 2026-03-03  
+**测试目的**: 验证 MagMark 1.4 的杂志级排版质量和多平台导出能力  
+**测试版本**: v1.4.0  
+**测试日期**: 2026-03-05  
 **测试环境**: Chrome / Safari / Firefox (最新版)
 
 ---
@@ -23,10 +23,10 @@
 3. 确认以下元素正确渲染：
    - ✅ H1 标题：32pt，粗体，红色 (#d32f2f)
    - ✅ H2/H3 标题层级正确
-   - ✅ 行高统一为 1.75x
+   - ✅ 行高统一为 1.75x（约 24px）
    - ✅ 中英文混合空格自动插入
    - ✅ 引用块左侧红色边框
-   - ✅ Code 块深色背景
+   - ✅ Code 块深色背景（Monaco 字体）
    - ✅ 表格完整显示无溢出
 
 **截图要求**:
@@ -65,12 +65,12 @@
 ### 场景 3: 打印样式测试
 
 **步骤**:
-1. Ctrl/Cmd + P (打开打印对话框)
+1. Ctrl/Cmd + P（打开打印对话框）
 2. 设置参数：
-   - Paper size: A4
-   - Margins: Default
-   - Options → Enable "Background graphics"
-   - Scale: 100%
+   - 纸张大小: A4
+   - 页边距: 默认
+   - 选项 → 勾选「背景图形」
+   - 缩放: 100%
 3. 预览检查：
    - ✅ 字体保持衬线风格
    - ✅ 颜色不褪色
@@ -86,27 +86,28 @@
 
 ---
 
-### 场景 4: Typography 细节测试
+### 场景 4: 排版细节测试
 
 **重点关注**:
-- [ ] **行高**: 文本行之间间距均匀，目测约 1.75x 字号高度
-- [ ] **段落间距**: 段落间距离大于行高
+- [ ] **行高**: 文本行之间间距均匀，计算值约为字号 × 1.75（正文 14pt → 行高应为 24px）
+- [ ] **段落间距**: 段落间距离（margin-bottom）大于行高，约为字号 × 1.5
 - [ ] **单词间距**: 英文单词间单个空格，中文间无额外空格
 - [ ] **标点悬挂**: 句号逗号是否靠近边缘
 - [ ] **孤行控制**: 段首/段尾不会出现单行孤悬
-- [ ] **字体层次**: h1-h6 有明显的大小和粗细区分
+- [ ] **字体层次**: H1-H6 有明显的大小和粗细区分
 
 **工具辅助**:
 ```
-DevTools → Computed tab
-→ font-size: 检查字号
-→ line-height: 应约为 font-size × 1.75
-→ margin-bottom: 应为 font-size × 1.5
+DevTools → Computed 标签
+→ font-size: 正文应为 14pt
+→ line-height: 应约为 font-size × 1.75 = 24px
+→ margin-bottom: 应为 font-size × 1.5 = 21px
+→ color: 主文本色应为 #1a1a1a
 ```
 
 ---
 
-### 场景 5: Content Structure 测试
+### 场景 5: 内容结构测试
 
 **逐项检查**:
 
@@ -121,15 +122,15 @@ DevTools → Computed tab
 
 ---
 
-### 场景 6: Cross-Browser 兼容性测试
+### 场景 6: 跨浏览器兼容性测试
 
-**浏览器矩阵**:
+**测试矩阵**:
 
 | 浏览器 | 版本 | 通过 | 问题 |
 |--------|------|------|------|
-| Chrome | Latest | ⬜ | |
-| Safari | Latest | ⬜ | |
-| Firefox | Latest | ⬜ | |
+| Chrome | 最新版 | ⬜ | |
+| Safari | 最新版 | ⬜ | |
+| Firefox | 最新版 | ⬜ | |
 | Edge | Chromium | ⬜ | |
 
 **检查项**:
@@ -140,163 +141,163 @@ DevTools → Computed tab
 
 ---
 
-### 场景 7: Accessibility 可访问性测试
+### 场景 7: 可访问性（Accessibility）测试
 
 **测试工具**:
 - Chrome DevTools → Lighthouse
-- axe DevTools Extension
+- axe DevTools Extension（可选）
 
 **通过标准**:
-- [ ] Color Contrast Ratio ≥ 4.5:1 (text)
-- [ ] All images have alt text
-- [ ] Heading hierarchy logical (h1→h6)
-- [ ] No keyboard traps
-- [ ] Focus indicators visible
-- [ ] Screen reader compatible
+- [ ] 颜色对比度 ≥ 4.5:1（正文文字）
+- [ ] 所有图片有 alt 属性
+- [ ] 标题层级逻辑正确（h1→h6）
+- [ ] 无键盘焦点陷阱
+- [ ] 焦点状态可见
+- [ ] 屏幕阅读器兼容
 
 ---
 
-## 📸 Screenshot Guidelines
+## 📸 截图规范
 
 ### 拍摄技巧
 
-1. **禁用缩放**: 按 Cmd/Ctrl + 0 (100% zoom)
+1. **禁用缩放**: 按 Cmd/Ctrl + 0（100% 缩放比例）
 2. **全页捕获**: 使用 DevTools → More tools → Screenshots
 3. **避免滚动条**: Canvas → Full page screenshot
-4. **清晰度高**: Retina 显示屏上测试，1x scale
+4. **清晰度高**: Retina 显示屏上测试，推荐 1x scale
 
 ### 文件格式规范
 
 ```
 screenshots/
-├── desktop-full-view.png          # Desktop full page
-├── mobile-iphone.png              # Mobile viewport
-├── mobile-ipad.png                # Tablet viewport
-├── print-preview-a4.pdf           # Print output
-└── lighthouse-report.png          # Accessibility scores
+├── desktop-full-view.png          # 桌面完整页面截图
+├── mobile-iphone.png              # iPhone 设备视口
+├── mobile-ipad.png                # iPad 设备视口
+├── print-preview-a4.pdf           # 打印输出 PDF
+└── lighthouse-report.png          # Lighthouse 评分截图
 ```
 
 ---
 
-## ✅ Checklists
+## ✅ 检查清单
 
-### 基本功能 Checklist
+### 基本功能
 
 - [ ] Markdown 转 HTML 正常
 - [ ] CJK 自动空格正确
-- [ ] Headings 层级分明
-- [ ] Tables 不溢出容器
-- [ ] Images 自适应宽度
-- [ ] Code blocks 语法高亮
-- [ ] Blockquotes 样式特殊
-- [ ] Footer 居中显示
-- [ ] Links 有 hover 效果
-- [ ] Print styles 正确应用
+- [ ] 标题（Heading）层级分明
+- [ ] 表格（Table）不溢出容器
+- [ ] 图片（Image）自适应宽度
+- [ ] 代码块（Code Block）语法高亮
+- [ ] 引用块（Blockquote）样式特殊
+- [ ] 页脚（Footer）居中显示
+- [ ] 链接（Link）有 hover 效果
+- [ ] 打印样式（Print styles）正确应用
 
-### 高级功能 Checklist
+### 高级功能
 
-- [ ] Design tokens JSON 正确
+- [ ] Design tokens 配置文件正确生成
 - [ ] SEO meta tags 注入成功
-- [ ] Schema.org structured data 有效
-- [ ] Table of Contents 生成正确
-- [ ] Breadcrumbs 导航可用
-- [ ] Mobile view 响应流畅
-- [ ] Print output 符合出版标准
-- [ ] Performance < 100ms render
-- [ ] Lighthouse score ≥ 90
-- [ ] WCAG AA compliant
+- [ ] Schema.org 结构化数据有效
+- [ ] 目录（Table of Contents）生成正确
+- [ ] 面包屑导航（Breadcrumbs）可用
+- [ ] 移动端页面响应流畅
+- [ ] 打印输出符合出版标准
+- [ ] 渲染性能 < 100ms
+- [ ] Lighthouse 评分 ≥ 90
+- [ ] 符合 WCAG AA 标准
 
 ---
 
-## 🐛 Bug Reporting Template
+## 🐛 Bug 报告模板
 
 如果发现任何问题，请按此模板报告：
 
 ```markdown
-## Bug Report
+## Bug 报告
 
-**Title**: [简短描述问题]
+**标题**: [简短描述问题]
 
-**Environment**:
-- Browser: e.g., Chrome 120
-- OS: macOS 14.3
-- Viewport: 1920×1080
+**环境**:
+- 浏览器: 例：Chrome 122
+- 操作系统: macOS 15.x
+- 视口尺寸: 1920×1080
 
-**Steps to Reproduce**:
-1. Open reference-render.html
-2. Scroll to section X
-3. Observe Y
+**复现步骤**:
+1. 打开 reference-render.html
+2. 滚动到章节 X
+3. 观察到 Y
 
-**Expected Behavior**:
-Describe what should happen
+**预期行为**:
+描述应当发生什么
 
-**Actual Behavior**:
-Describe what actually happens
+**实际行为**:
+描述实际发生了什么
 
-**Screenshots/Recordings**:
-[Attach evidence]
+**截图/录屏**:
+[附上截图证明]
 
-**Console Errors**:
-Paste any error messages from DevTools Console
+**控制台错误**:
+粘贴 DevTools Console 中的任何报错信息
 ```
 
 ---
 
-## 📊 Scoring Rubric
+## 📊 评分标准
 
-| Category | Weight | Score (0-5) | Notes |
-|----------|--------|-------------|-------|
-| Typography Quality | 25% | ⬜ | Font rendering, spacing |
-| Layout Consistency | 20% | ⬜ | Grid alignment, margins |
-| Cross-Browser Compat | 15% | ⬜ | Works on all browsers |
-| Mobile Responsiveness | 15% | ⬜ | Responsive breakpoints |
-| Print Quality | 10% | ⬜ | PDF export quality |
-| Accessibility | 10% | ⬜ | WCAG compliance |
-| Performance | 5% | ⬜ | Load/render time |
+| 类别 | 权重 | 得分 (0-5) | 备注 |
+|------|------|------------|------|
+| 排版质量 | 25% | ⬜ | 字体渲染、行列间距 |
+| 布局一致性 | 20% | ⬜ | 网格对齐、页边距 |
+| 跨浏览器兼容 | 15% | ⬜ | 全平台稳定性 |
+| 移动端响应式 | 15% | ⬜ | 响应式断点表现 |
+| 打印质量 | 10% | ⬜ | PDF 导出质量 |
+| 可访问性 | 10% | ⬜ | WCAG 合规程度 |
+| 性能 | 5% | ⬜ | 加载/渲染时间 |
 
-**Total Score**: ___ / 100  
-**Pass/Fail**: ⬜ Pass  ⬜ Fail
+**总分**: ___ / 100  
+**结论**: ⬜ 通过  ⬜ 不通过
 
 ---
 
-## 📝 Summary Template
+## 📝 测试总结模板
 
 测试完成后填写总结：
 
 ```markdown
-## Test Summary
+## 测试总结
 
-**Date**: YYYY-MM-DD  
-**Tester**: [Name]  
-**Version**: 2.0
+**日期**: YYYY-MM-DD  
+**测试人**: [姓名]  
+**版本**: v1.4.0
 
-### Overall Assessment
-[Brief overview of quality]
+### 总体评估
+[对整体质量的简要描述]
 
-### Major Issues Found
-1. [Issue description]
-2. [Issue description]
+### 发现的重大问题
+1. [问题描述]
+2. [问题描述]
 
-### Minor Issues Found
-- [Issue]
-- [Issue]
+### 发现的轻微问题
+- [问题]
+- [问题]
 
-### Highlights/Praise Points
-- [Positive observation 1]
-- [Positive observation 2]
+### 亮点
+- [正面观察 1]
+- [正面观察 2]
 
-### Recommendations
-1. [Suggestion]
-2. [Suggestion]
+### 建议
+1. [建议]
+2. [建议]
 
-### Final Verdict
-✅ Ready for Production  
-⚠️ Needs Minor Fixes  
-❌ Needs Major Rework
+### 最终结论
+✅ 可以上线  
+⚠️ 需要小幅修复  
+❌ 需要大幅返工
 ```
 
 ---
 
-**Good luck with your testing! 🚀**
+**祝测试顺利！🚀**
 
-*Document version: 1.0 | Last updated: 2026-03-03*
+*文档版本: 1.1 | 最后更新: 2026-03-05*

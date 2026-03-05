@@ -1,6 +1,6 @@
-# 🚀 MagMark 2.0 - 5 分钟快速开始指南
+# 🚀 MagMark 1.4 - 5 分钟快速开始指南
 
-本指南帮助你快速体验 MagMark 2.0 的精美排版效果。
+本指南帮助你快速体验 MagMark 1.4 的精美排版效果。
 
 ---
 
@@ -11,7 +11,7 @@
 **只需一条命令**:
 
 ```bash
-open /Users/jammyfu/.openclaw/workspace/magmark-2.0/screenshots/reference-render.html
+open /Users/jammyfu/works/AI/Project/Magmark/screenshots/reference-render.html
 ```
 
 或双击该 HTML 文件在浏览器中打开！
@@ -82,7 +82,7 @@ document.querySelectorAll('p').forEach(p => {
 运行预设的截图脚本：
 
 ```bash
-cd /Users/jammyfu/.openclaw/workspace/magmark-2.0
+cd /Users/jammyfu/works/AI/Project/Magmark
 node scripts/capture-screenshot.js
 ```
 
@@ -114,20 +114,14 @@ screenshots/
 
 ## 🧪 单元测试（进阶）
 
-### 安装测试依赖
-
-```bash
-npm install --save-dev vitest @testing-library/dom @playwright/test
-```
-
 ### 运行测试套件
 
 ```bash
 # Unit tests
-npx vitest run
+npm test
 
 # E2E tests
-npx playwright test tests/e2e/*.spec.ts
+npm run test:e2e
 
 # SEO module tests (if exists)
 node scripts/test-seo.js
@@ -148,33 +142,24 @@ npm install -g typescript tsx
 
 # Typst CLI (用于 PDF 导出)
 brew install typst
-
-# Optional: PrinceXML for advanced PDF features
-# Download from https://www.princexml.com/download/
 ```
 
 ### 初始化项目
 
 ```bash
-cd /Users/jammyfu/.openclaw/workspace/magmark-2.0
+cd /Users/jammyfu/works/AI/Project/Magmark
 
 # Install dependencies
 npm install
-
-# Optional: Include optional dependencies
-npm install --include=optional
 ```
 
 ### 启动开发服务器
 
 ```bash
-# Method 1: Built-in script (if available)
+# 使用 Vite 启动开发服务器
 npm run dev
 
-# Method 2: Manual Express server
-node scripts/dev-server.js
-
-# Access: http://localhost:3000
+# 访问: http://localhost:5173 (默认端口)
 ```
 
 ---
@@ -236,9 +221,9 @@ node scripts/dev-server.js
 
 完成基本测试后，你可以：
 
-1. **深入自定义**: 修改 `design-tokens/v2.0.json` 调整样式
+1. **深入自定义**: 修改 `design-tokens/` 下的配置调整样式
 2. **扩展功能**: 添加新的 Remark/Rehype plugins
-3. **集成项目**: 将 MagMark 2.0 嵌入你的应用中
+3. **集成项目**: 将 MagMark 1.4 嵌入你的应用中
 4. **贡献代码**: Fork 仓库并提交 PR
 
 对于高级定制和 API 用法，请阅读 **[README.md](README.md)** 的 API Reference 部分。
@@ -247,4 +232,4 @@ node scripts/dev-server.js
 
 **Happy Testing! 🎨✨**
 
-*Last Updated: 2026-03-03*
+*Last Updated: 2026-03-05*
