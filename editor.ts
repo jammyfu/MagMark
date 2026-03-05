@@ -1,7 +1,6 @@
 import { store, AppState, PageSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
-// @ts-ignore
-import { htmlToImage } from 'html-to-image';
+import * as htmlToImage from 'html-to-image';
 
 /**
  * MagMark 1.4 - Professional Refactored Entry
@@ -380,7 +379,7 @@ function clearSelection() {
 
 /**
  * Robust line-by-line Markdown → HTML converter.
- * Returns a string of top-level block elements (h1, h2, p, pre, ul, ol, blockquote, hr).
+ * Returns a string of top-level block elements (h1, h2, p, pre, ul, ol, blockquote, table, hr).
  * Each top-level element becomes one paginate block.
  */
 function convertMarkdown(md: string): string {
@@ -409,6 +408,8 @@ function convertMarkdown(md: string): string {
         // ── Headings ────────────────────────────────────────
         const h3 = line.match(/^### (.+)$/);
         if (h3) { blocks.push(`<h3>${inlineMarkdown(h3[1])}</h3>`); i++; continue; }
+        const h4 = line.match(/^#### (.+)$/);
+        if (h4) { blocks.push(`<h4>${inlineMarkdown(h4[1])}</h4>`); i++; continue; }
         const h2 = line.match(/^## (.+)$/);
         if (h2) { blocks.push(`<h2>${inlineMarkdown(h2[1])}</h2>`); i++; continue; }
         const h1 = line.match(/^# (.+)$/);
@@ -425,6 +426,35 @@ function convertMarkdown(md: string): string {
                 i++;
             }
             blocks.push(`<blockquote>${quoteLines.join('<br>')}</blockquote>`);
+            continue;
+        }
+
+        // ── Table ───────────────────────────────────────────
+        // A table row starts with '|'. We collect header, skip separator, then data rows.
+        if (line.startsWith('|')) {
+            const tableLines: string[] = [];
+            while (i < lines.length && lines[i].startsWith('|')) {
+                tableLines.push(lines[i]);
+                i++;
+            }
+            if (tableLines.length >= 1) {
+                // Parse cells from a row string
+                const parseCells = (row: string) =>
+                    row.split('|').slice(1, -1).map(c => c.trim());
+
+                const headerCells = parseCells(tableLines[0]);
+                // Row index 1 is the separator row (|---|---|), skip it
+                const dataRows = tableLines.slice(2);
+
+                const thead = `<thead><tr>${headerCells.map(c =>
+                    `<th>${inlineMarkdown(c)}</th>`).join('')}</tr></thead>`;
+                const tbody = `<tbody>${dataRows.map(row =>
+                    `<tr>${parseCells(row).map(c =>
+                        `<td>${inlineMarkdown(c)}</td>`).join('')}</tr>`
+                ).join('')}</tbody>`;
+
+                blocks.push(`<table>${thead}${tbody}</table>`);
+            }
             continue;
         }
 
@@ -457,7 +487,8 @@ function convertMarkdown(md: string): string {
         const paraLines: string[] = [];
         while (i < lines.length && lines[i].trim() !== '' &&
             !lines[i].startsWith('#') && !lines[i].startsWith('```') &&
-            !lines[i].startsWith('> ') && !/^[-*] /.test(lines[i]) &&
+            !lines[i].startsWith('> ') && !lines[i].startsWith('|') &&
+            !/^[-*] /.test(lines[i]) &&
             !/^\d+\. /.test(lines[i]) && !/^---+$/.test(lines[i].trim())) {
             paraLines.push(inlineMarkdown(lines[i]));
             i++;
@@ -470,12 +501,17 @@ function convertMarkdown(md: string): string {
     return blocks.join('\n');
 }
 
-/** Inline markdown: bold, italic, code, links */
+/** Inline markdown: bold, italic, code, links.
+ *  Uses lazy quantifiers (.+?) to prevent catastrophic backtracking
+ *  on lines with many asterisks (e.g., table cells with **bold** text).
+ */
 function inlineMarkdown(text: string): string {
+    // Guard: skip processing on very long lines to prevent any edge-case hang
+    if (text.length > 2000) return escapeHtml(text);
     return text
         .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 }
 
@@ -788,17 +824,26 @@ function updateBlockStyle(prop: keyof PageSetting, val: number) {
 
 async function exportPng() {
     const state = store.getState();
-    const activePage = previewArea.querySelector(`.page[data-page="${state.currentPage}"]`);
-    if (!activePage) return;
 
-    const btn = $('#btn-export');
-    btn.textContent = '⌛ 导出中...';
+    // In multi-page mode, find the current page by data-page attribute.
+    // In scroll mode, the single .page div has no data-page attribute.
+    let activePage = state.viewMode === 'multi'
+        ? previewArea.querySelector(`.page[data-page="${state.currentPage}"]`) as HTMLElement | null
+        : previewArea.querySelector('.page') as HTMLElement | null;
+
+    if (!activePage) {
+        alert('没有可导出的页面，请先输入内容');
+        return;
+    }
+
+    const btn = $('#btn-export') as HTMLButtonElement;
+    btn.textContent = '⏳ 导出中...';
+    btn.disabled = true;
 
     try {
-        // @ts-ignore
-        const dataUrl = await window.htmlToImage.toPng(activePage, {
+        const dataUrl = await htmlToImage.toPng(activePage, {
             pixelRatio: 3,
-            backgroundColor: getComputedStyle(activePage).backgroundColor
+            backgroundColor: getComputedStyle(activePage).backgroundColor || '#ffffff'
         });
 
         const link = document.createElement('a');
@@ -807,11 +852,13 @@ async function exportPng() {
         link.click();
     } catch (e) {
         console.error('Export failed', e);
-        alert('导出失败，请重试');
+        alert('导出失败，请查看控制台错误信息');
     } finally {
         btn.innerHTML = '📸 导出 PNG';
+        btn.disabled = false;
     }
 }
+
 
 function loadDefault() {
     markdownInput.value = `# MagMark 1.4 🎨✨
