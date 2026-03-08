@@ -593,6 +593,16 @@ input:checked+.slider:before {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
+/* Page enter animation */
+@keyframes pageEnter {
+    from { opacity: 0; transform: translateY(8px) scale(var(--page-enter-scale, 1)); }
+    to   { opacity: 1; transform: translateY(0)  scale(var(--page-enter-scale, 1)); }
+}
+
+.page[data-page] {
+    animation: pageEnter 0.22s cubic-bezier(0.34, 1.08, 0.64, 1) both;
+}
+
 .page-a4 {
     width: 595px;
     height: 842px;
@@ -619,8 +629,7 @@ input:checked+.slider:before {
     width: 1080px;
     height: 1440px;
     padding: 80px 64px;
-    /* Use visible overflow so any measurement inaccuracy doesn't clip content */
-    overflow: visible;
+    overflow: hidden;
     box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.08),
         0 8px 24px rgba(0, 0, 0, 0.35),
@@ -887,14 +896,59 @@ input:checked+.slider:before {
 
 .magmark hr {
     border: none;
-    border-top: 2px solid #eee;
-    margin: calc(var(--mm-font-size) * 2) 0;
+    border-top: 2px solid color-mix(in srgb, var(--th-primary) 30%, transparent);
+    margin: calc(var(--mm-font-size) * 1.5) 0;
+    height: 0;
 }
 
 .magmark img {
     max-width: 100%;
+    height: auto;
     border-radius: 8px;
-    margin: 12px 0;
+    margin: calc(var(--mm-font-size) * 0.8) 0;
+    display: block;
+}
+
+/* Figures (images with captions) */
+.magmark figure {
+    margin: calc(var(--mm-font-size) * 1.2) 0;
+    text-align: center;
+}
+
+.magmark figure img {
+    margin: 0 auto calc(var(--mm-font-size) * 0.4);
+}
+
+.magmark figcaption {
+    font-size: calc(var(--mm-font-size) * 0.85);
+    color: color-mix(in srgb, var(--th-text-page) 60%, transparent);
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Strikethrough */
+.magmark del {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* Task lists */
+.magmark li:has(input[type="checkbox"]) {
+    list-style: none;
+    margin-left: -1.2em;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+}
+
+.magmark input[type="checkbox"] {
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+    accent-color: var(--th-primary);
+    cursor: default;
+    position: relative;
+    top: 0.1em;
 }
 
 /* ---------- Pagination Bar ---------- */
@@ -942,6 +996,73 @@ input:checked+.slider:before {
     text-align: center;
     letter-spacing: 0.3px;
     transition: color 0.4s;
+}
+
+/* ---------- Page Thumbnail Strip ---------- */
+.page-strip {
+    background: var(--bg-app);
+    border-top: 1px solid var(--border-color);
+    padding: 8px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+    scroll-behavior: smooth;
+    /* Subtle gradient fade on left/right edges */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%);
+}
+
+.page-thumb {
+    flex-shrink: 0;
+    width: 36px;
+    height: 48px;
+    background: var(--bg-input);
+    border: 1.5px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
+    color: var(--text-muted);
+}
+
+.page-thumb:hover {
+    border-color: var(--th-primary);
+    background: color-mix(in srgb, var(--th-primary) 12%, var(--bg-input));
+    color: var(--th-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.page-thumb.active {
+    border-color: var(--th-primary);
+    background: color-mix(in srgb, var(--th-primary) 20%, var(--bg-input));
+    color: var(--th-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--th-primary) 40%, transparent);
+}
+
+.page-thumb.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--th-primary);
+    border-radius: 4px 4px 0 0;
+}
+
+.pt-num {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    font-family: var(--font-ui);
 }
 
 /* ---------- Scrollbar ---------- */

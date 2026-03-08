@@ -24,8 +24,9 @@
                 <span>📂 打开文件</span>
                 <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden>
             </label>
-            <button class="btn btn-secondary" id="btn-save" title="保存 Markdown">💾 保存</button>
-            <button class="btn btn-primary" id="btn-export" title="导出高精度 PNG">📸 导出 PNG</button>
+            <button class="btn btn-secondary" id="btn-save" title="保存 Markdown (Ctrl+S)">💾 保存</button>
+            <button class="btn btn-secondary" id="btn-export-all" title="导出全部页为 PNG">🗂 导出全部</button>
+            <button class="btn btn-primary" id="btn-export" title="导出高精度 PNG">📸 导出当页</button>
         </div>
     </header>
 
@@ -159,6 +160,8 @@
                 <span class="page-info" id="page-info">第 1 / 1 页</span>
                 <button class="page-btn" id="btn-next" disabled>下一页 →</button>
             </div>
+            <!-- Page Thumbnail Strip -->
+            <div class="page-strip" id="page-strip" style="display:none;"></div>
         </div>
     </main>
 

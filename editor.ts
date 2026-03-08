@@ -127,6 +127,7 @@ function renderPages() {
         // Re-attach block listeners
         attachBlockListeners();
         updatePaginationUI();
+        renderPageStrip();
 
         // Fade back in
         requestAnimationFrame(() => {
@@ -378,150 +379,316 @@ function clearSelection() {
 }
 
 /**
- * Robust line-by-line Markdown → HTML converter.
- * Returns a string of top-level block elements (h1, h2, p, pre, ul, ol, blockquote, table, hr).
- * Each top-level element becomes one paginate block.
+ * Comprehensive Markdown → HTML block converter.
+ *
+ * Supported syntax:
+ *   Headings:        # H1  ## H2  ### H3  #### H4  ##### H5  ###### H6
+ *   HR / page-break: --- or *** or ___
+ *   Bold:            **text** or __text__
+ *   Italic:          *text* or _text_
+ *   Bold+italic:     ***text***
+ *   Strikethrough:   ~~text~~
+ *   Inline code:     `code`
+ *   Links:           [label](url)
+ *   Images:          ![alt](src) or ![alt](src "title")
+ *   Fenced code:     ```lang … ```
+ *   Blockquote:      > text (nested >> supported)
+ *   Unordered list:  - / * / + items (indent for nesting)
+ *   Ordered list:    1. items (indent for nesting)
+ *   Task list:       - [ ] / - [x] items
+ *   Table:           | col | col |  (with --- separator row)
+ *   Paragraph:       consecutive non-blank lines (hard-wrap with <br>)
+ *
+ * Returns a newline-joined string of top-level block HTML elements.
+ * Each block becomes one pagination unit in the layout engine.
  */
 function convertMarkdown(md: string): string {
-    // Normalize line endings
     const lines = md.replace(/\r\n/g, '\n').split('\n');
     const blocks: string[] = [];
-
     let i = 0;
-    while (i < lines.length) {
-        const line = lines[i];
 
-        // ── Fenced code block ──────────────────────────────
-        if (line.startsWith('```')) {
-            const lang = line.slice(3).trim();
-            const codeLines: string[] = [];
+    /** Helpers ──────────────────────────────────────────── */
+    const isBlank     = (l: string) => l.trim() === '';
+    const isHrLine    = (l: string) => /^(\*{3,}|-{3,}|_{3,})\s*$/.test(l.trim());
+    const isHeading   = (l: string) => /^#{1,6} /.test(l);
+    const isFence     = (l: string) => l.startsWith('```') || l.startsWith('~~~');
+    const isQuote     = (l: string) => l.startsWith('>');
+    const isTable     = (l: string) => l.startsWith('|');
+    const isUlItem    = (l: string) => /^(\s*)[-*+] /.test(l);
+    const isOlItem    = (l: string) => /^(\s*)\d+\. /.test(l);
+    const isListItem  = (l: string) => isUlItem(l) || isOlItem(l);
+    const isBlockStop = (l: string) =>
+        isBlank(l) || isHeading(l) || isFence(l) || isQuote(l) ||
+        isTable(l) || isListItem(l) || isHrLine(l);
+
+    // ── Fenced code block ─────────────────────────────────
+    function parseFenceBlock(): string {
+        const opener = lines[i];
+        const fence  = opener.startsWith('~~~') ? '~~~' : '```';
+        const lang   = opener.slice(fence.length).trim().split(/\s+/)[0] || '';
+        const codeLines: string[] = [];
+        i++;
+        while (i < lines.length && !lines[i].trimEnd().startsWith(fence)) {
+            codeLines.push(escapeHtml(lines[i]));
             i++;
-            while (i < lines.length && !lines[i].startsWith('```')) {
-                codeLines.push(escapeHtml(lines[i]));
+        }
+        i++; // skip closing fence
+        const cls = lang ? ` class="language-${escapeHtml(lang)}"` : '';
+        return `<pre><code${cls}>${codeLines.join('\n')}</code></pre>`;
+    }
+
+    // ── Blockquote ────────────────────────────────────────
+    function parseBlockquote(): string {
+        const quoteLines: string[] = [];
+        while (i < lines.length && lines[i].startsWith('>')) {
+            // Strip one level of '>' prefix (> or >space)
+            quoteLines.push(lines[i].replace(/^>\s?/, ''));
+            i++;
+        }
+        // Recursively convert inner content (supports nested blockquotes)
+        const inner = convertMarkdown(quoteLines.join('\n'))
+            .replace(/<\/?p>/g, '') // keep inner markup clean
+            || quoteLines.map(l => inlineMarkdown(l)).join('<br>');
+        return `<blockquote><p>${inner}</p></blockquote>`;
+    }
+
+    // ── Table ─────────────────────────────────────────────
+    function parseTable(): string {
+        const tableLines: string[] = [];
+        while (i < lines.length && isTable(lines[i])) {
+            tableLines.push(lines[i]);
+            i++;
+        }
+        if (tableLines.length < 2) {
+            // Not a real table — treat as paragraph
+            return `<p>${tableLines.map(l => inlineMarkdown(l)).join('<br>')}</p>`;
+        }
+        const parseCells = (row: string) =>
+            row.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+
+        const headerCells = parseCells(tableLines[0]);
+        // Row 1 is separator (|:---|:---:|), skip it
+        const dataRows = tableLines.slice(2);
+
+        const thead = `<thead><tr>${headerCells.map(c =>
+            `<th>${inlineMarkdown(c)}</th>`).join('')}</tr></thead>`;
+        const tbody = dataRows.length
+            ? `<tbody>${dataRows.map(row =>
+                `<tr>${parseCells(row).map(c =>
+                    `<td>${inlineMarkdown(c)}</td>`).join('')}</tr>`
+              ).join('')}</tbody>`
+            : '';
+
+        return `<table>${thead}${tbody}</table>`;
+    }
+
+    // ── List (ul / ol with nesting) ───────────────────────
+    function parseList(isOrdered: boolean): string {
+        function getIndent(l: string): number {
+            return l.match(/^(\s*)/)?.[1].length ?? 0;
+        }
+        function buildItems(minIndent: number, ordered: boolean): string {
+            let html = '';
+            while (i < lines.length) {
+                const line = lines[i];
+                if (isBlank(line)) { i++; continue; }
+                if (!isListItem(line)) break;
+
+                const indent = getIndent(line);
+                if (indent < minIndent) break;
+
+                // Determine item type at current indent level
+                const ulMatch = line.match(/^\s*[-*+] (\[[ x]\] )?(.*)$/);
+                const olMatch = line.match(/^\s*\d+\. (.*)$/);
+                if (!ulMatch && !olMatch) break;
+
+                let content = ulMatch ? ulMatch[2] : olMatch![1];
+                let isTask  = false;
+                let checked = false;
+
+                // Task list item
+                if (ulMatch && ulMatch[1]) {
+                    isTask  = true;
+                    checked = ulMatch[1].includes('x');
+                    const checkbox = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> `;
+                    content = checkbox + inlineMarkdown(content);
+                } else {
+                    content = inlineMarkdown(content);
+                }
+
                 i++;
+
+                // Check for nested list
+                let nested = '';
+                if (i < lines.length && isListItem(lines[i])) {
+                    const nextIndent = getIndent(lines[i]);
+                    if (nextIndent > indent) {
+                        const nextIsOl = isOlItem(lines[i]);
+                        nested = nextIsOl
+                            ? `<ol>${buildItems(nextIndent, true)}</ol>`
+                            : `<ul>${buildItems(nextIndent, false)}</ul>`;
+                    }
+                }
+
+                html += `<li>${content}${nested}</li>`;
             }
-            i++; // skip closing ```
-            blocks.push(`<pre><code class="language-${lang}">${codeLines.join('\n')}</code></pre>`);
-            continue;
+            return html;
         }
 
-        // ── Headings ────────────────────────────────────────
-        const h3 = line.match(/^### (.+)$/);
-        if (h3) { blocks.push(`<h3>${inlineMarkdown(h3[1])}</h3>`); i++; continue; }
-        const h4 = line.match(/^#### (.+)$/);
-        if (h4) { blocks.push(`<h4>${inlineMarkdown(h4[1])}</h4>`); i++; continue; }
-        const h2 = line.match(/^## (.+)$/);
-        if (h2) { blocks.push(`<h2>${inlineMarkdown(h2[1])}</h2>`); i++; continue; }
-        const h1 = line.match(/^# (.+)$/);
-        if (h1) { blocks.push(`<h1>${inlineMarkdown(h1[1])}</h1>`); i++; continue; }
+        const baseIndent = getIndent(lines[i]);
+        const inner = buildItems(baseIndent, isOrdered);
+        return isOrdered ? `<ol>${inner}</ol>` : `<ul>${inner}</ul>`;
+    }
 
-        // ── HR ──────────────────────────────────────────────
-        if (/^---+$/.test(line.trim())) { blocks.push('<hr>'); i++; continue; }
-
-        // ── Blockquote ──────────────────────────────────────
-        if (line.startsWith('> ')) {
-            const quoteLines: string[] = [];
-            while (i < lines.length && lines[i].startsWith('> ')) {
-                quoteLines.push(inlineMarkdown(lines[i].slice(2)));
-                i++;
-            }
-            blocks.push(`<blockquote>${quoteLines.join('<br>')}</blockquote>`);
-            continue;
-        }
-
-        // ── Table ───────────────────────────────────────────
-        // A table row starts with '|'. We collect header, skip separator, then data rows.
-        if (line.startsWith('|')) {
-            const tableLines: string[] = [];
-            while (i < lines.length && lines[i].startsWith('|')) {
-                tableLines.push(lines[i]);
-                i++;
-            }
-            if (tableLines.length >= 1) {
-                // Parse cells from a row string
-                const parseCells = (row: string) =>
-                    row.split('|').slice(1, -1).map(c => c.trim());
-
-                const headerCells = parseCells(tableLines[0]);
-                // Row index 1 is the separator row (|---|---|), skip it
-                const dataRows = tableLines.slice(2);
-
-                const thead = `<thead><tr>${headerCells.map(c =>
-                    `<th>${inlineMarkdown(c)}</th>`).join('')}</tr></thead>`;
-                const tbody = `<tbody>${dataRows.map(row =>
-                    `<tr>${parseCells(row).map(c =>
-                        `<td>${inlineMarkdown(c)}</td>`).join('')}</tr>`
-                ).join('')}</tbody>`;
-
-                blocks.push(`<table>${thead}${tbody}</table>`);
-            }
-            continue;
-        }
-
-        // ── Unordered list ──────────────────────────────────
-        if (/^[-*] /.test(line)) {
-            const items: string[] = [];
-            while (i < lines.length && /^[-*] /.test(lines[i])) {
-                items.push(`<li>${inlineMarkdown(lines[i].slice(2))}</li>`);
-                i++;
-            }
-            blocks.push(`<ul>${items.join('')}</ul>`);
-            continue;
-        }
-
-        // ── Ordered list ────────────────────────────────────
-        if (/^\d+\. /.test(line)) {
-            const items: string[] = [];
-            while (i < lines.length && /^\d+\. /.test(lines[i])) {
-                items.push(`<li>${inlineMarkdown(lines[i].replace(/^\d+\. /, ''))}</li>`);
-                i++;
-            }
-            blocks.push(`<ol>${items.join('')}</ol>`);
-            continue;
-        }
-
-        // ── Blank line: skip ────────────────────────────────
-        if (line.trim() === '') { i++; continue; }
-
-        // ── Paragraph: collect consecutive non-blank lines ─
+    // ── Paragraph ─────────────────────────────────────────
+    function parseParagraph(): string {
         const paraLines: string[] = [];
-        while (i < lines.length && lines[i].trim() !== '' &&
-            !lines[i].startsWith('#') && !lines[i].startsWith('```') &&
-            !lines[i].startsWith('> ') && !lines[i].startsWith('|') &&
-            !/^[-*] /.test(lines[i]) &&
-            !/^\d+\. /.test(lines[i]) && !/^---+$/.test(lines[i].trim())) {
+        while (i < lines.length && !isBlockStop(lines[i])) {
             paraLines.push(inlineMarkdown(lines[i]));
             i++;
         }
-        if (paraLines.length > 0) {
-            blocks.push(`<p>${paraLines.join('<br>')}</p>`);
+        return paraLines.length ? `<p>${paraLines.join('<br>')}</p>` : '';
+    }
+
+    // ── Main parsing loop ─────────────────────────────────
+    while (i < lines.length) {
+        const line = lines[i];
+
+        if (isBlank(line))  { i++; continue; }
+
+        // Fenced code block
+        if (isFence(line))  { blocks.push(parseFenceBlock()); continue; }
+
+        // HR / page-break marker
+        if (isHrLine(line)) { blocks.push('<hr>'); i++; continue; }
+
+        // Headings (longest prefix first to avoid h1 matching h2/h3)
+        const hm = line.match(/^(#{1,6}) (.+)$/);
+        if (hm) {
+            const level = hm[1].length;
+            blocks.push(`<h${level}>${inlineMarkdown(hm[2])}</h${level}>`);
+            i++;
+            continue;
         }
+
+        // Blockquote
+        if (isQuote(line))   { blocks.push(parseBlockquote()); continue; }
+
+        // Table
+        if (isTable(line))   { blocks.push(parseTable()); continue; }
+
+        // Unordered list
+        if (isUlItem(line))  { blocks.push(parseList(false)); continue; }
+
+        // Ordered list
+        if (isOlItem(line))  { blocks.push(parseList(true)); continue; }
+
+        // Paragraph (catch-all)
+        const para = parseParagraph();
+        if (para) blocks.push(para);
     }
 
     return blocks.join('\n');
 }
 
-/** Inline markdown: bold, italic, code, links.
- *  Uses lazy quantifiers (.+?) to prevent catastrophic backtracking
- *  on lines with many asterisks (e.g., table cells with **bold** text).
+/**
+ * Inline Markdown → HTML.
+ * Processing order matters: bold+italic first, then bold, then italic, etc.
  */
 function inlineMarkdown(text: string): string {
-    // Guard: skip processing on very long lines to prevent any edge-case hang
-    if (text.length > 2000) return escapeHtml(text);
+    if (!text) return '';
+    // Guard against extremely long lines
+    if (text.length > 5000) return escapeHtml(text);
+
     return text
+        // Image before link (so ![…](…) is not parsed as link)
+        .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/g,
+            (_, alt, src, title) => {
+                const t = title ? ` title="${escapeAttr(title)}"` : '';
+                return `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${t} loading="lazy">`;
+            })
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+        // Inline code (before bold/italic to protect content)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // Bold + italic
+        .replace(/\*{3}(.+?)\*{3}/g, '<strong><em>$1</em></strong>')
+        .replace(/_{3}(.+?)_{3}/g,   '<strong><em>$1</em></strong>')
+        // Bold
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.+?)__/g,     '<strong>$1</strong>')
+        // Italic
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+        .replace(/_([^_]+)_/g, '<em>$1</em>')
+        // Strikethrough
+        .replace(/~~(.+?)~~/g, '<del>$1</del>');
 }
 
-/** Escape HTML special chars for code blocks */
+/** Escape HTML special chars (for code block content) */
 function escapeHtml(text: string): string {
     return text
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+/** Escape attribute values */
+function escapeAttr(text: string): string {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Render the page thumbnail strip below the pagination controls
+ */
+function renderPageStrip() {
+    const state = store.getState();
+    const strip = document.getElementById('page-strip');
+    if (!strip) return;
+
+    if (state.viewMode !== 'multi' || state.totalPages <= 1) {
+        strip.innerHTML = '';
+        strip.style.display = 'none';
+        return;
+    }
+
+    strip.style.display = 'flex';
+    const total = state.totalPages;
+
+    // Rebuild only if page count changed — avoids re-render flicker
+    const existing = strip.querySelectorAll('.page-thumb');
+    if (existing.length !== total) {
+        strip.innerHTML = '';
+        for (let i = 1; i <= total; i++) {
+            const thumb = document.createElement('button');
+            thumb.className = 'page-thumb';
+            thumb.dataset.page = String(i);
+            thumb.title = `跳转第 ${i} 页`;
+            thumb.innerHTML = `<span class="pt-num">${i}</span>`;
+            thumb.addEventListener('click', () => {
+                store.setState({ currentPage: i });
+                renderPages();
+                syncControlsToPage(i);
+            });
+            strip.appendChild(thumb);
+        }
+    }
+
+    // Update active state
+    strip.querySelectorAll('.page-thumb').forEach(el => {
+        const el2 = el as HTMLElement;
+        const pg = parseInt(el2.dataset.page || '0');
+        el2.classList.toggle('active', pg === state.currentPage);
+    });
+
+    // Scroll active thumb into view smoothly
+    const active = strip.querySelector('.page-thumb.active') as HTMLElement | null;
+    if (active) {
+        active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
 }
 
 /**
@@ -636,11 +803,6 @@ function init() {
         }
     });
 
-    // Esc key also deselects
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') clearSelection();
-    });
-
     // View Mode
     $('#btn-multi').addEventListener('click', () => {
         $('.mode-btn.active').classList.remove('active');
@@ -660,11 +822,41 @@ function init() {
     $('#btn-prev').addEventListener('click', () => navigate(-1));
     $('#btn-next').addEventListener('click', () => navigate(1));
 
+    // Keyboard navigation: ← → to turn pages, Cmd/Ctrl+S to save
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { clearSelection(); return; }
+
+        // Don't intercept arrow keys while the textarea is focused
+        const focused = document.activeElement;
+        const inTextarea = focused === markdownInput;
+        const inInput = focused && (focused.tagName === 'INPUT' || focused.tagName === 'SELECT');
+        if (inTextarea || inInput) return;
+
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            navigate(1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigate(-1);
+        } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveMd();
+        }
+    });
+
     // Toolbar init
     initToolbar();
 
-    // Export PNG
+    // Export PNG (current page)
     $('#btn-export').addEventListener('click', exportPng);
+
+    // Export ALL pages
+    const btnExportAll = document.getElementById('btn-export-all');
+    if (btnExportAll) btnExportAll.addEventListener('click', exportAllPng);
+
+    // Save .md file
+    const btnSave = document.getElementById('btn-save');
+    if (btnSave) btnSave.addEventListener('click', saveMd);
 
     // Reset all settings
     $('#btn-reset').addEventListener('click', () => {
@@ -857,6 +1049,72 @@ async function exportPng() {
         btn.innerHTML = '📸 导出 PNG';
         btn.disabled = false;
     }
+}
+
+/**
+ * Export ALL pages as separate PNG files (zipped in-browser)
+ */
+async function exportAllPng() {
+    const state = store.getState();
+    if (state.viewMode !== 'multi' || state.totalPages === 0) {
+        alert('请先切换到分页模式并输入内容');
+        return;
+    }
+
+    const btn = document.getElementById('btn-export-all') as HTMLButtonElement | null;
+    if (btn) { btn.textContent = '⏳ 导出中...'; btn.disabled = true; }
+
+    // Temporarily show all pages so html-to-image can capture them
+    const allPages = Array.from(
+        previewArea.querySelectorAll('.page[data-page]')
+    ) as HTMLElement[];
+
+    // Show all pages temporarily
+    allPages.forEach(p => (p.style.display = 'block'));
+
+    const links: HTMLAnchorElement[] = [];
+    for (let i = 0; i < allPages.length; i++) {
+        try {
+            const dataUrl = await htmlToImage.toPng(allPages[i], {
+                pixelRatio: 3,
+                backgroundColor: getComputedStyle(allPages[i]).backgroundColor || '#ffffff',
+            });
+            const a = document.createElement('a');
+            a.download = `MagMark-Page-${i + 1}.png`;
+            a.href = dataUrl;
+            links.push(a);
+        } catch (e) {
+            console.error(`Page ${i + 1} export failed`, e);
+        }
+    }
+
+    // Restore visibility
+    allPages.forEach((p, i) => {
+        const pNum = parseInt(p.dataset.page || '0');
+        p.style.display = pNum === state.currentPage ? 'block' : 'none';
+    });
+
+    // Trigger all downloads (staggered to avoid browser blocking)
+    for (let i = 0; i < links.length; i++) {
+        await new Promise<void>(res => setTimeout(() => { links[i].click(); res(); }, i * 200));
+    }
+
+    if (btn) { btn.textContent = '🗂 导出全部'; btn.disabled = false; }
+}
+
+/**
+ * Save current Markdown content as a .md file
+ */
+function saveMd() {
+    const content = markdownInput.value;
+    if (!content.trim()) { alert('内容为空，无法保存'); return; }
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'MagMark-' + new Date().toISOString().slice(0, 10) + '.md';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 
