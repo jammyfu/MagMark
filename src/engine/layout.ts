@@ -49,6 +49,10 @@ function isListBlock(html: string): boolean {
     return /^\s*<(ul|ol)[\s>]/i.test(html);
 }
 
+function isPreBlock(html: string): boolean {
+    return /^\s*<pre[\s>]/i.test(html);
+}
+
 function collectTextNodes(root: Node): Text[] {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
@@ -254,6 +258,78 @@ function splitListBlock(
     };
 }
 
+function splitPreBlock(
+    html: string,
+    remainingHeight: number,
+    availableH: number,
+    measurer: HTMLElement,
+    settings: PageSetting,
+    blockOverride: PageSetting | undefined,
+    fontFamily: string
+): { before: string; after: string; beforeHeight: number } | null {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    const pre = wrapper.firstElementChild as HTMLElement | null;
+    if (!pre || pre.tagName !== 'PRE') return null;
+
+    const code = pre.querySelector('code');
+    const contentEl = code || pre;
+    const text = contentEl.textContent || '';
+    const lines = text.split('\n');
+    if (lines.length < 4) return null;
+
+    const minLines = 2;
+    let low = minLines;
+    let high = lines.length - minLines;
+    let bestCount = -1;
+    let bestHeight = 0;
+
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+
+        const beforePre = pre.cloneNode(false) as HTMLElement;
+        const beforeCode = code ? (code.cloneNode(false) as HTMLElement) : beforePre;
+        beforeCode.textContent = lines.slice(0, mid).join('\n');
+        if (code) beforePre.appendChild(beforeCode);
+
+        const afterPre = pre.cloneNode(false) as HTMLElement;
+        const afterCode = code ? (code.cloneNode(false) as HTMLElement) : afterPre;
+        afterCode.textContent = lines.slice(mid).join('\n');
+        if (code) afterPre.appendChild(afterCode);
+
+        const beforeHtml = beforePre.outerHTML;
+        const afterHtml = afterPre.outerHTML;
+        const beforeHeight = measureBlock(beforeHtml, measurer, settings, blockOverride, fontFamily);
+        const afterHeight = measureBlock(afterHtml, measurer, settings, blockOverride, fontFamily);
+
+        if (beforeHeight <= remainingHeight && afterHeight <= availableH) {
+            bestCount = mid;
+            bestHeight = beforeHeight;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    if (bestCount === -1) return null;
+
+    const beforePre = pre.cloneNode(false) as HTMLElement;
+    const beforeCode = code ? (code.cloneNode(false) as HTMLElement) : beforePre;
+    beforeCode.textContent = lines.slice(0, bestCount).join('\n');
+    if (code) beforePre.appendChild(beforeCode);
+
+    const afterPre = pre.cloneNode(false) as HTMLElement;
+    const afterCode = code ? (code.cloneNode(false) as HTMLElement) : afterPre;
+    afterCode.textContent = lines.slice(bestCount).join('\n');
+    if (code) afterPre.appendChild(afterCode);
+
+    return {
+        before: beforePre.outerHTML,
+        after: afterPre.outerHTML,
+        beforeHeight: bestHeight,
+    };
+}
+
 /**
  * Measure a block's full rendered height including CSS margins (getComputedStyle).
  * The measurer must already be in the DOM with the correct width set.
@@ -450,6 +526,33 @@ export async function paginate(
 
         // Would this block cause the page to overflow?
         if (candidateHeight > availableH && pageBlocks.length > 0) {
+            if (isPreBlock(block)) {
+                const split = splitPreBlock(
+                    block,
+                    availableH - measureCurrentPage(settings),
+                    availableH,
+                    measurer,
+                    settings,
+                    blockOver,
+                    state.fontFamily
+                );
+
+                if (split) {
+                    const splitCandidateBlocks = [...pageBlocks, split.before];
+                    const splitCandidateHeight = measurePageContent(splitCandidateBlocks, measurer, settings, state.fontFamily);
+
+                    if (splitCandidateHeight <= availableH) {
+                        pageBlocks.push(split.before);
+                        pageHeights.push(split.beforeHeight);
+                        pageHeight = splitCandidateHeight;
+                        workBlocks[idx] = split.after;
+                        preHeights[idx] = remeasure(split.after, settings, blockOver);
+                        flushPage(settings);
+                        continue;
+                    }
+                }
+            }
+
             if (isListBlock(block)) {
                 const split = splitListBlock(
                     block,
