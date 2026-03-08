@@ -1,0 +1,60 @@
+{
+  "name": "xiaohongshu-adjusted",
+  "format": "xiaohongshu",
+  "pageInfo": "第 1 / 4 页",
+  "typography": {
+    "headingFontSize": "30.72px",
+    "paragraphFontSize": "24px",
+    "paragraphLineHeight": "62.4px"
+  },
+  "metrics": [
+    {
+      "page": 1,
+      "blockCount": 8,
+      "fillRatio": 1,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 2,
+      "blockCount": 7,
+      "fillRatio": 1.024,
+      "overflowingBlocks": [
+        {
+          "blockIndex": 6,
+          "tag": "P",
+          "text": "成功率85.8%，但成本低到离谱（几分钱跑一次完整任务）   适合批量跑简单重复任务、测试prompt、做数据标注这种“",
+          "effectiveBottom": 3034,
+          "limitBottom": 3006
+        }
+      ]
+    },
+    {
+      "page": 3,
+      "blockCount": 5,
+      "fillRatio": 1.024,
+      "overflowingBlocks": [
+        {
+          "blockIndex": 4,
+          "tag": "P",
+          "text": "你现在OpenClaw主力用哪个？评论区battle一下～（所有数据来自pinchbench.com，欢迎去亲自验）",
+          "effectiveBottom": 4603,
+          "limitBottom": 4575
+        }
+      ]
+    },
+    {
+      "page": 4,
+      "blockCount": 1,
+      "fillRatio": 1.454,
+      "overflowingBlocks": [
+        {
+          "blockIndex": 0,
+          "tag": "P",
+          "text": "#OpenClaw #AIAgent #大模型选型 #PinchBench #Gemini3 #MiniMax #Kim",
+          "effectiveBottom": 4935,
+          "limitBottom": 4906
+        }
+      ]
+    }
+  ]
+}

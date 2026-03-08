@@ -763,8 +763,9 @@ function init() {
             store.setState({ lineHeight: val, pageOverrides: {} });
         }
         $('#val-lineheight').textContent = val.toFixed(2) + '×';
-        // Instant CSS-only update — never re-paginates, zero flicker
+        // Instant preview, re-paginate after 800ms to keep page flow accurate
         applyStylesOnly();
+        debouncedRenderSlow();
     });
 
     $<HTMLInputElement>('#ctrl-letterspacing').addEventListener('input', (e) => {
@@ -778,8 +779,9 @@ function init() {
             store.setState({ letterSpacing: val, pageOverrides: {} });
         }
         $('#val-letterspacing').textContent = val.toFixed(2) + 'em';
-        // Instant CSS-only update — never re-paginates, zero flicker
+        // Instant preview, re-paginate after 800ms because width changes affect wrapping
         applyStylesOnly();
+        debouncedRenderSlow();
     });
 
     $<HTMLSelectElement>('#ctrl-format').addEventListener('change', (e) => {
