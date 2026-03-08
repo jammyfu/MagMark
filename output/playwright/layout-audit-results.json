@@ -1,0 +1,1435 @@
+[
+  {
+    "name": "a4-multi-default",
+    "pageInfo": "第 1 / 3 页",
+    "metrics": [
+      {
+        "page": 1,
+        "className": "page page-a4",
+        "width": 595,
+        "height": 842,
+        "blockCount": 8,
+        "overflowingBlocks": [],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 481,
+        "contentClientHeight": 481
+      },
+      {
+        "page": 2,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 7,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H3",
+            "text": "Unordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 18.2,
+            "marginBottom": 7,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "UL",
+            "text": "First item with boldSecond item with italicNested itemAnother nested itemThird i",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H3",
+            "text": "Ordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 18.2,
+            "marginBottom": 7,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "OL",
+            "text": "First stepSecond stepSub-step ASub-step BFinal step",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "H2",
+            "text": "Code",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 5,
+            "tag": "P",
+            "text": "Inline code: const x = 42;",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 6,
+            "tag": "PRE",
+            "text": "function example() {\n  const greeting = \"Hello, World!\";\n  console.log(greeting)",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 25.2,
+            "marginBottom": 25.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 3,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 10,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Table",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "TABLE",
+            "text": "FeatureSupportNotesBold✅Full supportItalic✅Full supportCode✅With highlightingTab",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 21,
+            "marginBottom": 21,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H2",
+            "text": "Image",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "P",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "H2",
+            "text": "Link",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 5,
+            "tag": "P",
+            "text": "Visit OpenAI for more information.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 6,
+            "tag": "H2",
+            "text": "Horizontal Rule",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 7,
+            "tag": "HR",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 21,
+            "marginBottom": 21,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 8,
+            "tag": "H2",
+            "text": "Conclusion",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 9,
+            "tag": "P",
+            "text": "This document has tested bold, italic, code, links, and more.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 1,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      }
+    ],
+    "screenshotPath": "/Users/jammyfu/works/AI/Project/Magmark/output/playwright/a4-multi-default.png"
+  },
+  {
+    "name": "mobile-multi-tight",
+    "pageInfo": "第 1 / 5 页",
+    "metrics": [
+      {
+        "page": 1,
+        "className": "page page-mobile",
+        "width": 393,
+        "height": 852,
+        "blockCount": 7,
+        "overflowingBlocks": [],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 708,
+        "contentClientHeight": 708
+      },
+      {
+        "page": 2,
+        "className": "page page-mobile",
+        "width": 0,
+        "height": 0,
+        "blockCount": 5,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Lists",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 28.8,
+            "marginBottom": 14.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "H3",
+            "text": "Unordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 23.4,
+            "marginBottom": 9,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "UL",
+            "text": "First item with boldSecond item with italicNested itemAnother nested itemThird i",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 19.8,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "H3",
+            "text": "Ordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 23.4,
+            "marginBottom": 9,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "OL",
+            "text": "First stepSecond stepSub-step ASub-step BFinal step",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 19.8,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 3,
+        "className": "page page-mobile",
+        "width": 0,
+        "height": 0,
+        "blockCount": 3,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Code",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 28.8,
+            "marginBottom": 14.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Inline code: const x = 42;",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 19.8,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "PRE",
+            "text": "function example() {\n  const greeting = \"Hello, World!\";\n  console.log(greeting)",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 32.4,
+            "marginBottom": 32.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 4,
+        "className": "page page-mobile",
+        "width": 0,
+        "height": 0,
+        "blockCount": 8,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Table",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 28.8,
+            "marginBottom": 14.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "TABLE",
+            "text": "FeatureSupportNotesBold✅Full supportItalic✅Full supportCode✅With highlightingTab",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 27,
+            "marginBottom": 27,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H2",
+            "text": "Image",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 28.8,
+            "marginBottom": 14.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "P",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 19.8,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "H2",
+            "text": "Link",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 28.8,
+            "marginBottom": 14.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 5,
+            "tag": "P",
+            "text": "Visit OpenAI for more information.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 19.8,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 6,
+            "tag": "H2",
+            "text": "Horizontal Rule",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 28.8,
+            "marginBottom": 14.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 7,
+            "tag": "HR",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 27,
+            "marginBottom": 27,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 1,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 5,
+        "className": "page page-mobile",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Conclusion",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 28.8,
+            "marginBottom": 14.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "This document has tested bold, italic, code, links, and more.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 19.8,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      }
+    ],
+    "screenshotPath": "/Users/jammyfu/works/AI/Project/Magmark/output/playwright/mobile-multi-tight.png"
+  },
+  {
+    "name": "desktop-multi-loose",
+    "pageInfo": "第 1 / 4 页",
+    "metrics": [
+      {
+        "page": 1,
+        "className": "page page-desktop",
+        "width": 800,
+        "height": 1000,
+        "blockCount": 8,
+        "overflowingBlocks": [],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 720,
+        "contentClientHeight": 720
+      },
+      {
+        "page": 2,
+        "className": "page page-desktop",
+        "width": 0,
+        "height": 0,
+        "blockCount": 6,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H3",
+            "text": "Unordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 26,
+            "marginBottom": 10,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "UL",
+            "text": "First item with boldSecond item with italicNested itemAnother nested itemThird i",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 22,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H3",
+            "text": "Ordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 26,
+            "marginBottom": 10,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "OL",
+            "text": "First stepSecond stepSub-step ASub-step BFinal step",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 22,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "H2",
+            "text": "Code",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 32,
+            "marginBottom": 16,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 5,
+            "tag": "P",
+            "text": "Inline code: const x = 42;",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 22,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 3,
+        "className": "page page-desktop",
+        "width": 0,
+        "height": 0,
+        "blockCount": 5,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "PRE",
+            "text": "function example() {\n  const greeting = \"Hello, World!\";\n  console.log(greeting)",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 36,
+            "marginBottom": 36,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "H2",
+            "text": "Table",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 32,
+            "marginBottom": 16,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "TABLE",
+            "text": "FeatureSupportNotesBold✅Full supportItalic✅Full supportCode✅With highlightingTab",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 30,
+            "marginBottom": 30,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "H2",
+            "text": "Image",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 32,
+            "marginBottom": 16,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "P",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 22,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 4,
+        "className": "page page-desktop",
+        "width": 0,
+        "height": 0,
+        "blockCount": 6,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Link",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 32,
+            "marginBottom": 16,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Visit OpenAI for more information.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 22,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H2",
+            "text": "Horizontal Rule",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 32,
+            "marginBottom": 16,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "HR",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 30,
+            "marginBottom": 30,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "H2",
+            "text": "Conclusion",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 32,
+            "marginBottom": 16,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 5,
+            "tag": "P",
+            "text": "This document has tested bold, italic, code, links, and more.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 22,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 1,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      }
+    ],
+    "screenshotPath": "/Users/jammyfu/works/AI/Project/Magmark/output/playwright/desktop-multi-loose.png"
+  },
+  {
+    "name": "xiaohongshu-multi-default",
+    "pageInfo": "第 1 / 5 页",
+    "metrics": [
+      {
+        "page": 1,
+        "className": "page page-xiaohongshu",
+        "width": 1080,
+        "height": 1440,
+        "blockCount": 6,
+        "overflowingBlocks": [],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 977,
+        "contentClientHeight": 977
+      },
+      {
+        "page": 2,
+        "className": "page page-xiaohongshu",
+        "width": 0,
+        "height": 0,
+        "blockCount": 4,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "BLOCKQUOTE",
+            "text": "This is a pull quote that should stand out from the regular text.— Author Name",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 64.6,
+            "marginBottom": 64.6,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "H2",
+            "text": "Lists",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 66.5,
+            "marginBottom": 34.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H3",
+            "text": "Unordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 53.2,
+            "marginBottom": 24.7,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "UL",
+            "text": "First item with boldSecond item with italicNested itemAnother nested itemThird i",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 45.6,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 3,
+        "className": "page page-xiaohongshu",
+        "width": 0,
+        "height": 0,
+        "blockCount": 5,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H3",
+            "text": "Ordered",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 53.2,
+            "marginBottom": 24.7,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "OL",
+            "text": "First stepSecond stepSub-step ASub-step BFinal step",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 45.6,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H2",
+            "text": "Code",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 66.5,
+            "marginBottom": 34.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "P",
+            "text": "Inline code: const x = 42;",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 44.84,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "PRE",
+            "text": "function example() {\n  const greeting = \"Hello, World!\";\n  console.log(greeting)",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 68.4,
+            "marginBottom": 68.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 4,
+        "className": "page page-xiaohongshu",
+        "width": 0,
+        "height": 0,
+        "blockCount": 8,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Table",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 66.5,
+            "marginBottom": 34.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "TABLE",
+            "text": "FeatureSupportNotesBold✅Full supportItalic✅Full supportCode✅With highlightingTab",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 57,
+            "marginBottom": 57,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 2,
+            "tag": "H2",
+            "text": "Image",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 66.5,
+            "marginBottom": 34.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 3,
+            "tag": "P",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 44.84,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 4,
+            "tag": "H2",
+            "text": "Link",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 66.5,
+            "marginBottom": 34.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 5,
+            "tag": "P",
+            "text": "Visit OpenAI for more information.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 44.84,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 6,
+            "tag": "H2",
+            "text": "Horizontal Rule",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 66.5,
+            "marginBottom": 34.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 7,
+            "tag": "HR",
+            "text": "",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 57,
+            "marginBottom": 57,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 1,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 5,
+        "className": "page page-xiaohongshu",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Conclusion",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 66.5,
+            "marginBottom": 34.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "This document has tested bold, italic, code, links, and more.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 44.84,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      }
+    ],
+    "screenshotPath": "/Users/jammyfu/works/AI/Project/Magmark/output/playwright/xiaohongshu-multi-default.png"
+  },
+  {
+    "name": "hr-hidden-manual-off",
+    "pageInfo": "第 1 / 2 页",
+    "metrics": [
+      {
+        "page": 1,
+        "className": "page page-a4",
+        "width": 595,
+        "height": 842,
+        "blockCount": 17,
+        "overflowingBlocks": [],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 581,
+        "contentClientHeight": 581
+      },
+      {
+        "page": 2,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Section 6",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Sunt in culpa qui officia deserunt mollit anim id est laborum.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      }
+    ],
+    "screenshotPath": "/Users/jammyfu/works/AI/Project/Magmark/output/playwright/hr-hidden-manual-off.png"
+  },
+  {
+    "name": "hr-visible-manual-on",
+    "pageInfo": "第 1 / 6 页",
+    "metrics": [
+      {
+        "page": 1,
+        "className": "page page-a4",
+        "width": 595,
+        "height": 842,
+        "blockCount": 4,
+        "overflowingBlocks": [],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 189,
+        "contentClientHeight": 189
+      },
+      {
+        "page": 2,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Section 2",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 3,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Section 3",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 4,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Section 4",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 5,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Section 5",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Excepteur sint occaecat cupidatat non proident.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      },
+      {
+        "page": 6,
+        "className": "page page-a4",
+        "width": 0,
+        "height": 0,
+        "blockCount": 2,
+        "overflowingBlocks": [
+          {
+            "blockIndex": 0,
+            "tag": "H2",
+            "text": "Section 6",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 22.4,
+            "marginBottom": 11.2,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          },
+          {
+            "blockIndex": 1,
+            "tag": "P",
+            "text": "Sunt in culpa qui officia deserunt mollit anim id est laborum.",
+            "bottom": 0,
+            "pageBottom": 0,
+            "footerTop": 0,
+            "marginTop": 0,
+            "marginBottom": 15.4,
+            "exceedsFooter": true,
+            "exceedsPage": true,
+            "exceedsWidth": false
+          }
+        ],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 0,
+        "contentClientHeight": 0
+      }
+    ],
+    "screenshotPath": "/Users/jammyfu/works/AI/Project/Magmark/output/playwright/hr-visible-manual-on.png"
+  },
+  {
+    "name": "scroll-mobile-hidden-divider",
+    "pageInfo": "第 1 / 2 页",
+    "metrics": [
+      {
+        "page": 1,
+        "className": "page page-mobile scrollable",
+        "width": 393,
+        "height": 1074,
+        "blockCount": 19,
+        "overflowingBlocks": [],
+        "hrVisibleCount": 0,
+        "contentScrollHeight": 944,
+        "contentClientHeight": 944
+      }
+    ],
+    "screenshotPath": "/Users/jammyfu/works/AI/Project/Magmark/output/playwright/scroll-mobile-hidden-divider.png"
+  }
+]

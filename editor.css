@@ -643,8 +643,47 @@ input:checked+.slider:before {
 
 /* 小红书格式字号放大，适配大画布 */
 .page-xiaohongshu .magmark {
-    --mm-font-size: 32px;
-    --mm-line-height: 1.8;
+    --mm-font-size: 38px;
+    --mm-line-height: 1.9;
+    --mm-letter-spacing: 0.012em;
+}
+
+.page-xiaohongshu .magmark h1 {
+    font-size: calc(var(--mm-font-size) * 2.05);
+    margin-bottom: calc(var(--mm-font-size) * 1.15);
+    padding-bottom: 18px;
+}
+
+.page-xiaohongshu .magmark h2 {
+    font-size: calc(var(--mm-font-size) * 1.58);
+    margin-top: calc(var(--mm-font-size) * 1.75);
+    margin-bottom: calc(var(--mm-font-size) * 0.9);
+    padding-bottom: 12px;
+}
+
+.page-xiaohongshu .magmark h3 {
+    font-size: calc(var(--mm-font-size) * 1.28);
+    margin-top: calc(var(--mm-font-size) * 1.4);
+    margin-bottom: calc(var(--mm-font-size) * 0.65);
+}
+
+.page-xiaohongshu .magmark p {
+    margin-bottom: calc(var(--mm-font-size) * 1.18);
+}
+
+.page-xiaohongshu .magmark ul,
+.page-xiaohongshu .magmark ol {
+    padding-left: 1.2em;
+    margin-bottom: calc(var(--mm-font-size) * 1.2);
+}
+
+.page-xiaohongshu .magmark li {
+    margin-bottom: calc(var(--mm-font-size) * 0.32);
+}
+
+.page-xiaohongshu .magmark blockquote {
+    margin: calc(var(--mm-font-size) * 1.7) 0;
+    padding: 20px 28px;
 }
 
 .page.scrollable {
@@ -773,6 +812,14 @@ input:checked+.slider:before {
     /* 1.4 高级标点悬挂 */
 }
 
+.magmark p.mm-split-fragment--before {
+    margin-bottom: 0;
+}
+
+.magmark p.mm-split-fragment--after {
+    margin-top: 0;
+}
+
 .magmark strong {
     font-weight: 700;
     color: var(--th-primary);
@@ -899,6 +946,10 @@ input:checked+.slider:before {
     border-top: 2px solid color-mix(in srgb, var(--th-primary) 30%, transparent);
     margin: calc(var(--mm-font-size) * 1.5) 0;
     height: 0;
+}
+
+.magmark.magmark-hide-paragraph-dividers hr {
+    display: none;
 }
 
 .magmark img {

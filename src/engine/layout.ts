@@ -1,4 +1,4 @@
-import { AppState, PageSetting } from '../core/state';
+import { AppState, PageSetting, getFormatDefaultSetting } from '../core/state';
 
 export interface PageResult {
     html: string;
@@ -28,7 +28,7 @@ export function getPageDimensions(format: AppState['format']) {
         a4:          { w: 595,  h: 842,  pt: 56, pb: 40, pl: 52, pr: 52, safetyMargin: 32 },
         mobile:      { w: 393,  h: 852,  pt: 32, pb: 32, pl: 24, pr: 24, safetyMargin: 24 },
         desktop:     { w: 800,  h: 1000, pt: 64, pb: 40, pl: 72, pr: 72, safetyMargin: 32 },
-        xiaohongshu: { w: 1080, h: 1440, pt: 80, pb: 80, pl: 64, pr: 64, safetyMargin: 80 },
+        xiaohongshu: { w: 1080, h: 1440, pt: 80, pb: 80, pl: 64, pr: 64, safetyMargin: 56 },
     };
     return formats[format];
 }
@@ -116,6 +116,8 @@ function buildSplitFragment(
     }
 
     target.appendChild(range.cloneContents());
+    target.classList.add(takeBefore ? 'mm-split-fragment--before' : 'mm-split-fragment--after');
+    target.dataset.splitFragment = takeBefore ? 'before' : 'after';
     return target.textContent?.trim() ? target : null;
 }
 
@@ -139,7 +141,7 @@ function splitParagraphBlock(
     const totalText = paragraph.textContent ?? '';
     if (totalText.trim().length < 40) return null;
 
-    const minSplitHeight = Math.max(settings.fontSize * settings.lineHeight * 2, 48);
+    const minSplitHeight = Math.max(settings.fontSize * settings.lineHeight * 1.2, 32);
     if (remainingHeight < minSplitHeight) return null;
 
     let low = 1;
@@ -221,6 +223,21 @@ function measureBlock(
     return el.offsetHeight + marginTop + marginBottom;
 }
 
+function measurePageContent(
+    blocks: string[],
+    measurer: HTMLElement,
+    settings: PageSetting,
+    fontFamily: string
+): number {
+    measurer.style.setProperty('--mm-font-size', settings.fontSize + 'px');
+    measurer.style.setProperty('--mm-line-height', String(settings.lineHeight));
+    measurer.style.setProperty('--mm-letter-spacing', settings.letterSpacing + 'em');
+    measurer.style.setProperty('--mm-font-family', fontFamily);
+    measurer.innerHTML = blocks.join('');
+    void measurer.offsetHeight;
+    return measurer.scrollHeight;
+}
+
 /**
  * Some formats hard-code typography via child-level CSS custom properties,
  * e.g. `.page-xiaohongshu .magmark { --mm-font-size: 32px; --mm-line-height: 1.8 }`.
@@ -229,14 +246,11 @@ function measureBlock(
  * can be ~2× off and pagination will be completely wrong.
  */
 function getEffectiveMeasureBase(state: AppState): PageSetting {
-    if (state.format === 'xiaohongshu') {
-        // Keep letterSpacing from user settings; font-size/line-height are CSS-forced.
-        return { fontSize: 32, lineHeight: 1.8, letterSpacing: state.letterSpacing };
-    }
+    const defaults = getFormatDefaultSetting(state.format);
     return {
-        fontSize:      state.fontSize,
-        lineHeight:    state.lineHeight,
-        letterSpacing: state.letterSpacing,
+        fontSize:      state.fontSize ?? defaults.fontSize,
+        lineHeight:    state.lineHeight ?? defaults.lineHeight,
+        letterSpacing: state.letterSpacing ?? defaults.letterSpacing,
     };
 }
 
@@ -277,18 +291,23 @@ export async function paginate(
     const availableH = dim.h - dim.pt - dim.pb - dim.safetyMargin - footerH;
 
     // ── Hidden measurement container ─────────────────────────────────────────
-    const measurer = document.createElement('div');
-    measurer.className = 'magmark-measurer magmark';
-    measurer.style.cssText = [
-        `width:${dim.w - dim.pl - dim.pr}px`,
+    const measurePage = document.createElement('div');
+    measurePage.className = `page page-${state.format}`;
+    measurePage.style.cssText = [
         'visibility:hidden',
         'position:absolute',
         'top:-9999px',
         'left:-9999px',
         'pointer-events:none',
         'z-index:-1',
+        'transform:none',
+        'display:block',
     ].join(';');
-    document.body.appendChild(measurer);
+    const measurer = document.createElement('div');
+    measurer.className = 'page-content magmark';
+    measurer.style.width = `${dim.w - dim.pl - dim.pr}px`;
+    measurePage.appendChild(measurer);
+    document.body.appendChild(measurePage);
 
     // Effective base: matches the typography CSS actually applies when rendering.
     // For xiaohongshu this is 32px/1.8 (CSS-forced); otherwise the user's settings.
@@ -316,6 +335,11 @@ export async function paginate(
         return measureBlock(html, measurer, settings, over, state.fontFamily);
     };
 
+    const measureCurrentPage = (settings: PageSetting): number =>
+        pageBlocks.length > 0
+            ? measurePageContent(pageBlocks, measurer, settings, state.fontFamily)
+            : 0;
+
     let idx = 0;
 
     while (idx < workBlocks.length) {
@@ -338,6 +362,7 @@ export async function paginate(
         if (!manualPagination && isHr) {
             pageBlocks.push(block);
             pageHeights.push(0);
+            pageHeight = measureCurrentPage(settings);
             idx++;
             continue;
         }
@@ -353,13 +378,15 @@ export async function paginate(
             settings.letterSpacing !== measureBase.letterSpacing;
 
         const bHeight = hasOverride ? remeasure(block, settings, blockOver) : preHeights[idx];
+        const candidateBlocks = [...pageBlocks, block];
+        const candidateHeight = measurePageContent(candidateBlocks, measurer, settings, state.fontFamily);
 
         // Would this block cause the page to overflow?
-        if (pageHeight + bHeight > availableH && pageBlocks.length > 0) {
+        if (candidateHeight > availableH && pageBlocks.length > 0) {
             if (isParagraphBlock(block)) {
                 const split = splitParagraphBlock(
                     block,
-                    availableH - pageHeight,
+                    availableH - measureCurrentPage(settings),
                     availableH,
                     measurer,
                     settings,
@@ -368,13 +395,18 @@ export async function paginate(
                 );
 
                 if (split) {
-                    pageBlocks.push(split.before);
-                    pageHeights.push(split.beforeHeight);
-                    pageHeight += split.beforeHeight;
-                    workBlocks[idx] = split.after;
-                    preHeights[idx] = remeasure(split.after, settings, blockOver);
-                    flushPage(settings);
-                    continue;
+                    const splitCandidateBlocks = [...pageBlocks, split.before];
+                    const splitCandidateHeight = measurePageContent(splitCandidateBlocks, measurer, settings, state.fontFamily);
+
+                    if (splitCandidateHeight <= availableH) {
+                        pageBlocks.push(split.before);
+                        pageHeights.push(split.beforeHeight);
+                        pageHeight = splitCandidateHeight;
+                        workBlocks[idx] = split.after;
+                        preHeights[idx] = remeasure(split.after, settings, blockOver);
+                        flushPage(settings);
+                        continue;
+                    }
                 }
             }
 
@@ -383,15 +415,15 @@ export async function paginate(
             // stays with the content that follows it.
             if (isHeadingBlock(pageBlocks[pageBlocks.length - 1])) {
                 const orphanHtml   = pageBlocks.pop()!;
-                const orphanHeight = pageHeights.pop()!;
-                pageHeight -= orphanHeight;
+                pageHeights.pop()!;
+                pageHeight = measureCurrentPage(settings);
 
                 flushPage(settings);
 
                 // Orphan heading is first block of the new page
                 pageBlocks.push(orphanHtml);
-                pageHeights.push(orphanHeight);
-                pageHeight = orphanHeight;
+                pageHeights.push(remeasure(orphanHtml, settings));
+                pageHeight = measureCurrentPage(settings);
 
                 // Re-process current block on next iteration (don't increment idx)
                 continue;
@@ -405,7 +437,7 @@ export async function paginate(
         // Block fits (or is the first block — always add regardless of height)
         pageBlocks.push(block);
         pageHeights.push(bHeight);
-        pageHeight += bHeight;
+        pageHeight = candidateHeight;
         idx++;
 
         // Oversized single block: flush it immediately and move on
@@ -439,6 +471,6 @@ export async function paginate(
         p.html = temp.innerHTML;
     });
 
-    document.body.removeChild(measurer);
+    document.body.removeChild(measurePage);
     return pages;
 }

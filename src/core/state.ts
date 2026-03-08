@@ -13,6 +13,7 @@ export interface AppState {
     format: 'a4' | 'mobile' | 'desktop' | 'xiaohongshu';
     viewMode: 'multi' | 'scroll';
     manualPagination: boolean;
+    showParagraphDividers: boolean;
     currentPage: number;
     totalPages: number;
     pageHtmls: { html: string; settings: PageSetting }[];
@@ -24,15 +25,41 @@ export interface AppState {
     scale: number;
 }
 
+export const FORMAT_DEFAULT_SETTINGS: Record<AppState['format'], PageSetting> = {
+    a4: {
+        fontSize: 14,
+        lineHeight: 1.75,
+        letterSpacing: 0.01,
+    },
+    mobile: {
+        fontSize: 16,
+        lineHeight: 1.8,
+        letterSpacing: 0.015,
+    },
+    desktop: {
+        fontSize: 16,
+        lineHeight: 1.75,
+        letterSpacing: 0.01,
+    },
+    xiaohongshu: {
+        fontSize: 38,
+        lineHeight: 1.9,
+        letterSpacing: 0.012,
+    },
+};
+
+export function getFormatDefaultSetting(format: AppState['format']): PageSetting {
+    return { ...FORMAT_DEFAULT_SETTINGS[format] };
+}
+
 export const initialState: AppState = {
+    ...getFormatDefaultSetting('a4'),
     md: '',
-    fontSize: 14,
-    lineHeight: 1.75,
-    letterSpacing: 0.01,
     fontFamily: "'Source Han Serif SC', 'Noto Serif SC', serif",
     format: 'a4',
     viewMode: 'multi',
     manualPagination: false,
+    showParagraphDividers: false,
     currentPage: 1,
     totalPages: 1,
     pageHtmls: [],

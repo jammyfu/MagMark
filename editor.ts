@@ -1,4 +1,4 @@
-import { store, AppState, PageSetting } from './src/core/state';
+import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
 import * as htmlToImage from 'html-to-image';
 
@@ -77,6 +77,7 @@ const debouncedRenderSlow = debounce(render, 1000);
  */
 function renderPages() {
     const state = store.getState();
+    const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
 
     // Fade-to-invisible first to prevent blank flash
     previewArea.style.opacity = '0';
@@ -118,7 +119,7 @@ function renderPages() {
 
             page.innerHTML = `
                 ${indicator}
-                <div class="page-content magmark">${pageData.html}</div>
+                <div class="page-content ${magmarkClass}">${pageData.html}</div>
                 ${footer}
             `;
             previewArea.appendChild(page);
@@ -140,9 +141,10 @@ function renderScroll(md: string) {
     const html = convertMarkdown(md);
     const state = store.getState();
     const formatClass = 'page-' + state.format;
+    const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
     previewArea.innerHTML = `
         <div class="page ${formatClass} scrollable" style="transform-origin:top center;transform:scale(${state.scale})">
-            <div class="scroll-container magmark">${html}</div>
+            <div class="scroll-container ${magmarkClass}">${html}</div>
         </div>`;
     paginationBar.style.display = 'none';
 }
@@ -691,6 +693,38 @@ function renderPageStrip() {
     }
 }
 
+function getFormatBaseSetting(state: AppState): PageSetting {
+    const defaults = getFormatDefaultSetting(state.format);
+    return {
+        fontSize: state.fontSize ?? defaults.fontSize,
+        lineHeight: state.lineHeight ?? defaults.lineHeight,
+        letterSpacing: state.letterSpacing ?? defaults.letterSpacing,
+    };
+}
+
+function getPageSetting(state: AppState, pageNum: number): PageSetting {
+    return state.pageOverrides[pageNum] || getFormatBaseSetting(state);
+}
+
+function getBlockBaseSetting(el: HTMLElement, state: AppState): PageSetting {
+    const pageNum = parseInt(el.closest('.page')?.getAttribute('data-page') || String(state.currentPage), 10);
+    const pageSetting = getPageSetting(state, pageNum);
+    const computed = getComputedStyle(el);
+    const fontSize = parseFloat(computed.fontSize);
+    const lineHeightPx = parseFloat(computed.lineHeight);
+    const letterSpacingPx = parseFloat(computed.letterSpacing);
+
+    return {
+        fontSize: Number.isFinite(fontSize) ? fontSize : pageSetting.fontSize,
+        lineHeight: Number.isFinite(lineHeightPx) && Number.isFinite(fontSize) && fontSize > 0
+            ? lineHeightPx / fontSize
+            : pageSetting.lineHeight,
+        letterSpacing: Number.isFinite(letterSpacingPx) && Number.isFinite(fontSize) && fontSize > 0
+            ? letterSpacingPx / fontSize
+            : pageSetting.letterSpacing,
+    };
+}
+
 /**
  * INITIALIZATION
  */
@@ -707,7 +741,7 @@ function init() {
         const state = store.getState();
         if ($<HTMLInputElement>('#chk-page-override').checked) {
             const overrides = { ...state.pageOverrides };
-            overrides[state.currentPage] = { ...(overrides[state.currentPage] || { fontSize: state.fontSize, lineHeight: state.lineHeight, letterSpacing: state.letterSpacing }), fontSize: val };
+            overrides[state.currentPage] = { ...getPageSetting(state, state.currentPage), fontSize: val };
             store.setState({ pageOverrides: overrides });
         } else {
             store.setState({ fontSize: val, pageOverrides: {} });
@@ -723,7 +757,7 @@ function init() {
         const state = store.getState();
         if ($<HTMLInputElement>('#chk-page-override').checked) {
             const overrides = { ...state.pageOverrides };
-            overrides[state.currentPage] = { ...(overrides[state.currentPage] || { fontSize: state.fontSize, lineHeight: state.lineHeight, letterSpacing: state.letterSpacing }), lineHeight: val };
+            overrides[state.currentPage] = { ...getPageSetting(state, state.currentPage), lineHeight: val };
             store.setState({ pageOverrides: overrides });
         } else {
             store.setState({ lineHeight: val, pageOverrides: {} });
@@ -738,7 +772,7 @@ function init() {
         const state = store.getState();
         if ($<HTMLInputElement>('#chk-page-override').checked) {
             const overrides = { ...state.pageOverrides };
-            overrides[state.currentPage] = { ...(overrides[state.currentPage] || { fontSize: state.fontSize, lineHeight: state.lineHeight, letterSpacing: state.letterSpacing }), letterSpacing: val };
+            overrides[state.currentPage] = { ...getPageSetting(state, state.currentPage), letterSpacing: val };
             store.setState({ pageOverrides: overrides });
         } else {
             store.setState({ letterSpacing: val, pageOverrides: {} });
@@ -750,9 +784,19 @@ function init() {
 
     $<HTMLSelectElement>('#ctrl-format').addEventListener('change', (e) => {
         const fmt = (e.target as HTMLSelectElement).value as AppState['format'];
+        const formatSetting = getFormatDefaultSetting(fmt);
         // Auto-scale: xiaohongshu 1080px @ 75% is comfortable on most screens
         const autoScale = fmt === 'xiaohongshu' ? 0.75 : 1;
-        store.setState({ format: fmt, pageOverrides: {}, scale: autoScale });
+        store.setState({
+            format: fmt,
+            fontSize: formatSetting.fontSize,
+            lineHeight: formatSetting.lineHeight,
+            letterSpacing: formatSetting.letterSpacing,
+            pageOverrides: {},
+            blockOverrides: {},
+            currentPage: 1,
+            scale: autoScale,
+        });
         // Sync the scale dropdown to the nearest available option
         const scaleEl = $<HTMLSelectElement>('#ctrl-scale');
         const options = Array.from(scaleEl.options);
@@ -760,11 +804,18 @@ function init() {
             Math.abs(parseFloat(opt.value) - autoScale) < Math.abs(parseFloat(prev.value) - autoScale) ? opt : prev
         );
         scaleEl.value = best.value;
+        syncControlsToPage(1);
+        applyGlobalStyles();
         render();
     });
 
     $<HTMLInputElement>('#chk-manual-pagination').addEventListener('change', (e) => {
         store.setState({ manualPagination: (e.target as HTMLInputElement).checked });
+        render();
+    });
+
+    $<HTMLInputElement>('#chk-show-paragraph-dividers').addEventListener('change', (e) => {
+        store.setState({ showParagraphDividers: (e.target as HTMLInputElement).checked });
         render();
     });
 
@@ -901,7 +952,7 @@ function navigate(dir: number) {
 
 function syncControlsToPage(pageNum: number) {
     const state = store.getState();
-    const s = state.pageOverrides[pageNum] || { fontSize: state.fontSize, lineHeight: state.lineHeight, letterSpacing: state.letterSpacing };
+    const s = getPageSetting(state, pageNum);
 
     $<HTMLInputElement>('#ctrl-fontsize').value = String(s.fontSize);
     $('#val-fontsize').textContent = s.fontSize + 'pt';
@@ -912,7 +963,7 @@ function syncControlsToPage(pageNum: number) {
 }
 
 function applyGlobalStyles() {
-    const s = store.getState();
+    const s = getFormatBaseSetting(store.getState());
     document.documentElement.style.setProperty('--mm-font-size', s.fontSize + 'px');
     document.documentElement.style.setProperty('--mm-line-height', String(s.lineHeight));
     document.documentElement.style.setProperty('--mm-letter-spacing', s.letterSpacing + 'em');
@@ -923,7 +974,8 @@ function applyGlobalStyles() {
  * WITHOUT rebuilding the DOM. Eliminates flicker on slider drag.
  */
 function applyStylesOnly() {
-    const s = store.getState();
+    const state = store.getState();
+    const s = getFormatBaseSetting(state);
     // Update root vars
     document.documentElement.style.setProperty('--mm-font-size', s.fontSize + 'px');
     document.documentElement.style.setProperty('--mm-line-height', String(s.lineHeight));
@@ -931,9 +983,11 @@ function applyStylesOnly() {
     // Patch all existing page elements directly
     previewArea.querySelectorAll('.page').forEach(page => {
         const p = page as HTMLElement;
-        p.style.setProperty('--mm-font-size', s.fontSize + 'px');
-        p.style.setProperty('--mm-line-height', String(s.lineHeight));
-        p.style.setProperty('--mm-letter-spacing', s.letterSpacing + 'em');
+        const pageNum = parseInt(p.dataset.page || '1', 10);
+        const pageSetting = getPageSetting(state, pageNum);
+        p.style.setProperty('--mm-font-size', pageSetting.fontSize + 'px');
+        p.style.setProperty('--mm-line-height', String(pageSetting.lineHeight));
+        p.style.setProperty('--mm-letter-spacing', pageSetting.letterSpacing + 'em');
     });
 }
 
@@ -994,12 +1048,13 @@ function updateBlockStyle(prop: keyof PageSetting, val: number) {
     const blockStyles = { ...state.blockOverrides };
 
     allBids.forEach(id => {
+        const el = previewArea.querySelector(`[data-block-id="${id}"]`) as HTMLElement | null;
+        const baseSetting = el ? getBlockBaseSetting(el, state) : getPageSetting(state, state.currentPage);
         blockStyles[id] = {
-            ...(blockStyles[id] || { fontSize: state.fontSize, lineHeight: state.lineHeight, letterSpacing: state.letterSpacing }),
+            ...(blockStyles[id] || baseSetting),
             [prop]: val
         };
         // Instant DOM feedback for all selected blocks
-        const el = previewArea.querySelector(`[data-block-id="${id}"]`) as HTMLElement;
         if (el) {
             if (prop === 'fontSize') el.style.fontSize = val + 'px';
             if (prop === 'lineHeight') el.style.lineHeight = String(val);
@@ -1186,14 +1241,16 @@ window.addEventListener('resize', () => {
  * Reset all settings to factory defaults
  */
 function resetAll() {
+    const a4Defaults = getFormatDefaultSetting('a4');
     const defaults = {
-        fontSize: 14,
-        lineHeight: 1.75,
-        letterSpacing: 0.01,
+        fontSize: a4Defaults.fontSize,
+        lineHeight: a4Defaults.lineHeight,
+        letterSpacing: a4Defaults.letterSpacing,
         fontFamily: "'Source Han Serif SC', 'Noto Serif SC', serif",
         format: 'a4' as AppState['format'],
         viewMode: 'multi' as AppState['viewMode'],
         manualPagination: false,
+        showParagraphDividers: false,
         theme: 'elite',
         scale: 1,
         pageOverrides: {} as Record<number, any>,
@@ -1215,6 +1272,7 @@ function resetAll() {
     $<HTMLSelectElement>('#ctrl-scale').value = String(defaults.scale);
     $<HTMLSelectElement>('#ctrl-theme').value = defaults.theme;
     $<HTMLInputElement>('#chk-manual-pagination').checked = false;
+    $<HTMLInputElement>('#chk-show-paragraph-dividers').checked = false;
     $<HTMLInputElement>('#chk-page-override').checked = false;
 
     // Reset mode buttons

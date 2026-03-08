@@ -129,6 +129,13 @@
                         <span class="slider round"></span>
                     </label>
                 </div>
+                <div class="control-group" id="paragraph-divider-group" style="display: flex;">
+                    <label class="control-label">显示段落分割线</label>
+                    <label class="switch">
+                        <input type="checkbox" id="chk-show-paragraph-dividers">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
                 <!-- Reset button -->
                 <div class="control-group">
                     <button id="btn-reset" class="ctrl-reset-btn" title="重置所有排版设置到默认值">
@@ -145,7 +152,7 @@
             <!-- Preview Area -->
             <div class="preview-area" id="preview-area">
                 <div class="page page-a4" id="page-initial">
-                    <div class="page-content magmark" id="render-target">
+                    <div class="page-content magmark magmark-hide-paragraph-dividers" id="render-target">
                         <div class="placeholder">
                             <div class="placeholder-icon">✦</div>
                             <p>在左侧输入 Markdown，预览将在这里实时呈现</p>
