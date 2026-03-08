@@ -45,6 +45,10 @@ function isParagraphBlock(html: string): boolean {
     return /^\s*<p[\s>]/i.test(html);
 }
 
+function isListBlock(html: string): boolean {
+    return /^\s*<(ul|ol)[\s>]/i.test(html);
+}
+
 function collectTextNodes(root: Node): Text[] {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
@@ -183,6 +187,69 @@ function splitParagraphBlock(
     return {
         before: beforeEl.outerHTML,
         after: afterEl.outerHTML,
+        beforeHeight: bestHeight,
+    };
+}
+
+function splitListBlock(
+    html: string,
+    remainingHeight: number,
+    availableH: number,
+    measurer: HTMLElement,
+    settings: PageSetting,
+    blockOverride: PageSetting | undefined,
+    fontFamily: string
+): { before: string; after: string; beforeHeight: number } | null {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    const list = wrapper.firstElementChild as HTMLElement | null;
+    if (!list || !['UL', 'OL'].includes(list.tagName)) return null;
+
+    const items = Array.from(list.children).filter((child) => child.tagName === 'LI') as HTMLElement[];
+    if (items.length < 2) return null;
+
+    let low = 1;
+    let high = items.length - 1;
+    let bestCount = -1;
+    let bestHeight = 0;
+
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+
+        const beforeList = list.cloneNode(false) as HTMLElement;
+        beforeList.append(...items.slice(0, mid).map((item) => item.cloneNode(true)));
+        const afterList = list.cloneNode(false) as HTMLElement;
+        afterList.append(...items.slice(mid).map((item) => item.cloneNode(true)));
+
+        if (beforeList.children.length === 0 || afterList.children.length === 0) {
+            high = mid - 1;
+            continue;
+        }
+
+        const beforeHtml = beforeList.outerHTML;
+        const afterHtml = afterList.outerHTML;
+        const beforeHeight = measureBlock(beforeHtml, measurer, settings, blockOverride, fontFamily);
+        const afterHeight = measureBlock(afterHtml, measurer, settings, blockOverride, fontFamily);
+
+        if (beforeHeight <= remainingHeight && afterHeight <= availableH) {
+            bestCount = mid;
+            bestHeight = beforeHeight;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    if (bestCount === -1) return null;
+
+    const beforeList = list.cloneNode(false) as HTMLElement;
+    beforeList.append(...items.slice(0, bestCount).map((item) => item.cloneNode(true)));
+    const afterList = list.cloneNode(false) as HTMLElement;
+    afterList.append(...items.slice(bestCount).map((item) => item.cloneNode(true)));
+
+    return {
+        before: beforeList.outerHTML,
+        after: afterList.outerHTML,
         beforeHeight: bestHeight,
     };
 }
@@ -383,6 +450,33 @@ export async function paginate(
 
         // Would this block cause the page to overflow?
         if (candidateHeight > availableH && pageBlocks.length > 0) {
+            if (isListBlock(block)) {
+                const split = splitListBlock(
+                    block,
+                    availableH - measureCurrentPage(settings),
+                    availableH,
+                    measurer,
+                    settings,
+                    blockOver,
+                    state.fontFamily
+                );
+
+                if (split) {
+                    const splitCandidateBlocks = [...pageBlocks, split.before];
+                    const splitCandidateHeight = measurePageContent(splitCandidateBlocks, measurer, settings, state.fontFamily);
+
+                    if (splitCandidateHeight <= availableH) {
+                        pageBlocks.push(split.before);
+                        pageHeights.push(split.beforeHeight);
+                        pageHeight = splitCandidateHeight;
+                        workBlocks[idx] = split.after;
+                        preHeights[idx] = remeasure(split.after, settings, blockOver);
+                        flushPage(settings);
+                        continue;
+                    }
+                }
+            }
+
             if (isParagraphBlock(block)) {
                 const split = splitParagraphBlock(
                     block,
