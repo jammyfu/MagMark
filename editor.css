@@ -641,13 +641,6 @@ input:checked+.slider:before {
     position: relative;
 }
 
-/* 小红书格式字号放大，适配大画布 */
-.page-xiaohongshu .magmark {
-    --mm-font-size: 38px;
-    --mm-line-height: 1.9;
-    --mm-letter-spacing: 0.012em;
-}
-
 .page-xiaohongshu .magmark h1 {
     font-size: calc(var(--mm-font-size) * 2.05);
     margin-bottom: calc(var(--mm-font-size) * 1.15);
