@@ -1,0 +1,42 @@
+{
+  "name": "a4-large",
+  "format": "a4",
+  "pageInfo": "第 1 / 5 页",
+  "typography": {
+    "headingFontSize": "24.3px",
+    "paragraphFontSize": "18px",
+    "paragraphLineHeight": "36px"
+  },
+  "metrics": [
+    {
+      "page": 1,
+      "blockCount": 6,
+      "fillRatio": 0.921,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 2,
+      "blockCount": 5,
+      "fillRatio": 0.852,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 3,
+      "blockCount": 3,
+      "fillRatio": 0.703,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 4,
+      "blockCount": 3,
+      "fillRatio": 0.884,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 5,
+      "blockCount": 3,
+      "fillRatio": 0.511,
+      "overflowingBlocks": []
+    }
+  ]
+}
