@@ -1,0 +1,103 @@
+{
+  "name": "xiaohongshu-adjusted",
+  "format": "xiaohongshu",
+  "pageInfo": "第 1 / 4 页",
+  "typography": {
+    "headingFontSize": "48.64px",
+    "paragraphFontSize": "38px",
+    "paragraphLineHeight": "72.2px"
+  },
+  "metrics": [
+    {
+      "page": 1,
+      "blockCount": 8,
+      "fillRatio": 1,
+      "overflowingBlocks": [
+        {
+          "blockIndex": 5,
+          "tag": "P",
+          "text": "成功率：95.1%（目前人类已知最高！）   它在安排会议、网页深度研究、邮件智能分类、代码debug+文件操作这些坑最",
+          "effectiveBottom": 1896,
+          "limitBottom": 2375
+        },
+        {
+          "blockIndex": 6,
+          "tag": "OL",
+          "text": "性价比之神 / 日常主力强烈推荐 → minimax/minimax-m2.1",
+          "effectiveBottom": 2086,
+          "limitBottom": 2375
+        },
+        {
+          "blockIndex": 7,
+          "tag": "P",
+          "text": "成功率：93.6%（只比Gemini Flash差1.5%）   速度极快（任务整体完成时间经常进前三）   成本很友好",
+          "effectiveBottom": 2375,
+          "limitBottom": 2375
+        }
+      ]
+    },
+    {
+      "page": 2,
+      "blockCount": 7,
+      "fillRatio": 1.022,
+      "overflowingBlocks": [
+        {
+          "blockIndex": 4,
+          "tag": "P",
+          "text": "成功率：92.7%   它在复杂多步规划、需要强逻辑的任务上依然很强（比如完整写一个功能完整的爬虫+数据清洗pipeli",
+          "effectiveBottom": 3287,
+          "limitBottom": 3838
+        },
+        {
+          "blockIndex": 5,
+          "tag": "OL",
+          "text": "极致便宜工具人（成功率能接受就上） → openai/gpt-5-nano",
+          "effectiveBottom": 3477,
+          "limitBottom": 3838
+        },
+        {
+          "blockIndex": 6,
+          "tag": "P",
+          "text": "成功率85.8%，但成本低到离谱（几分钱跑一次完整任务）   适合批量跑简单重复任务、测试prompt、做数据标注这种“",
+          "effectiveBottom": 3883,
+          "limitBottom": 3838
+        }
+      ]
+    },
+    {
+      "page": 3,
+      "blockCount": 5,
+      "fillRatio": 1.025,
+      "overflowingBlocks": [
+        {
+          "blockIndex": 3,
+          "tag": "P",
+          "text": "“现在做OpenClaw Agent，已经不是选哪个模型最强，而是选哪个模型‘够用且最便宜’了。Gemini-3-Fla",
+          "effectiveBottom": 5033,
+          "limitBottom": 5177
+        },
+        {
+          "blockIndex": 4,
+          "tag": "P",
+          "text": "你现在OpenClaw主力用哪个？评论区battle一下～（所有数据来自pinchbench.com，欢迎去亲自验）",
+          "effectiveBottom": 5222,
+          "limitBottom": 5177
+        }
+      ]
+    },
+    {
+      "page": 4,
+      "blockCount": 1,
+      "fillRatio": 1.311,
+      "overflowingBlocks": [
+        {
+          "blockIndex": 0,
+          "tag": "P",
+          "text": "#OpenClaw #AIAgent #大模型选型 #PinchBench #Gemini3 #MiniMax #Kim",
+          "effectiveBottom": 5031,
+          "limitBottom": 4986
+        }
+      ]
+    }
+  ]
+}
