@@ -1,0 +1,40 @@
+{
+  "name": "xiaohongshu-adjusted",
+  "format": "xiaohongshu",
+  "pageInfo": "第 1 / 4 页",
+  "typography": {
+    "headingFontSize": "30.72px",
+    "paragraphFontSize": "24px",
+    "paragraphLineHeight": "62.4px"
+  },
+  "metrics": [
+    {
+      "page": 1,
+      "blockCount": 7,
+      "fillRatio": 0.763,
+      "limitBottom": 1604,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 2,
+      "blockCount": 5,
+      "fillRatio": 0.891,
+      "limitBottom": 3116,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 3,
+      "blockCount": 6,
+      "fillRatio": 0.917,
+      "limitBottom": 4620,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 4,
+      "blockCount": 3,
+      "fillRatio": 0.408,
+      "limitBottom": 6124,
+      "overflowingBlocks": []
+    }
+  ]
+}

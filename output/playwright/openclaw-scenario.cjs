@@ -4,6 +4,7 @@ const { chromium } = require('@playwright/test');
 
 const baseUrl = process.argv[2] || 'http://127.0.0.1:5174';
 const scenarioName = process.argv[3];
+const screenshotPath = process.argv[4] || null;
 const article = fs.readFileSync(path.resolve(__dirname, 'openclaw-article.md'), 'utf8');
 
 const SCENARIOS = {
@@ -50,7 +51,9 @@ async function collectMetrics(page) {
       const contentRect = content ? content.getBoundingClientRect() : pageRect;
       const footer = pageNode.querySelector('.page-footer');
       const footerRect = footer ? footer.getBoundingClientRect() : null;
-      const limitBottom = footerRect ? footerRect.top : contentRect.bottom;
+      const pageStyle = window.getComputedStyle(pageNode);
+      const pagePaddingBottom = parseFloat(pageStyle.paddingBottom) || 0;
+      const limitBottom = footerRect ? footerRect.top : pageRect.bottom - pagePaddingBottom;
       const blocks = Array.from(pageNode.querySelectorAll('.magmark > *'));
 
       let furthestBottom = contentRect.top;
@@ -81,6 +84,7 @@ async function collectMetrics(page) {
         page: index + 1,
         blockCount: blocks.length,
         fillRatio: Number((usedHeight / usableHeight).toFixed(3)),
+        limitBottom: Math.round(limitBottom),
         overflowingBlocks,
       };
     });
@@ -135,6 +139,10 @@ async function main() {
     typography: await inspectTypography(page),
     metrics: await collectMetrics(page),
   };
+
+  if (screenshotPath) {
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+  }
 
   console.log(JSON.stringify(result, null, 2));
   await browser.close();

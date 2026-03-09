@@ -42,9 +42,9 @@ export const FORMAT_DEFAULT_SETTINGS: Record<AppState['format'], PageSetting> = 
         letterSpacing: 0.01,
     },
     xiaohongshu: {
-        fontSize: 38,
-        lineHeight: 1.9,
-        letterSpacing: 0.012,
+        fontSize: 36,
+        lineHeight: 1.85,
+        letterSpacing: 0.011,
     },
 };
 

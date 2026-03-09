@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-Hans">
 
 <head>
     <meta charset="UTF-8">
@@ -9,6 +9,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
+    <!-- Han.css — CJK 高级汉字排版 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css">
     <link rel="stylesheet" href="/editor.css">
 </head>
 
@@ -25,6 +27,7 @@
                 <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden>
             </label>
             <button class="btn btn-secondary" id="btn-save" title="保存 Markdown (Ctrl+S)">💾 保存</button>
+            <button class="btn btn-secondary" id="btn-print-preview" title="使用 Paged.js 打开打印预览（含页码与页眉）">🖨 打印预览</button>
             <button class="btn btn-secondary" id="btn-export-all" title="导出全部页为 PNG">🗂 导出全部</button>
             <button class="btn btn-primary" id="btn-export" title="导出高精度 PNG">📸 导出当页</button>
         </div>
@@ -194,6 +197,8 @@
         <button id="toolbar-close" class="toolbar-btn">✕</button>
     </div>
 
+    <!-- Han.js — CJK 字间距、标点挤压、引号配对 -->
+    <script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
     <script type="module" src="/editor.ts"></script>
 </body>
 

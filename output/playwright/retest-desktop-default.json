@@ -1,0 +1,33 @@
+{
+  "name": "desktop-default",
+  "format": "desktop",
+  "pageInfo": "第 1 / 3 页",
+  "typography": {
+    "headingFontSize": "21.6px",
+    "paragraphFontSize": "16px",
+    "paragraphLineHeight": "28px"
+  },
+  "metrics": [
+    {
+      "page": 1,
+      "blockCount": 10,
+      "fillRatio": 0.919,
+      "limitBottom": 1208,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 2,
+      "blockCount": 6,
+      "fillRatio": 0.886,
+      "limitBottom": 2280,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 3,
+      "blockCount": 4,
+      "fillRatio": 0.327,
+      "limitBottom": 3344,
+      "overflowingBlocks": []
+    }
+  ]
+}

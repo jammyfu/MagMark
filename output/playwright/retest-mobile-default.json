@@ -1,0 +1,47 @@
+{
+  "name": "mobile-default",
+  "format": "mobile",
+  "pageInfo": "第 1 / 5 页",
+  "typography": {
+    "headingFontSize": "21.6px",
+    "paragraphFontSize": "16px",
+    "paragraphLineHeight": "28.8px"
+  },
+  "metrics": [
+    {
+      "page": 1,
+      "blockCount": 6,
+      "fillRatio": 0.879,
+      "limitBottom": 1060,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 2,
+      "blockCount": 6,
+      "fillRatio": 0.92,
+      "limitBottom": 1984,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 3,
+      "blockCount": 3,
+      "fillRatio": 0.545,
+      "limitBottom": 2900,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 4,
+      "blockCount": 3,
+      "fillRatio": 0.894,
+      "limitBottom": 3816,
+      "overflowingBlocks": []
+    },
+    {
+      "page": 5,
+      "blockCount": 3,
+      "fillRatio": 0.508,
+      "limitBottom": 4732,
+      "overflowingBlocks": []
+    }
+  ]
+}

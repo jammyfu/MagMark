@@ -628,7 +628,7 @@ input:checked+.slider:before {
 .page-xiaohongshu {
     width: 1080px;
     height: 1440px;
-    padding: 80px 64px;
+    padding: 64px;
     overflow: hidden;
     box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.08),
@@ -639,6 +639,12 @@ input:checked+.slider:before {
     outline: 3px solid color-mix(in srgb, var(--th-primary) 30%, transparent);
     outline-offset: -1px;
     position: relative;
+}
+
+.page-xiaohongshu .magmark {
+    --mm-font-size: 36px;
+    --mm-line-height: 1.85;
+    --mm-letter-spacing: 0.011em;
 }
 
 .page-xiaohongshu .magmark h1 {
@@ -798,11 +804,15 @@ input:checked+.slider:before {
     hyphens: auto;
     -webkit-hyphens: auto;
     margin-bottom: calc(var(--mm-font-size) * 1.1);
-    word-break: break-all;
-    /* CJK 强制换行 */
-    letter-spacing: 0.01em;
+    /* CJK 正确换行：保留单词完整性，超长时再折断 */
+    word-break: normal;
+    overflow-wrap: break-word;
+    /* CJK 标点严格规则（行首/行末标点禁则） */
+    line-break: strict;
     hanging-punctuation: first last;
-    /* 1.4 高级标点悬挂 */
+    /* Han.css 配合：开启 OpenType 字距与连字 */
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
 }
 
 .magmark p.mm-split-fragment--before {
@@ -1347,5 +1357,193 @@ input:checked+.slider:before {
 
     100% {
         background-position: 12px 0, 100% 12px, -12px 100%, 0 -12px;
+    }
+}
+
+/* ===========================================
+   Han.css 深度集成 — CJK 高精度排版层
+   =========================================== */
+
+/* 汉字与拉丁/数字之间自动插入 1/4 em 间距 */
+.magmark em.hei,
+.magmark em.song,
+.magmark em.fangsong,
+.magmark em.kai {
+    font-style: normal;
+}
+
+/* 标点压缩：Han.css 生成的 biaodian 类 */
+.magmark em.biaodian {
+    font-style: normal;
+    line-height: 1;
+}
+
+/* 全角标点修正：句号、逗号等占半宽 */
+.magmark .biaodian-juhao,
+.magmark .biaodian-douhao {
+    letter-spacing: -0.5em;
+    margin-right: 0.5em;
+}
+
+/* 行首/行末引号悬挂优化 */
+.magmark .open-quote  { margin-left:  -0.5em; }
+.magmark .close-quote { margin-right: -0.5em; }
+
+/* 正文 OpenType 特性：汉字字距微调 */
+.magmark {
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "locl" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 标题不做齐行，保持视觉自然 */
+.magmark h1,
+.magmark h2,
+.magmark h3,
+.magmark h4 {
+    text-align: left;
+    text-justify: none;
+    line-break: loose;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    font-feature-settings: "kern" 1, "liga" 1;
+    text-rendering: optimizeLegibility;
+}
+
+/* 代码块内禁用字距调整 */
+.magmark code,
+.magmark pre {
+    word-break: normal;
+    overflow-wrap: break-word;
+    font-feature-settings: normal;
+    text-rendering: auto;
+}
+
+/* 列表项：保留单词完整，避免英文在 break-all 下被截断 */
+.magmark li {
+    word-break: normal;
+    overflow-wrap: break-word;
+    line-break: strict;
+}
+
+/* 行内强调：与正文保持同样的 CJK 规则 */
+.magmark strong,
+.magmark em {
+    line-break: strict;
+}
+
+/* 引用块内文本对齐 */
+.magmark blockquote p {
+    text-align: justify;
+    text-justify: inter-character;
+    word-break: normal;
+    overflow-wrap: break-word;
+}
+
+/* ===========================================
+   Paged.js + Vivliostyle — CSS Paged Media
+   =========================================== */
+
+/* @page 规则：A4 页面边距与页脚页码
+   Paged.js 的 polyfill 在打印预览窗口中生效；
+   现代浏览器原生打印时也部分支持 @page margin-boxes */
+@page {
+    size: A4;
+    margin: 22mm 18mm 28mm 18mm;
+}
+
+@page :left {
+    margin-left: 25mm;
+    margin-right: 15mm;
+}
+
+@page :right {
+    margin-left: 15mm;
+    margin-right: 25mm;
+}
+
+@page :first {
+    margin-top: 30mm;
+}
+
+/* 孤行/寡行控制（Vivliostyle 与原生打印均支持） */
+.magmark p {
+    orphans: 3;
+    widows: 3;
+}
+
+.magmark h1,
+.magmark h2,
+.magmark h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+.magmark pre,
+.magmark table,
+.magmark figure {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+/* ===========================================
+   @media print — 浏览器原生打印优化
+   =========================================== */
+@media print {
+    /* 隐藏编辑器 UI，仅保留页面内容 */
+    #app-header,
+    .editor-panel,
+    .resize-handle,
+    .controls-bar,
+    .pagination-bar,
+    .page-strip,
+    .floating-toolbar,
+    #marquee-rect {
+        display: none !important;
+    }
+
+    .main-container {
+        display: block;
+    }
+
+    .preview-panel {
+        width: 100%;
+        overflow: visible;
+    }
+
+    .preview-area {
+        padding: 0;
+        background: transparent;
+        overflow: visible;
+    }
+
+    /* 每个分页视图中的页面 */
+    .page {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        page-break-after: always;
+        break-after: page;
+    }
+
+    .page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    /* 打印时隐藏页脚（由 @page 规则或 Paged.js 接管） */
+    .page-footer {
+        display: none;
+    }
+
+    /* 确保背景色/图片被打印 */
+    * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color-adjust: exact;
     }
 }

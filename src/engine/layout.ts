@@ -28,7 +28,7 @@ export function getPageDimensions(format: AppState['format']) {
         a4:          { w: 595,  h: 842,  pt: 56, pb: 40, pl: 52, pr: 52, safetyMargin: 32 },
         mobile:      { w: 393,  h: 852,  pt: 32, pb: 32, pl: 24, pr: 24, safetyMargin: 24 },
         desktop:     { w: 800,  h: 1000, pt: 64, pb: 40, pl: 72, pr: 72, safetyMargin: 32 },
-        xiaohongshu: { w: 1080, h: 1440, pt: 80, pb: 80, pl: 64, pr: 64, safetyMargin: 104 },
+        xiaohongshu: { w: 1080, h: 1440, pt: 64, pb: 64, pl: 64, pr: 64, safetyMargin: 48 },
     };
     return formats[format];
 }
@@ -147,7 +147,7 @@ function splitParagraphBlock(
     if (textNodes.length === 0) return null;
 
     const totalText = paragraph.textContent ?? '';
-    if (totalText.trim().length < 40) return null;
+    if (totalText.trim().length < 20) return null;
 
     const minSplitHeight = Math.max(settings.fontSize * settings.lineHeight * 1.2, 32);
     if (remainingHeight < minSplitHeight) return null;
@@ -610,6 +610,14 @@ export async function paginate(
             // pull it off the current page and push it to the next one so the heading
             // stays with the content that follows it.
             if (isHeadingBlock(pageBlocks[pageBlocks.length - 1])) {
+                const remainingAfterHeading = availableH - pageHeight;
+                const minFollowSpace = Math.max(settings.fontSize * settings.lineHeight * 1.1, 48);
+
+                if (remainingAfterHeading >= minFollowSpace) {
+                    flushPage(settings);
+                    continue;
+                }
+
                 const orphanHtml   = pageBlocks.pop()!;
                 pageHeights.pop()!;
                 pageHeight = measureCurrentPage(settings);

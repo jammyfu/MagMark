@@ -5,7 +5,15 @@ import * as htmlToImage from 'html-to-image';
 /**
  * MagMark 1.4 - Professional Refactored Entry
  * (C) 2026 Editorial Elite System
+ *
+ * 排版增强层：
+ *   • Han.css  — CJK 汉字与标点的精细排印（字间距、标点挤压、引号配对）
+ *   • Paged.js — CSS Paged Media 多栏/页眉/页脚（打印预览窗口）
+ *   • Vivliostyle 理念 — 严格孤行/寡行控制、CSS @page 分页
  */
+
+// Han.css 全局函数声明（由 <script src="han.min.js"> 注入）
+declare const Han: ((el: Element) => { render(): void }) | undefined;
 
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
 
@@ -23,14 +31,31 @@ let marqueeStart = { x: 0, y: 0 };
 let isDraggingMarquee = false;
 
 /**
+ * Han.css 初始化 — 对所有 .magmark 内容元素执行汉字排印处理
+ * 包括：CJK↔拉丁间距修正、标点宽度压缩、引号配对
+ */
+function initHanTypography() {
+    if (typeof Han === 'undefined') return;
+    previewArea.querySelectorAll('.magmark').forEach(el => {
+        try {
+            Han(el).render();
+        } catch {
+            // Han.css 在某些边缘 DOM 状态下可能抛出，安全忽略
+        }
+    });
+}
+
+/**
  * Debounce helper for expensive render calls
  */
 function debounce(fn: Function, delay: number) {
     let timeout: number;
-    return (...args: any[]) => {
+    const wrapped = (...args: any[]) => {
         clearTimeout(timeout);
         timeout = window.setTimeout(() => fn(...args), delay);
     };
+    wrapped.cancel = () => clearTimeout(timeout);
+    return wrapped as ((...args: any[]) => void) & { cancel: () => void };
 }
 
 /**
@@ -56,7 +81,8 @@ async function render() {
         const blocks = Array.from(temp.children).map(c => c.outerHTML);
 
         const pages = await paginate(blocks, state, state.manualPagination);
-        store.setState({ pageHtmls: pages, totalPages: pages.length });
+        const nextCurrentPage = Math.min(store.getState().currentPage, Math.max(1, pages.length));
+        store.setState({ pageHtmls: pages, totalPages: pages.length, currentPage: nextCurrentPage });
 
         renderPages();
     } else {
@@ -67,6 +93,11 @@ async function render() {
 const debouncedRender = debounce(render, 300);
 // Slower debounce for style sliders: instant visual update, lazy re-paginate
 const debouncedRenderSlow = debounce(render, 1000);
+
+function finalizePaginationUpdate() {
+    debouncedRenderSlow.cancel();
+    render();
+}
 
 /**
  * Multi-Page Display Logic
@@ -119,7 +150,7 @@ function renderPages() {
 
             page.innerHTML = `
                 ${indicator}
-                <div class="page-content ${magmarkClass}">${pageData.html}</div>
+                <div class="page-content ${magmarkClass}" lang="zh">${pageData.html}</div>
                 ${footer}
             `;
             previewArea.appendChild(page);
@@ -130,9 +161,11 @@ function renderPages() {
         updatePaginationUI();
         renderPageStrip();
 
-        // Fade back in
+        // Fade back in，然后触发 Han.css 排印处理
         requestAnimationFrame(() => {
             previewArea.style.opacity = '1';
+            // 延迟一帧确保 DOM 完全可见后再处理 Han.css
+            requestAnimationFrame(initHanTypography);
         });
     });
 }
@@ -144,9 +177,11 @@ function renderScroll(md: string) {
     const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
     previewArea.innerHTML = `
         <div class="page ${formatClass} scrollable" style="transform-origin:top center;transform:scale(${state.scale})">
-            <div class="scroll-container ${magmarkClass}">${html}</div>
+            <div class="scroll-container ${magmarkClass}" lang="zh">${html}</div>
         </div>`;
     paginationBar.style.display = 'none';
+    // Han.css 排印处理
+    requestAnimationFrame(initHanTypography);
 }
 
 /**
@@ -726,6 +761,238 @@ function getBlockBaseSetting(el: HTMLElement, state: AppState): PageSetting {
 }
 
 /**
+ * 打印预览窗口（Paged.js + Han.css）
+ *
+ * 在独立弹出窗口中加载 Paged.js polyfill，对内容应用 CSS Paged Media
+ * 规则（页边距、页眉页脚、页码），并通过 Han.css 进行 CJK 排印处理。
+ */
+function openPrintPreview() {
+    const state = store.getState();
+    if (!state.pageHtmls || state.pageHtmls.length === 0) {
+        alert('请先输入内容再使用打印预览');
+        return;
+    }
+
+    // 读取当前生效的 CSS 变量
+    const rootStyle = getComputedStyle(document.documentElement);
+    const bodyStyle = getComputedStyle(document.body);
+    const mmFontSize     = rootStyle.getPropertyValue('--mm-font-size').trim()     || '14px';
+    const mmLineHeight   = rootStyle.getPropertyValue('--mm-line-height').trim()   || '1.75';
+    const mmLetterSpacing = rootStyle.getPropertyValue('--mm-letter-spacing').trim() || '0.01em';
+    const userFont       = rootStyle.getPropertyValue('--user-font-family').trim();
+    const thFontBody     = rootStyle.getPropertyValue('--th-font-body').trim();
+    const mmFontFamily   = rootStyle.getPropertyValue('--mm-font-family').trim()   || "'Source Han Serif SC', serif";
+    const effectiveFont  = userFont || thFontBody || mmFontFamily;
+    const thPrimary  = rootStyle.getPropertyValue('--th-primary').trim()  || '#d4af37';
+    const thAccent   = rootStyle.getPropertyValue('--th-accent').trim()   || '#e67e22';
+    const thBgPage   = rootStyle.getPropertyValue('--th-bg-page').trim()  || '#ffffff';
+    const thTextPage = rootStyle.getPropertyValue('--th-text-page').trim() || '#1a1a2e';
+
+    // 拼合所有分页 HTML，每页之间插入强制分页符
+    const combinedHtml = state.pageHtmls
+        .map((pd, i) =>
+            `<section class="mm-page-section"${i < state.pageHtmls.length - 1 ? ' style="break-after:page;page-break-after:always;"' : ''}>${pd.html}</section>`)
+        .join('\n');
+
+    const htmlDoc = `<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MagMark — 打印预览</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css">
+<!-- Paged.js polyfill：自动处理 CSS Paged Media @page 规则 -->
+<script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+<style>
+/* ── Paged.js @page 规则 ──────────────────────── */
+@page {
+    size: A4;
+    margin: 22mm 18mm 28mm 18mm;
+    /* Paged.js 页脚：居中页码 */
+    @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-family: ${effectiveFont};
+        font-size: 8pt;
+        color: #aaa;
+        letter-spacing: 0.12em;
+    }
+}
+@page :first {
+    @bottom-center { content: none; }
+}
+@page :left  { margin-left: 24mm; margin-right: 14mm; }
+@page :right { margin-left: 14mm; margin-right: 24mm; }
+
+/* ── 基础重置 ─────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #f0ede8; }
+body {
+    font-family: ${effectiveFont};
+    font-size: ${mmFontSize};
+    line-height: ${mmLineHeight};
+    letter-spacing: ${mmLetterSpacing};
+    color: ${thTextPage};
+    background: ${thBgPage};
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "locl" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── 分页区块容器 ─────────────────────────────── */
+.mm-page-section { width: 100%; }
+
+/* ── 正文排版 ────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+    font-family: ${effectiveFont};
+    page-break-after: avoid; break-after: avoid;
+    word-break: keep-all; overflow-wrap: break-word;
+    font-feature-settings: "kern" 1;
+}
+h1 {
+    font-size: calc(${mmFontSize} * 2.2);
+    font-weight: 700; line-height: 1.2;
+    margin-bottom: 0.8em;
+    color: ${thPrimary};
+    border-bottom: 3px solid ${thAccent};
+    padding-bottom: 10px;
+}
+h2 {
+    font-size: calc(${mmFontSize} * 1.65);
+    font-weight: 600; line-height: 1.3;
+    margin-top: 1.6em; margin-bottom: 0.7em;
+    color: ${thPrimary};
+    border-bottom: 2px solid ${thAccent};
+    padding-bottom: 7px;
+}
+h3 {
+    font-size: calc(${mmFontSize} * 1.35);
+    font-weight: 600; line-height: 1.4;
+    margin-top: 1.3em; margin-bottom: 0.5em;
+    color: ${thPrimary};
+}
+h4 {
+    font-size: calc(${mmFontSize} * 1.15);
+    font-weight: 600;
+    margin-top: 1em; margin-bottom: 0.4em;
+}
+p {
+    text-align: justify;
+    text-justify: inter-character;
+    hyphens: auto;
+    margin-bottom: 1em;
+    word-break: normal;
+    overflow-wrap: break-word;
+    line-break: strict;
+    hanging-punctuation: first last;
+    orphans: 3; widows: 3;
+}
+strong { font-weight: 700; color: ${thPrimary}; }
+em     { font-style: italic; }
+a      { color: ${thPrimary}; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+del    { text-decoration: line-through; opacity: 0.6; }
+
+/* ── 代码 ────────────────────────────────────── */
+code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    background: #f4f4f8; padding: 2px 6px;
+    border-radius: 4px; color: #c0392b;
+    font-size: 0.88em; border: 1px solid #e8e8ee;
+    font-feature-settings: normal;
+}
+pre {
+    background: #0f111a; color: #e2e4f0;
+    padding: 18px 22px; border-radius: 10px;
+    white-space: pre-wrap; overflow-wrap: break-word;
+    word-break: normal;
+    margin: 1.6em 0;
+    border-left: 4px solid ${thPrimary};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em; line-height: 1.7;
+    page-break-inside: avoid; break-inside: avoid;
+    font-feature-settings: normal;
+}
+pre code { background: none; padding: 0; border: none; color: inherit; }
+
+/* ── 引用块 ──────────────────────────────────── */
+blockquote {
+    border-left: 4px solid ${thPrimary};
+    margin: 1.4em 0; padding: 14px 22px;
+    font-style: italic; color: #555;
+    border-radius: 0 8px 8px 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.03) 0%, transparent 100%);
+    page-break-inside: avoid; break-inside: avoid;
+}
+blockquote p { margin-bottom: 0.4em; }
+
+/* ── 列表 ────────────────────────────────────── */
+ul, ol { padding-left: 1.75em; margin-bottom: 1em; }
+li { margin-bottom: 0.25em; line-height: ${mmLineHeight}; word-break: normal; overflow-wrap: break-word; }
+li::marker { color: ${thPrimary}; }
+
+/* ── 表格 ────────────────────────────────────── */
+table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    margin: 1.4em 0; border: 1px solid #e0e0e8;
+    border-radius: 8px; overflow: hidden; font-size: 0.92em;
+    page-break-inside: avoid; break-inside: avoid;
+}
+th, td { border: 1px solid #e8e8ee; padding: 9px 13px; text-align: left; }
+th { background: linear-gradient(to bottom, #fafafe, #f0f0f5); font-weight: 600; }
+tr:nth-child(even) { background: #fafaff; }
+
+/* ── 分隔线 ──────────────────────────────────── */
+hr {
+    border: none;
+    border-top: 2px solid color-mix(in srgb, ${thPrimary} 30%, transparent);
+    margin: 1.5em 0;
+}
+
+/* ── 图片 ────────────────────────────────────── */
+img {
+    max-width: 100%; height: auto;
+    border-radius: 8px; display: block;
+    margin: 0.8em auto;
+    page-break-inside: avoid; break-inside: avoid;
+}
+
+/* ── Paged.js 过渡状态隐藏闪烁 ───────────────── */
+.pagedjs_pages { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+.pagedjs_page  { background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
+</style>
+</head>
+<body lang="zh">
+<div class="magmark">
+${combinedHtml}
+</div>
+<!-- Han.js — 必须在内容渲染后执行 -->
+<script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
+<script>
+// Paged.js 完成分页后再运行 Han.css，确保所有文本节点均已插入 DOM
+if (typeof PagedPolyfill !== 'undefined') {
+    PagedPolyfill.preview().then(function() {
+        if (typeof Han === 'function') Han(document.body).render();
+    });
+} else {
+    window.addEventListener('load', function() {
+        if (typeof Han === 'function') Han(document.body).render();
+    });
+}
+</script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=960,height=860,menubar=yes,toolbar=yes');
+    if (!win) {
+        alert('弹出窗口被拦截，请在浏览器设置中允许此页面弹出窗口后重试');
+        return;
+    }
+    win.document.open();
+    win.document.write(htmlDoc);
+    win.document.close();
+}
+
+/**
  * INITIALIZATION
  */
 function init() {
@@ -751,6 +1018,7 @@ function init() {
         applyStylesOnly();
         debouncedRenderSlow();
     });
+    $<HTMLInputElement>('#ctrl-fontsize').addEventListener('change', finalizePaginationUpdate);
 
     $<HTMLInputElement>('#ctrl-lineheight').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -767,6 +1035,7 @@ function init() {
         applyStylesOnly();
         debouncedRenderSlow();
     });
+    $<HTMLInputElement>('#ctrl-lineheight').addEventListener('change', finalizePaginationUpdate);
 
     $<HTMLInputElement>('#ctrl-letterspacing').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -783,6 +1052,7 @@ function init() {
         applyStylesOnly();
         debouncedRenderSlow();
     });
+    $<HTMLInputElement>('#ctrl-letterspacing').addEventListener('change', finalizePaginationUpdate);
 
     $<HTMLSelectElement>('#ctrl-format').addEventListener('change', (e) => {
         const fmt = (e.target as HTMLSelectElement).value as AppState['format'];
@@ -900,6 +1170,10 @@ function init() {
     // Toolbar init
     initToolbar();
 
+    // Print Preview (Paged.js + Han.css)
+    const btnPrintPreview = document.getElementById('btn-print-preview');
+    if (btnPrintPreview) btnPrintPreview.addEventListener('click', openPrintPreview);
+
     // Export PNG (current page)
     $('#btn-export').addEventListener('click', exportPng);
 
@@ -1008,6 +1282,10 @@ function updatePaginationUI() {
 
 function initToolbar() {
     const debouncedApply = debounce(render, 400);
+    const finalizeToolbarPagination = () => {
+        debouncedApply.cancel();
+        render();
+    };
 
     $<HTMLInputElement>('#toolbar-fontsize').addEventListener('input', (e) => {
         const val = parseInt((e.target as HTMLInputElement).value);
@@ -1015,6 +1293,7 @@ function initToolbar() {
         $('#toolbar-val-fontsize').textContent = val + 'px';
         debouncedApply();
     });
+    $<HTMLInputElement>('#toolbar-fontsize').addEventListener('change', finalizeToolbarPagination);
 
     $<HTMLInputElement>('#toolbar-lineheight').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -1022,6 +1301,7 @@ function initToolbar() {
         $('#toolbar-val-lineheight').textContent = val.toFixed(2);
         debouncedApply();
     });
+    $<HTMLInputElement>('#toolbar-lineheight').addEventListener('change', finalizeToolbarPagination);
 
     $<HTMLInputElement>('#toolbar-letterspacing').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -1029,6 +1309,7 @@ function initToolbar() {
         $('#toolbar-val-letterspacing').textContent = val.toFixed(2);
         debouncedApply();
     });
+    $<HTMLInputElement>('#toolbar-letterspacing').addEventListener('change', finalizeToolbarPagination);
 
     $('#toolbar-close').addEventListener('click', () => {
         toolbar.style.display = 'none';
