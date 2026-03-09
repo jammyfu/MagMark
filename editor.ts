@@ -4,6 +4,25 @@ import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
 
 /**
+ * 图片 Blob 存储 — 将大体积 data URL 存入内存，Markdown 中用短引用 mm-img://uuid
+ * 避免 textarea 中出现数百KB 的 base64 字符串
+ */
+const imageStore = new Map<string, string>(); // uuid → data URL
+
+function storeImage(dataUrl: string): string {
+    const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    imageStore.set(uuid, dataUrl);
+    return `mm-img://${uuid}`;
+}
+
+function resolveImageSrc(src: string): string {
+    if (src.startsWith('mm-img://')) {
+        return imageStore.get(src.slice(9)) || src;
+    }
+    return src;
+}
+
+/**
  * MagMark 1.4 - Professional Refactored Entry
  * (C) 2026 Editorial Elite System
  *
@@ -455,9 +474,12 @@ function convertMarkdown(md: string): string {
     const isUlItem    = (l: string) => /^(\s*)[-*+] /.test(l);
     const isOlItem    = (l: string) => /^(\s*)\d+\. /.test(l);
     const isListItem  = (l: string) => isUlItem(l) || isOlItem(l);
+    // 独立图片行：整行内容只有一个图片标记（可带 {attrs}），作为块级 <figure>
+    const isFigureLine = (l: string) =>
+        /^\s*!\[[^\]]*\]\([^)]+\)(\{[^}]*\})?\s*$/.test(l);
     const isBlockStop = (l: string) =>
         isBlank(l) || isHeading(l) || isFence(l) || isQuote(l) ||
-        isTable(l) || isListItem(l) || isHrLine(l);
+        isTable(l) || isListItem(l) || isHrLine(l) || isFigureLine(l);
 
     // ── Fenced code block ─────────────────────────────────
     function parseFenceBlock(): string {
@@ -578,6 +600,23 @@ function convertMarkdown(md: string): string {
         return isOrdered ? `<ol>${inner}</ol>` : `<ul>${inner}</ul>`;
     }
 
+    // ── Figure (standalone image line → block <figure>) ───
+    function parseFigureLine(): string {
+        const line = lines[i].trim();
+        i++;
+        // Extended: ![alt](src "title"){.layout width=N%}
+        const ext = line.match(/^!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)\{([^}]*)\}/);
+        if (ext) return buildFigureHtml(ext[2], ext[1], ext[3] || '', ext[4]);
+        // Plain standalone: ![alt](src "title")
+        const plain = line.match(/^!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)$/);
+        if (plain) {
+            // No layout attrs — center figure with auto caption from alt
+            return buildFigureHtml(plain[2], plain[1], plain[3] || '', '');
+        }
+        // Fallback — render as inline paragraph
+        return `<p>${inlineMarkdown(line)}</p>`;
+    }
+
     // ── Paragraph ─────────────────────────────────────────
     function parseParagraph(): string {
         const paraLines: string[] = [];
@@ -610,16 +649,19 @@ function convertMarkdown(md: string): string {
         }
 
         // Blockquote
-        if (isQuote(line))   { blocks.push(parseBlockquote()); continue; }
+        if (isQuote(line))      { blocks.push(parseBlockquote()); continue; }
 
         // Table
-        if (isTable(line))   { blocks.push(parseTable()); continue; }
+        if (isTable(line))      { blocks.push(parseTable()); continue; }
 
         // Unordered list
-        if (isUlItem(line))  { blocks.push(parseList(false)); continue; }
+        if (isUlItem(line))     { blocks.push(parseList(false)); continue; }
 
         // Ordered list
-        if (isOlItem(line))  { blocks.push(parseList(true)); continue; }
+        if (isOlItem(line))     { blocks.push(parseList(true)); continue; }
+
+        // Standalone figure (image-only line → block <figure>)
+        if (isFigureLine(line)) { blocks.push(parseFigureLine()); continue; }
 
         // Paragraph (catch-all)
         const para = parseParagraph();
@@ -642,9 +684,10 @@ function convertMarkdown(md: string): string {
  *   ".center"
  */
 function buildFigureHtml(src: string, alt: string, title: string, attrStr: string): string {
-    const parts = attrStr.trim().split(/\s+/);
+    const parts = (attrStr || '').trim().split(/\s+/).filter(Boolean);
     let layout = 'center';
     let width: string | null = null;
+    let caption = '';
 
     for (const part of parts) {
         if (part.startsWith('.')) {
@@ -654,15 +697,27 @@ function buildFigureHtml(src: string, alt: string, title: string, attrStr: strin
             }
         } else if (part.startsWith('width=')) {
             width = part.slice(6); // e.g. "50%"
+        } else if (part.startsWith('caption=')) {
+            caption = decodeURIComponent(part.slice(8));
         }
     }
 
-    const imgStyle = width ? ` style="width:${escapeAttr(width)}"` : '';
-    const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
-    const captionHtml = alt ? `<figcaption>${escapeHtml(alt)}</figcaption>` : '';
+    // Resolve mm-img:// references to actual data URLs
+    const resolvedSrc = resolveImageSrc(src);
 
-    return `<figure class="mm-figure mm-${layout}">` +
-        `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${titleAttr}${imgStyle} loading="lazy">` +
+    const figStyle = layout === 'float-left' || layout === 'float-right'
+        ? (width ? ` style="width:${escapeAttr(width)}"` : '')
+        : '';
+    const imgStyle = layout === 'center' && width ? ` style="width:${escapeAttr(width)}"` : '';
+    const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
+    // Use explicit caption if provided, otherwise use alt (if non-empty and not a UUID ref)
+    const displayCaption = caption || (alt && !alt.startsWith('mm-img://') ? alt : '');
+    const captionHtml = displayCaption
+        ? `<figcaption>${escapeHtml(displayCaption)}</figcaption>`
+        : '';
+
+    return `<figure class="mm-figure mm-${layout}"${figStyle}>` +
+        `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${titleAttr}${imgStyle} loading="lazy">` +
         captionHtml +
         `</figure>`;
 }
@@ -677,17 +732,21 @@ function inlineMarkdown(text: string): string {
     if (text.length > 5000) return escapeHtml(text);
 
     return text
-        // Extended image with layout attrs: ![alt](src){.layout width=N%}
-        // Must come before plain image rule
+        // Extended image with layout attrs in inline context (e.g. inside a paragraph)
+        // Only apply width; layout attrs are for block-level figures handled by parseFigureLine
         .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)\{([^}]*)\}/g,
-            (_, alt, src, title, attrs) => {
-                return buildFigureHtml(src, alt, title || '', attrs);
+            (_, alt, src, _title, attrs) => {
+                const widthMatch = attrs.match(/width=(\d+%?)/);
+                const style = widthMatch ? ` style="width:${widthMatch[1]}"` : '';
+                const resolvedSrc = resolveImageSrc(src);
+                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${style} loading="lazy">`;
             })
-        // Plain image (no attrs) — wrapped in figure.mm-center by default
+        // Plain image — resolve mm-img:// if needed
         .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/g,
             (_, alt, src, title) => {
                 const t = title ? ` title="${escapeAttr(title)}"` : '';
-                return `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${t} loading="lazy">`;
+                const resolvedSrc = resolveImageSrc(src);
+                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${t} loading="lazy">`;
             })
         // Links
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
@@ -1233,14 +1292,36 @@ function init() {
     // Toolbar init
     initToolbar();
 
-    // Image Panel
+    // Image Panel — data URLs 自动存储为 mm-img://uuid 短引用
     const imagePanel = new ImagePanel((opts) => {
-        const md = buildImageMarkdown(opts);
+        let src = opts.src;
+        // 如果是 data URL（base64图片），存入内存并使用短引用
+        if (src.startsWith('data:')) {
+            src = storeImage(src);
+        }
+        const md = buildImageMarkdown({ ...opts, src });
         insertAtCursor(markdownInput, md + '\n');
         debouncedRender();
     });
     const btnImage = document.getElementById('btn-image');
     if (btnImage) btnImage.addEventListener('click', () => imagePanel.open());
+
+    // Click-to-edit: 点击预览区的 figure → 弹出图片面板（携带当前 src）
+    previewArea.addEventListener('click', (e) => {
+        const figEl = (e.target as HTMLElement).closest('figure.mm-figure') as HTMLElement | null;
+        if (!figEl) return;
+        e.stopPropagation();
+        const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
+        if (!imgEl) return;
+        // 读取当前 layout
+        const layout = (['float-left','float-right','full','center'] as const)
+            .find(cls => figEl.classList.contains('mm-' + cls)) || 'center';
+        const widthStr = figEl.style.width || imgEl.style.width || '60%';
+        const width = parseInt(widthStr) || 60;
+        const caption = figEl.querySelector('figcaption')?.textContent || '';
+        // 重新打开面板，传入当前图片 URL（已解析）
+        imagePanel.openWithSrc(imgEl.src, { layout, width, alt: imgEl.alt, caption });
+    });
 
     // Print Preview (Paged.js + Han.css)
     const btnPrintPreview = document.getElementById('btn-print-preview');
