@@ -1,6 +1,7 @@
 import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
 import * as htmlToImage from 'html-to-image';
+import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
 
 /**
  * MagMark 1.4 - Professional Refactored Entry
@@ -629,6 +630,44 @@ function convertMarkdown(md: string): string {
 }
 
 /**
+ * Build a <figure> element from extended image attrs like:
+ *   {.float-left width=50%}
+ *   {.float-right width=40%}
+ *   {.full}
+ *   {.center}
+ *
+ * Attr string examples:
+ *   ".float-left width=50%"
+ *   ".full"
+ *   ".center"
+ */
+function buildFigureHtml(src: string, alt: string, title: string, attrStr: string): string {
+    const parts = attrStr.trim().split(/\s+/);
+    let layout = 'center';
+    let width: string | null = null;
+
+    for (const part of parts) {
+        if (part.startsWith('.')) {
+            const cls = part.slice(1);
+            if (['float-left', 'float-right', 'full', 'center', 'inline'].includes(cls)) {
+                layout = cls;
+            }
+        } else if (part.startsWith('width=')) {
+            width = part.slice(6); // e.g. "50%"
+        }
+    }
+
+    const imgStyle = width ? ` style="width:${escapeAttr(width)}"` : '';
+    const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
+    const captionHtml = alt ? `<figcaption>${escapeHtml(alt)}</figcaption>` : '';
+
+    return `<figure class="mm-figure mm-${layout}">` +
+        `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}"${titleAttr}${imgStyle} loading="lazy">` +
+        captionHtml +
+        `</figure>`;
+}
+
+/**
  * Inline Markdown → HTML.
  * Processing order matters: bold+italic first, then bold, then italic, etc.
  */
@@ -638,7 +677,13 @@ function inlineMarkdown(text: string): string {
     if (text.length > 5000) return escapeHtml(text);
 
     return text
-        // Image before link (so ![…](…) is not parsed as link)
+        // Extended image with layout attrs: ![alt](src){.layout width=N%}
+        // Must come before plain image rule
+        .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)\{([^}]*)\}/g,
+            (_, alt, src, title, attrs) => {
+                return buildFigureHtml(src, alt, title || '', attrs);
+            })
+        // Plain image (no attrs) — wrapped in figure.mm-center by default
         .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/g,
             (_, alt, src, title) => {
                 const t = title ? ` title="${escapeAttr(title)}"` : '';
@@ -993,6 +1038,24 @@ if (typeof PagedPolyfill !== 'undefined') {
 }
 
 /**
+ * Insert text at the current cursor position in a textarea,
+ * then move the cursor to after the inserted text.
+ */
+function insertAtCursor(ta: HTMLTextAreaElement, text: string) {
+    const start = ta.selectionStart ?? ta.value.length;
+    const end   = ta.selectionEnd   ?? ta.value.length;
+    const before = ta.value.slice(0, start);
+    const after  = ta.value.slice(end);
+    // Ensure we're on a new line before the insertion
+    const needsNewLine = before.length > 0 && !before.endsWith('\n');
+    const prefix = needsNewLine ? '\n' : '';
+    ta.value = before + prefix + text + after;
+    const newPos = start + prefix.length + text.length;
+    ta.setSelectionRange(newPos, newPos);
+    ta.dispatchEvent(new Event('input'));
+}
+
+/**
  * INITIALIZATION
  */
 function init() {
@@ -1169,6 +1232,15 @@ function init() {
 
     // Toolbar init
     initToolbar();
+
+    // Image Panel
+    const imagePanel = new ImagePanel((opts) => {
+        const md = buildImageMarkdown(opts);
+        insertAtCursor(markdownInput, md + '\n');
+        debouncedRender();
+    });
+    const btnImage = document.getElementById('btn-image');
+    if (btnImage) btnImage.addEventListener('click', () => imagePanel.open());
 
     // Print Preview (Paged.js + Han.css)
     const btnPrintPreview = document.getElementById('btn-print-preview');

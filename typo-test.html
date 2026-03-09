@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<title>MagMark 排版测试 — Han.css + Paged.js</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Han.css CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css">
+<style>
+/* ── 测试页布局 ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  background: #0f0f12;
+  color: #fff;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 100vh;
+}
+.test-header {
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 20px;
+}
+.test-title { font-size: 20px; font-weight: 700; }
+.badge {
+  padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.badge-han   { background: rgba(212,175,55,0.2); color: #d4af37; border: 1px solid rgba(212,175,55,0.4); }
+.badge-paged { background: rgba(100,200,100,0.2); color: #7fcf7f; border: 1px solid rgba(100,200,100,0.4); }
+.badge-viv   { background: rgba(100,150,255,0.2); color: #8ab4ff; border: 1px solid rgba(100,150,255,0.4); }
+
+.test-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.test-card {
+  background: #1a1a1f;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.test-card-label {
+  padding: 10px 16px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;
+  color: #888; background: rgba(0,0,0,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex; align-items: center; gap: 8px;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-before { background: #ff6060; }
+.dot-after  { background: #60ff80; }
+
+/* ── 页面内容区 ── */
+.page-sim {
+  background: #ffffff;
+  color: #1a1a2e;
+  padding: 40px 44px;
+  min-height: 300px;
+  font-size: 15px;
+}
+
+/* ── Han.css 前（旧 word-break 问题演示）── */
+.before-han p {
+  font-family: 'Source Han Serif SC', 'Noto Serif SC', serif;
+  line-height: 1.75;
+  text-align: justify;
+  text-justify: inter-character;
+  word-break: break-all;   /* 旧的错误设置 */
+  color: #1a1a2e;
+  margin-bottom: 1em;
+}
+.before-han h2 { font-family: 'Source Han Serif SC', serif; color: #d4af37; font-size: 1.5em; margin-bottom: 0.7em; border-bottom: 2px solid #e67e22; padding-bottom: 6px; }
+
+/* ── 新排版（Han.css 修正后）── */
+.magmark {
+  font-family: 'Source Han Serif SC', 'Noto Serif SC', serif;
+  font-size: 15px;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "locl" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  color: #1a1a2e;
+}
+.magmark h1 {
+  font-size: calc(15px * 2.2); font-weight: 700; line-height: 1.2;
+  margin-bottom: 0.8em; color: #d4af37;
+  border-bottom: 3px solid #e67e22; padding-bottom: 10px;
+  text-align: left; word-break: keep-all; overflow-wrap: break-word;
+  font-feature-settings: "kern" 1;
+}
+.magmark h2 {
+  font-size: calc(15px * 1.65); font-weight: 600; line-height: 1.3;
+  margin-top: 1.4em; margin-bottom: 0.7em; color: #d4af37;
+  border-bottom: 2px solid #e67e22; padding-bottom: 7px;
+  text-align: left; word-break: keep-all;
+}
+.magmark p {
+  text-align: justify; text-justify: inter-character;
+  hyphens: auto; margin-bottom: 1em;
+  word-break: normal;         /* ✅ 修正后 */
+  overflow-wrap: break-word;  /* ✅ 修正后 */
+  line-break: strict;         /* ✅ CJK 禁则 */
+  hanging-punctuation: first last;
+  orphans: 3; widows: 3;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+.magmark strong { font-weight: 700; color: #d4af37; }
+.magmark code {
+  font-family: 'JetBrains Mono', monospace;
+  background: #f4f4f8; padding: 2px 6px;
+  border-radius: 4px; color: #c0392b;
+  font-size: 0.88em; border: 1px solid #e8e8ee;
+  font-feature-settings: normal;
+}
+.magmark blockquote {
+  border-left: 4px solid #d4af37; margin: 1.4em 0; padding: 14px 22px;
+  font-style: italic; color: #555;
+  border-radius: 0 8px 8px 0;
+  background: linear-gradient(135deg, rgba(212,175,55,0.05) 0%, transparent 100%);
+}
+.magmark ul { padding-left: 1.75em; margin-bottom: 1em; }
+.magmark li { margin-bottom: 0.3em; word-break: normal; overflow-wrap: break-word; }
+.magmark li::marker { color: #d4af37; }
+
+/* ── @page 规则测试信息 ── */
+.page-rules-demo {
+  background: #111;
+  border: 1px solid rgba(100,200,100,0.3);
+  border-radius: 8px;
+  padding: 20px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #7fcf7f;
+  line-height: 1.8;
+}
+.page-rules-demo .comment { color: #555; }
+.page-rules-demo .prop { color: #88bfff; }
+.page-rules-demo .val { color: #ffd700; }
+
+/* ── 状态指示器 ── */
+.status-bar {
+  display: flex; gap: 12px; align-items: center;
+  padding: 12px 20px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-ok { background: #60ff80; box-shadow: 0 0 6px #60ff8080; }
+.status-pending { background: #ffd700; box-shadow: 0 0 6px #ffd70080; }
+
+/* @page 规则（Paged.js 会在打印/打印预览中处理） */
+@page {
+  size: A4;
+  margin: 22mm 18mm 28mm 18mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font-size: 8pt;
+    color: #aaa;
+  }
+}
+@page :left  { margin-left: 24mm; margin-right: 14mm; }
+@page :right { margin-left: 14mm; margin-right: 24mm; }
+@page :first { margin-top: 30mm; @bottom-center { content: none; } }
+
+@media print {
+  body { background: white; color: #000; padding: 0; }
+  .test-header, .test-card-label, .status-bar, .before-han, .page-rules-demo { display: none; }
+  .test-grid { grid-template-columns: 1fr; }
+  .test-card { border: none; border-radius: 0; }
+  .page-sim { padding: 0; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="test-header">
+  <div class="test-title">MagMark 排版测试</div>
+  <span class="badge badge-han">Han.css v3</span>
+  <span class="badge badge-paged">Paged.js</span>
+  <span class="badge badge-viv">Vivliostyle CSS</span>
+</div>
+
+<div class="status-bar">
+  <div class="status-item"><div class="status-dot status-ok"></div><span>Han.css 样式已加载</span></div>
+  <div class="status-item"><div class="status-dot" id="han-js-dot" style="background:#ffd700"></div><span id="han-js-label">Han.js 加载中…</span></div>
+  <div class="status-item"><div class="status-dot status-ok"></div><span>@page 规则已注入</span></div>
+  <div class="status-item"><div class="status-dot status-ok"></div><span>word-break: normal ✅</span></div>
+  <div class="status-item"><div class="status-dot status-ok"></div><span>line-break: strict ✅</span></div>
+  <div class="status-item"><div class="status-dot status-ok"></div><span>orphans/widows: 3 ✅</span></div>
+</div>
+
+<div class="test-grid">
+  <!-- 旧排版（word-break: break-all 问题）-->
+  <div class="test-card">
+    <div class="test-card-label"><div class="dot dot-before"></div>修改前：word-break: break-all（英文被强制截断）</div>
+    <div class="page-sim before-han">
+      <h2>MagMark 排版引擎</h2>
+      <p>将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 彻底革新了导出流水线，带来了媲美 VOGUE 等高端纸媒的视觉体验。</p>
+      <p>注意下面英文单词的截断问题：This is a <strong>professional</strong> typography engine for Chinese magazines, with <code>word-break:break-all</code> set incorrectly causing "profess-ional" style breaks.</p>
+      <p>混合排版时的问题最为明显：Hello World 与中文混排时，英文 "Hello" 和 "World" 这样的单词可能被分割在两行之间，影响阅读流畅性。</p>
+    </div>
+  </div>
+
+  <!-- 新排版（Han.css 修正）-->
+  <div class="test-card">
+    <div class="test-card-label"><div class="dot dot-after"></div>修改后：word-break: normal + Han.css 排印</div>
+    <div class="page-sim magmark" lang="zh" id="han-target">
+      <h2>MagMark 排版引擎</h2>
+      <p>将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 彻底革新了导出流水线，带来了媲美 VOGUE 等高端纸媒的视觉体验。</p>
+      <p>英文单词保持完整：This is a <strong>professional</strong> typography engine for Chinese magazines, with <code>overflow-wrap:break-word</code> set correctly — words like "professional" stay intact.</p>
+      <p>混合排版改善：Hello World 与中文混排时，Han.css 自动在 CJK 与拉丁字符之间插入合适间距，"Hello" 和 "World" 作为完整词组不再被强制折断。</p>
+      <blockquote><p>像写 Markdown 一样简单，像做杂志一样精美。— MagMark</p></blockquote>
+      <ul>
+        <li>汉字↔拉丁：Han.css 自动修正字间距</li>
+        <li><strong>标点压缩</strong>：句号、逗号等不再占全角</li>
+        <li>引号配对：「引号」与"引号"正确悬挂</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- @page / Paged.js 规则展示 -->
+<div class="test-card" style="grid-column: 1/-1">
+  <div class="test-card-label"><div class="dot dot-after"></div>Paged.js CSS @page 规则（点击"🖨 打印预览"在新窗口中生效）</div>
+  <div class="page-rules-demo">
+    <span class="comment">/* A4 页面边距 + 页脚居中页码 */</span><br>
+    <span class="prop">@page</span> {<br>
+    &nbsp;&nbsp;<span class="prop">size</span>: <span class="val">A4</span>;<br>
+    &nbsp;&nbsp;<span class="prop">margin</span>: <span class="val">22mm 18mm 28mm 18mm</span>;<br>
+    &nbsp;&nbsp;<span class="prop">@bottom-center</span> {<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="prop">content</span>: <span class="val">counter(page) " / " counter(pages)</span>;<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="prop">font-size</span>: <span class="val">8pt</span>; <span class="prop">color</span>: <span class="val">#aaa</span>;<br>
+    &nbsp;&nbsp;}<br>
+    }<br>
+    <span class="prop">@page :left</span>  { <span class="prop">margin-left</span>: <span class="val">24mm</span>; <span class="prop">margin-right</span>: <span class="val">14mm</span>; }<br>
+    <span class="prop">@page :right</span> { <span class="prop">margin-left</span>: <span class="val">14mm</span>; <span class="prop">margin-right</span>: <span class="val">24mm</span>; }<br>
+    <span class="prop">@page :first</span> { <span class="prop">margin-top</span>: <span class="val">30mm</span>; } <span class="comment">/* 首页留白更多 */</span><br><br>
+    <span class="comment">/* Vivliostyle 孤行/寡行控制 */</span><br>
+    <span class="prop">.magmark p</span> { <span class="prop">orphans</span>: <span class="val">3</span>; <span class="prop">widows</span>: <span class="val">3</span>; }<br>
+    <span class="prop">.magmark h1, h2, h3</span> { <span class="prop">break-after</span>: <span class="val">avoid</span>; } <span class="comment">/* 标题后不分页 */</span><br>
+    <span class="prop">.magmark pre, table</span> { <span class="prop">break-inside</span>: <span class="val">avoid</span>; } <span class="comment">/* 代码块不被分页打断 */</span>
+  </div>
+</div>
+
+<!-- Han.js -->
+<script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
+<script>
+window.addEventListener('load', function() {
+  var dot = document.getElementById('han-js-dot');
+  var label = document.getElementById('han-js-label');
+  if (typeof Han === 'function') {
+    try {
+      Han(document.getElementById('han-target')).render();
+      dot.style.background = '#60ff80';
+      dot.style.boxShadow = '0 0 6px #60ff8080';
+      label.textContent = 'Han.js 已激活 — CJK 排印处理完成';
+    } catch(e) {
+      dot.style.background = '#ff6060';
+      label.textContent = 'Han.js 渲染错误: ' + e.message;
+    }
+  } else {
+    dot.style.background = '#ff6060';
+    label.textContent = 'Han.js 未能加载（检查网络）';
+  }
+});
+</script>
+</body>
+</html>
