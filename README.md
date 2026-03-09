@@ -1,4 +1,4 @@
-# MagMark 1.4.1 🎨✨
+# MagMark 1.4.2 🎨✨
 
 **世界级杂志级 Markdown 排版引擎 — 终极优化版**
 
