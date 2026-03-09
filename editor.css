@@ -1253,6 +1253,21 @@ input:checked+.slider:before {
     color: #fff;
 }
 
+/* Image insert buttons on floating toolbar */
+.toolbar-img-btn {
+    font-size: 14px;
+    padding: 4px 8px;
+    gap: 2px;
+    white-space: nowrap;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.toolbar-img-btn:hover {
+    background: color-mix(in srgb, var(--th-primary) 85%, #000);
+    color: #fff;
+    border-color: var(--th-primary);
+}
+
 /* ── Block Editing Highlights ── */
 .magmark>* {
     transition: outline 0.2s, box-shadow 0.2s;

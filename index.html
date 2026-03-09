@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MagMark 1.4.1 — Ultra-Precision Magazine Markdown Editor</title>
+    <title>MagMark 1.5.0 — Ultra-Precision Magazine Markdown Editor</title>
     <meta name="description" content="MagMark 1.4 终极优化版：彻底告别 PDF 存图，强制齐行 + 自动连字符，高精度 Canvas 导出。">
     <link
         href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -19,7 +19,7 @@
     <header id="app-header">
         <div class="logo">
             <span class="logo-icon">✦</span>
-            <span class="logo-text">MagMark <span class="logo-version">1.4.1</span></span>
+            <span class="logo-text">MagMark <span class="logo-version">1.5.0</span></span>
         </div>
         <div class="header-actions">
             <label class="file-upload-btn" id="file-upload-label">
@@ -27,6 +27,7 @@
                 <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden>
             </label>
             <button class="btn btn-secondary" id="btn-save" title="保存 Markdown (Ctrl+S)">💾 保存</button>
+            <button class="btn btn-secondary" id="btn-image" title="插入图片 / AI 生图 / 图文混排">🖼 图片</button>
             <button class="btn btn-secondary" id="btn-print-preview" title="使用 Paged.js 打开打印预览（含页码与页眉）">🖨 打印预览</button>
             <button class="btn btn-secondary" id="btn-export-all" title="导出全部页为 PNG">🗂 导出全部</button>
             <button class="btn btn-primary" id="btn-export" title="导出高精度 PNG">📸 导出当页</button>
@@ -192,6 +193,9 @@
             <input type="range" id="toolbar-letterspacing" min="-0.1" max="0.5" step="0.01">
             <span class="toolbar-val" id="toolbar-val-letterspacing">0.01</span>
         </div>
+        <div class="toolbar-divider"></div>
+        <button id="toolbar-insert-above" class="toolbar-btn toolbar-img-btn" title="在此块上方插入图片">↑🖼</button>
+        <button id="toolbar-insert-below" class="toolbar-btn toolbar-img-btn" title="在此块下方插入图片">↓🖼</button>
         <div class="toolbar-divider"></div>
         <span id="toolbar-count" class="toolbar-count" style="display:none;"></span>
         <button id="toolbar-close" class="toolbar-btn">✕</button>

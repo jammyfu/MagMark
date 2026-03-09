@@ -46,6 +46,9 @@ const toolbar = $('#block-toolbar');
 
 // Multi-selection state
 let selectedBlockIds: Set<string> = new Set();
+
+// Pending image insertion (from floating toolbar buttons)
+let pendingInsert: { direction: 'above' | 'below'; blockEl: HTMLElement } | null = null;
 let marqueeEl: HTMLElement | null = null;
 let marqueeStart = { x: 0, y: 0 };
 let isDraggingMarquee = false;
@@ -1115,6 +1118,80 @@ function insertAtCursor(ta: HTMLTextAreaElement, text: string) {
 }
 
 /**
+ * Insert image markdown above or below the block corresponding to the given element.
+ *
+ * Strategy: use the block element's trimmed text content as a search key within
+ * the raw markdown. Find the containing paragraph/heading, then inject the image
+ * markdown before or after it, with surrounding blank lines for clean parsing.
+ */
+function insertImageRelativeToBlock(
+    direction: 'above' | 'below',
+    blockEl: HTMLElement,
+    imageMd: string
+) {
+    const md = markdownInput.value;
+    const lines = md.split('\n');
+
+    // Build a search key from the block's plain text (first 30 meaningful chars)
+    const blockText = (blockEl.textContent ?? '').trim().replace(/\s+/g, ' ');
+    const searchKey = blockText.slice(0, 30).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    let targetLine = -1;
+    if (searchKey.length >= 4) {
+        // Strip common markdown syntax characters before comparing
+        const clean = (s: string) => s.replace(/[#*_`!>\-\[\]]/g, '').trim();
+        for (let i = 0; i < lines.length; i++) {
+            if (clean(lines[i]).includes(searchKey.slice(0, 20))) {
+                targetLine = i;
+                break;
+            }
+        }
+    }
+
+    if (targetLine === -1) {
+        // Fallback: insert at textarea cursor position
+        insertAtCursor(markdownInput, '\n' + imageMd + '\n');
+        debouncedRender();
+        return;
+    }
+
+    // Expand the block range: walk back to the first non-blank line of this paragraph
+    let blockStart = targetLine;
+    while (blockStart > 0 && lines[blockStart - 1].trim() !== '') blockStart--;
+
+    // Walk forward to the last non-blank line of this paragraph
+    let blockEnd = targetLine;
+    while (blockEnd + 1 < lines.length && lines[blockEnd + 1].trim() !== '') blockEnd++;
+
+    let insertAfterLine: number; // index AFTER which to insert
+    if (direction === 'above') {
+        insertAfterLine = blockStart - 1; // insert before blockStart
+    } else {
+        insertAfterLine = blockEnd; // insert after blockEnd
+    }
+
+    // Build the new markdown
+    const before = lines.slice(0, insertAfterLine + 1).join('\n');
+    const after  = lines.slice(insertAfterLine + 1).join('\n');
+
+    // Ensure blank-line separators so the image is a standalone block
+    const sep = '\n\n';
+    let newMd: string;
+    if (direction === 'above') {
+        newMd = before + (before.trimEnd() ? sep : '') + imageMd + sep + after.trimStart();
+    } else {
+        newMd = before.trimEnd() + sep + imageMd + sep + after.trimStart();
+    }
+
+    markdownInput.value = newMd;
+    // Move cursor to just after the inserted image line
+    const insertedEnd = (before.trimEnd() + sep + imageMd).length;
+    markdownInput.setSelectionRange(insertedEnd, insertedEnd);
+    markdownInput.dispatchEvent(new Event('input'));
+    debouncedRender();
+}
+
+/**
  * INITIALIZATION
  */
 function init() {
@@ -1300,11 +1377,43 @@ function init() {
             src = storeImage(src);
         }
         const md = buildImageMarkdown({ ...opts, src });
-        insertAtCursor(markdownInput, md + '\n');
-        debouncedRender();
+
+        if (pendingInsert) {
+            // Insert relative to selected block (from toolbar ↑🖼 / ↓🖼 buttons)
+            const { direction, blockEl } = pendingInsert;
+            pendingInsert = null;
+            insertImageRelativeToBlock(direction, blockEl, md);
+        } else {
+            insertAtCursor(markdownInput, md + '\n');
+            debouncedRender();
+        }
     });
     const btnImage = document.getElementById('btn-image');
     if (btnImage) btnImage.addEventListener('click', () => imagePanel.open());
+
+    // Floating toolbar image insert buttons
+    const toolbarInsertAbove = document.getElementById('toolbar-insert-above');
+    const toolbarInsertBelow = document.getElementById('toolbar-insert-below');
+    if (toolbarInsertAbove) {
+        toolbarInsertAbove.addEventListener('click', () => {
+            const bid = store.getState().selectedBlockId;
+            if (!bid) return;
+            const blockEl = previewArea.querySelector(`[data-block-id="${bid}"]`) as HTMLElement | null;
+            if (!blockEl) return;
+            pendingInsert = { direction: 'above', blockEl };
+            imagePanel.open();
+        });
+    }
+    if (toolbarInsertBelow) {
+        toolbarInsertBelow.addEventListener('click', () => {
+            const bid = store.getState().selectedBlockId;
+            if (!bid) return;
+            const blockEl = previewArea.querySelector(`[data-block-id="${bid}"]`) as HTMLElement | null;
+            if (!blockEl) return;
+            pendingInsert = { direction: 'below', blockEl };
+            imagePanel.open();
+        });
+    }
 
     // Click-to-edit: 点击预览区的 figure → 弹出图片面板（携带当前 src）
     previewArea.addEventListener('click', (e) => {
