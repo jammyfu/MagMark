@@ -1253,13 +1253,15 @@ input:checked+.slider:before {
     color: #fff;
 }
 
-/* Image insert buttons on floating toolbar */
+/* Image insert buttons on floating toolbar (contain SVG icons) */
 .toolbar-img-btn {
-    font-size: 14px;
-    padding: 4px 8px;
-    gap: 2px;
-    white-space: nowrap;
+    padding: 4px 7px;
     border-color: rgba(255, 255, 255, 0.15);
+    min-width: 32px;
+}
+.toolbar-img-btn svg {
+    display: block;
+    flex-shrink: 0;
 }
 
 .toolbar-img-btn:hover {
@@ -2072,7 +2074,7 @@ input:checked+.slider:before {
     color: #888;
 }
 
-/* Click-to-edit: hover highlight on figures in preview */
+/* ── Figure interactive overlay ─────────────────────────────────────────── */
 .magmark figure.mm-figure {
     position: relative;
     cursor: pointer;
@@ -2082,20 +2084,61 @@ input:checked+.slider:before {
     border-radius: 4px;
 }
 .magmark figure.mm-figure:hover {
-    outline-color: var(--th-primary, #d4af37);
+    outline-color: color-mix(in srgb, var(--th-primary, #d4af37) 60%, transparent);
 }
-.magmark figure.mm-figure:hover::after {
-    content: '✎ 编辑图片';
+/* Selected / editing state (toggled by JS on click) */
+.magmark figure.mm-figure.mm-fig-selected {
+    outline-color: var(--th-primary, #d4af37);
+    outline-offset: 4px;
+}
+
+/* Action button container — top-right corner, hidden by default */
+.magmark figure.mm-figure .mm-fig-actions {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 8px;
+    right: 8px;
+    display: none;
+    flex-direction: row;
+    gap: 5px;
+    z-index: 10;
+    /* Reset typography inherited from .magmark so buttons aren't distorted */
+    font-size: 13px;
+    letter-spacing: 0;
+    font-family: system-ui, sans-serif;
+    line-height: 1;
+}
+/* Show on hover OR when figure is selected */
+.magmark figure.mm-figure:hover .mm-fig-actions,
+.magmark figure.mm-figure.mm-fig-selected .mm-fig-actions {
+    display: flex;
+}
+
+.mm-fig-btn {
+    background: rgba(0, 0, 0, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 13px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    transition: background 0.15s, border-color 0.15s;
+    /* Isolate from parent letter-spacing / font inheritance */
+    letter-spacing: 0;
+    font-family: system-ui, sans-serif;
+    line-height: 1;
+}
+.mm-fig-edit:hover {
     background: var(--th-primary, #d4af37);
+    border-color: var(--th-primary, #d4af37);
     color: #1a1a2e;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 2px 7px;
-    border-radius: 4px;
-    letter-spacing: 0.05em;
-    pointer-events: none;
-    z-index: 2;
+}
+.mm-fig-delete:hover {
+    background: #dd3333;
+    border-color: #dd3333;
+    color: #fff;
 }

@@ -179,8 +179,9 @@ function renderPages() {
             previewArea.appendChild(page);
         });
 
-        // Re-attach block listeners
+        // Re-attach block listeners and inject figure action buttons
         attachBlockListeners();
+        attachFigureListeners();
         updatePaginationUI();
         renderPageStrip();
 
@@ -719,7 +720,8 @@ function buildFigureHtml(src: string, alt: string, title: string, attrStr: strin
         ? `<figcaption>${escapeHtml(displayCaption)}</figcaption>`
         : '';
 
-    return `<figure class="mm-figure mm-${layout}"${figStyle}>` +
+    // data-mm-src stores the ORIGINAL (unresolved) src so deletion can search the markdown directly
+    return `<figure class="mm-figure mm-${layout}"${figStyle} data-mm-src="${escapeAttr(src)}">` +
         `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${titleAttr}${imgStyle} loading="lazy">` +
         captionHtml +
         `</figure>`;
@@ -1192,6 +1194,60 @@ function insertImageRelativeToBlock(
 }
 
 /**
+ * Inject interactive action buttons (Edit ✎ / Delete ✕) into every mm-figure
+ * in the preview. Called by renderPages() after each DOM rebuild.
+ * Event delegation in init() handles the actual click logic.
+ */
+function attachFigureListeners() {
+    previewArea.querySelectorAll('figure.mm-figure').forEach(fig => {
+        const figEl = fig as HTMLElement;
+        if (!figEl.querySelector('.mm-fig-actions')) {
+            const div = document.createElement('div');
+            div.className = 'mm-fig-actions';
+            div.innerHTML =
+                '<button class="mm-fig-btn mm-fig-edit" title="编辑图片">✎</button>' +
+                '<button class="mm-fig-btn mm-fig-delete" title="删除图片">✕</button>';
+            figEl.appendChild(div);
+        }
+    });
+}
+
+/**
+ * Remove an image from the raw markdown by searching for its original src
+ * (stored in data-mm-src on the figure element).
+ */
+function deleteFigureFromMarkdown(figEl: HTMLElement) {
+    const originalSrc = figEl.dataset.mmSrc || '';
+    const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
+    const alt = imgEl?.alt || '';
+
+    const md = markdownInput.value;
+    const lines = md.split('\n');
+
+    let targetLine = -1;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.includes('![')) continue;
+        // Match by original src (mm-img://uuid or plain URL)
+        if (originalSrc && line.includes(originalSrc)) { targetLine = i; break; }
+        // Fallback: match by alt text
+        if (alt && line.includes(`![${alt}]`)) { targetLine = i; break; }
+    }
+
+    if (targetLine === -1) return;
+
+    // Excise the line and clean up surrounding blank lines
+    const before = lines.slice(0, targetLine).join('\n').trimEnd();
+    const after  = lines.slice(targetLine + 1).join('\n').trimStart();
+    const newMd = before && after ? before + '\n\n' + after
+                : (before || after).trim();
+
+    markdownInput.value = newMd;
+    markdownInput.dispatchEvent(new Event('input'));
+    debouncedRender();
+}
+
+/**
  * INITIALIZATION
  */
 function init() {
@@ -1415,21 +1471,56 @@ function init() {
         });
     }
 
-    // Click-to-edit: 点击预览区的 figure → 弹出图片面板（携带当前 src）
+    // Figure interaction — event delegation covers dynamically injected action buttons
     previewArea.addEventListener('click', (e) => {
-        const figEl = (e.target as HTMLElement).closest('figure.mm-figure') as HTMLElement | null;
-        if (!figEl) return;
-        e.stopPropagation();
-        const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
-        if (!imgEl) return;
-        // 读取当前 layout
-        const layout = (['float-left','float-right','full','center'] as const)
-            .find(cls => figEl.classList.contains('mm-' + cls)) || 'center';
-        const widthStr = figEl.style.width || imgEl.style.width || '60%';
-        const width = parseInt(widthStr) || 60;
-        const caption = figEl.querySelector('figcaption')?.textContent || '';
-        // 重新打开面板，传入当前图片 URL（已解析）
-        imagePanel.openWithSrc(imgEl.src, { layout, width, alt: imgEl.alt, caption });
+        const target = e.target as HTMLElement;
+
+        // ── Delete button ────────────────────────────────────────────────────
+        if (target.closest('.mm-fig-delete')) {
+            const figEl = target.closest('figure.mm-figure') as HTMLElement | null;
+            if (figEl) {
+                figEl.classList.remove('mm-fig-selected');
+                deleteFigureFromMarkdown(figEl);
+            }
+            e.stopPropagation();
+            return;
+        }
+
+        // ── Edit button ──────────────────────────────────────────────────────
+        if (target.closest('.mm-fig-edit')) {
+            const figEl = target.closest('figure.mm-figure') as HTMLElement | null;
+            if (figEl) {
+                const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
+                if (imgEl) {
+                    const layout = (['float-left','float-right','full','center'] as const)
+                        .find(cls => figEl.classList.contains('mm-' + cls)) || 'center';
+                    const widthStr = figEl.style.width || imgEl.style.width || '60%';
+                    const width = parseInt(widthStr) || 60;
+                    const caption = figEl.querySelector('figcaption')?.textContent || '';
+                    figEl.classList.remove('mm-fig-selected');
+                    imagePanel.openWithSrc(imgEl.src, { layout, width, alt: imgEl.alt, caption });
+                }
+            }
+            e.stopPropagation();
+            return;
+        }
+
+        // ── Figure body click → toggle selected state ────────────────────────
+        const figEl = target.closest('figure.mm-figure') as HTMLElement | null;
+        if (figEl) {
+            e.stopPropagation();
+            // Deselect all other figures
+            previewArea.querySelectorAll('figure.mm-figure.mm-fig-selected').forEach(f => {
+                if (f !== figEl) f.classList.remove('mm-fig-selected');
+            });
+            figEl.classList.toggle('mm-fig-selected');
+            return;
+        }
+
+        // ── Click on non-figure area → clear all figure selections ───────────
+        previewArea.querySelectorAll('figure.mm-figure.mm-fig-selected').forEach(f => {
+            f.classList.remove('mm-fig-selected');
+        });
     });
 
     // Print Preview (Paged.js + Han.css)

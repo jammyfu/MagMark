@@ -445,18 +445,10 @@ export async function paginate(
         'z-index:-1',
         'transform:none',
         'display:block',
-        // Override the page-format CSS height (e.g. page-xiaohongshu: height:1440px) and
-        // overflow:hidden so the measurer can grow beyond one page's worth of content.
-        // Without this, scrollHeight/offsetHeight may be capped at 1440px and all content
-        // appears to fit on a single page, preventing correct multi-page generation.
-        'height:auto',
-        'overflow:visible',
     ].join(';');
     const measurer = document.createElement('div');
     measurer.className = 'page-content magmark';
     measurer.style.width = `${dim.w - dim.pl - dim.pr}px`;
-    // Disable CSS transitions so font-size/line-height changes apply instantly during measurement.
-    measurer.style.transition = 'none';
     measurePage.appendChild(measurer);
     document.body.appendChild(measurePage);
 
