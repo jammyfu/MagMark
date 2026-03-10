@@ -227,6 +227,7 @@ function attachBlockListeners() {
         }
 
         b.addEventListener('click', (e) => {
+            if ((e.target as HTMLElement).closest('.mm-fig-actions')) return;
             e.stopPropagation();
             const me = e as MouseEvent;
             if (me.shiftKey) {
@@ -1136,7 +1137,7 @@ function insertImageRelativeToBlock(
 
     // Build a search key from the block's plain text (first 30 meaningful chars)
     const blockText = (blockEl.textContent ?? '').trim().replace(/\s+/g, ' ');
-    const searchKey = blockText.slice(0, 30).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchKey = blockText.slice(0, 30);
 
     let targetLine = -1;
     if (searchKey.length >= 4) {
