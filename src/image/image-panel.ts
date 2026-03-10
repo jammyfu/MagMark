@@ -1,22 +1,21 @@
 /**
- * MagMark Image Panel — v1.5.1
+ * MagMark Image Panel — v2.0 Smart Single-Window
  *
- * 图片管理面板（四选项卡）：
- *   • 占位图  — 选择比例，生成 SVG 占位图
- *   • 上传图片 — 拖拽 / 点击选择本地图片文件
- *   • 图片链接 — 直接输入图片 URL（支持网络图片）
- *   • AI 生成  — Gemini Imagen 3 / OpenAI DALL-E 3
+ * 极简智能图片面板：一个窗口完成所有操作
+ *   • 拖拽 / 粘贴图片 → 直接上传
+ *   • 输入 URL → 自动加载图片
+ *   • 输入描述文字 → AI 生成（Gemini / OpenAI）
+ *   • 什么都不输入 → 插入占位图（按选定比例）
  *
- * 图文混排选项：居中 / 浮左 / 浮右 / 全宽 + 宽度滑块
- * 生成后插入扩展 Markdown：![alt](url){.float-left width=45%}
+ * 自动判断意图，一键插入
  */
 
 export interface ImageInsertOptions {
-    src: string;        // data URL、http URL 或 mm-img://uuid
+    src: string;
     alt: string;
     caption?: string;
     layout: 'center' | 'float-left' | 'float-right' | 'full' | 'inline';
-    width?: number;     // percentage, e.g. 50
+    width?: number;
 }
 
 export type ImageInsertCallback = (opts: ImageInsertOptions) => void;
@@ -46,63 +45,41 @@ const LS_GEMINI_KEY = 'magmark_gemini_apikey';
 const LS_OPENAI_KEY = 'magmark_openai_apikey';
 const LS_AI_PROVIDER = 'magmark_ai_provider';
 
+type InputMode = 'empty' | 'url' | 'ai' | 'image';
+
 export class ImagePanel {
     private overlay: HTMLElement | null = null;
     private onInsert: ImageInsertCallback;
     private currentImageSrc = '';
-    private currentTab: 'placeholder' | 'upload' | 'url' | 'ai' = 'placeholder';
-    private editPreset: EditPreset | null = null;
-    private currentRatioIdx = 4; // default 1:1
+    private currentRatioIdx = 4;
+    private mode: InputMode = 'empty';
 
     constructor(onInsert: ImageInsertCallback) {
         this.onInsert = onInsert;
     }
 
-    /** 打开面板 */
     open() {
-        this.editPreset = null;
-        if (this.overlay) {
-            this.overlay.style.display = 'flex';
-            return;
-        }
+        if (this.overlay) { this.overlay.style.display = 'flex'; return; }
         this.createPanel();
     }
 
-    /** 以现有图片数据打开（点击预览区图片时调用） */
     openWithSrc(src: string, preset: EditPreset) {
-        this.editPreset = preset;
         if (this.overlay) this.destroy();
         this.createPanel();
-        // Pre-populate
         this.setPreviewImage(src, preset.alt || '图片');
-        // Switch to URL tab if it's a web image, otherwise show preview directly
-        if (src.startsWith('http') || src.startsWith('//')) {
-            this.switchTab('url');
-            const urlInput = this.overlay?.querySelector<HTMLInputElement>('#mm-ip-url-input');
-            if (urlInput) urlInput.value = src;
-        } else {
-            this.switchTab('upload');
-        }
-        // Apply preset settings
         this.applyPreset(preset);
     }
 
-    /** 关闭面板 */
-    close() {
-        if (this.overlay) this.overlay.style.display = 'none';
-    }
+    close() { if (this.overlay) this.overlay.style.display = 'none'; }
 
-    /** 销毁面板 */
     destroy() {
         this.overlay?.remove();
         this.overlay = null;
         this.currentImageSrc = '';
-        this.currentTab = 'placeholder';
+        this.mode = 'empty';
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // DOM Creation
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─── DOM ─────────────────────────────────────────────────────────────────
 
     private createPanel() {
         const overlay = document.createElement('div');
@@ -111,304 +88,209 @@ export class ImagePanel {
         document.body.appendChild(overlay);
         this.overlay = overlay;
         this.injectStyles();
-        this.attachEventListeners();
-        this.currentRatioIdx = 4; // 1:1 default
+        this.attachEvents();
+        this.currentRatioIdx = 4;
         this.selectAspectRatio(4);
+        this.updateMode();
     }
 
     private injectStyles() {
-        if (document.getElementById('mm-ip-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'mm-ip-styles';
-        style.textContent = `
-            #mm-image-panel-overlay {
-                position: fixed; inset: 0;
-                background: rgba(0,0,0,.55);
-                backdrop-filter: blur(6px);
-                display: flex; align-items: center; justify-content: center;
-                z-index: 99999;
-            }
-            #mm-image-panel {
-                background: #1a1a22;
-                border: 1px solid rgba(255,255,255,.12);
-                border-radius: 16px;
-                width: 540px; max-width: calc(100vw - 32px);
-                max-height: calc(100vh - 48px);
-                overflow-y: auto;
-                color: #e8e8f0;
-                font-family: 'Inter', sans-serif;
-                font-size: 13px;
-                box-shadow: 0 24px 64px rgba(0,0,0,.6);
-            }
-            .mm-ip-header {
-                display: flex; align-items: center; justify-content: space-between;
-                padding: 20px 24px 0;
-            }
-            .mm-ip-title { font-size: 16px; font-weight: 700; color: #d4af37; }
-            .mm-ip-close {
-                background: transparent; border: none; color: #888;
-                font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px;
-            }
-            .mm-ip-close:hover { background: rgba(255,255,255,.08); color: #fff; }
-            .mm-ip-tabs {
-                display: flex; gap: 4px;
-                padding: 16px 24px 0;
-                border-bottom: 1px solid rgba(255,255,255,.07);
-            }
-            .mm-ip-tab {
-                background: transparent; border: none;
-                padding: 8px 14px; border-radius: 8px 8px 0 0;
-                color: #888; font-size: 12px; font-weight: 600;
-                cursor: pointer; transition: all .2s;
-            }
-            .mm-ip-tab:hover { color: #ccc; background: rgba(255,255,255,.04); }
-            .mm-ip-tab.active { color: #d4af37; background: rgba(212,175,55,.08); border-bottom: 2px solid #d4af37; }
-            .mm-ip-tabcontent { padding: 20px 24px 0; }
-            .mm-ip-hint { color: #666; font-size: 11px; margin-bottom: 12px; }
-
-            /* ── Aspect Ratio Selector ── */
-            .mm-ip-ar-header {
-                display: flex; align-items: center; justify-content: space-between;
-                margin-bottom: 12px;
-            }
-            .mm-ip-ar-label {
-                display: flex; align-items: center; gap: 6px;
-                color: #888; font-size: 11px; font-weight: 700;
-                text-transform: uppercase; letter-spacing: .08em;
-            }
-            .mm-ip-ar-reset {
-                background: transparent; border: none;
-                color: #555; font-size: 11px; cursor: pointer;
-                text-decoration: underline; padding: 0;
-            }
-            .mm-ip-ar-reset:hover { color: #e8e8f0; }
-            .mm-ip-ar-panel {
-                background: rgba(255,255,255,.03);
-                border: 1px solid rgba(255,255,255,.08);
-                border-radius: 12px; padding: 20px 16px 16px;
-                display: flex; flex-direction: column; align-items: center; gap: 20px;
-                margin-bottom: 16px;
-            }
-            /* Visual preview box */
-            .mm-ip-ar-visual {
-                width: 160px; height: 160px;
-                background: rgba(255,255,255,.04);
-                border-radius: 10px;
-                position: relative;
-                display: flex; align-items: center; justify-content: center;
-                border: 1px solid rgba(255,255,255,.08);
-                transition: all .2s;
-            }
-            .mm-ip-ar-visual.swappable { cursor: pointer; }
-            .mm-ip-ar-visual.swappable:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.14); }
-            .mm-ip-ar-inverse {
-                position: absolute;
-                border: 2px dashed rgba(255,255,255,.2);
-                pointer-events: none;
-                transition: all .3s;
-                opacity: .45;
-            }
-            .mm-ip-ar-active {
-                position: relative;
-                border: 2px solid #d4af37;
-                display: flex; align-items: center; justify-content: center;
-                transition: all .3s;
-                z-index: 10;
-                box-shadow: 0 0 12px rgba(212,175,55,.25);
-            }
-            .mm-ip-ar-active-label {
-                font-size: 11px; font-weight: 800;
-                color: #d4af37;
-                background: rgba(20,20,30,.85);
-                padding: 2px 6px; border-radius: 4px;
-                letter-spacing: .04em;
-            }
-            /* Swap hint */
-            .mm-ip-ar-swap-hint {
-                position: absolute; bottom: 4px; right: 6px;
-                font-size: 9px; color: #555;
-                transition: color .2s;
-            }
-            .mm-ip-ar-visual.swappable:hover .mm-ip-ar-swap-hint { color: #888; }
-            /* Category buttons */
-            .mm-ip-ar-cats {
-                display: flex; gap: 8px; width: 100%; max-width: 280px;
-            }
-            .mm-ip-ar-cat {
-                flex: 1; padding: 5px 4px;
-                font-size: 10px; font-weight: 700; text-transform: uppercase;
-                border-radius: 20px; border: 1px solid rgba(255,255,255,.1);
-                background: transparent; color: #555; cursor: pointer;
-                transition: all .2s; letter-spacing: .04em;
-            }
-            .mm-ip-ar-cat:hover:not(:disabled) { border-color: rgba(255,255,255,.25); color: #bbb; }
-            .mm-ip-ar-cat.active { background: rgba(212,175,55,.18); color: #d4af37; border-color: rgba(212,175,55,.5); }
-            .mm-ip-ar-cat:disabled { opacity: .25; cursor: not-allowed; }
-            /* Slider */
-            .mm-ip-ar-slider-wrap {
-                width: 100%; padding: 0 4px;
-                position: relative;
-            }
-            .mm-ip-ar-slider {
-                width: 100%; height: 4px;
-                -webkit-appearance: none; appearance: none;
-                background: rgba(255,255,255,.12);
-                border-radius: 4px; outline: none; cursor: pointer;
-                accent-color: #d4af37;
-            }
-            .mm-ip-ar-slider::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                width: 16px; height: 16px;
-                background: #d4af37; border-radius: 50%;
-                box-shadow: 0 0 6px rgba(212,175,55,.5);
-                cursor: pointer;
-            }
-            .mm-ip-ar-ticks {
-                display: flex; justify-content: space-between;
-                padding: 0 2px;
-                margin-top: 8px;
-                pointer-events: none;
-                user-select: none;
-            }
-            .mm-ip-ar-tick {
-                display: flex; flex-direction: column; align-items: center;
-                gap: 3px; width: 20px;
-            }
-            .mm-ip-ar-tick-bar {
-                width: 1.5px; height: 6px;
-                background: rgba(255,255,255,.15);
-                border-radius: 1px;
-                transition: background .2s;
-            }
-            .mm-ip-ar-tick.active .mm-ip-ar-tick-bar { background: #d4af37; }
-            .mm-ip-ar-tick-label {
-                font-size: 8.5px; font-family: monospace;
-                color: rgba(255,255,255,.25);
-                white-space: nowrap;
-                transition: color .2s;
-            }
-            .mm-ip-ar-tick.active .mm-ip-ar-tick-label { color: #d4af37; font-weight: 700; }
-            .mm-ip-dropzone {
-                border: 2px dashed rgba(255,255,255,.15); border-radius: 10px;
-                padding: 32px 20px; text-align: center; cursor: pointer;
-                transition: all .2s; margin-bottom: 12px;
-            }
-            .mm-ip-dropzone:hover, .mm-ip-dropzone.drag-over {
-                border-color: #d4af37; background: rgba(212,175,55,.05);
-            }
-            .mm-ip-drop-icon { font-size: 36px; margin-bottom: 8px; }
-            .mm-ip-img-info { display: flex; gap: 16px; margin-bottom: 12px; color: #888; font-size: 11px; }
-            .mm-ip-url-row { display: flex; gap: 8px; margin-bottom: 8px; }
-            .mm-ip-url-row input { flex: 1; }
-            .mm-ip-url-load {
-                flex-shrink: 0;
-                background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
-                color: #ccc; padding: 0 14px; border-radius: 7px; cursor: pointer;
-                font-size: 12px; transition: all .2s; white-space: nowrap;
-            }
-            .mm-ip-url-load:hover { border-color: #d4af37; color: #d4af37; }
-            .mm-ip-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-            .mm-ip-row label { flex-shrink: 0; color: #888; font-size: 12px; min-width: 80px; }
-            .mm-ip-row select {
-                flex: 1; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
-                color: #e8e8f0; padding: 6px 10px; border-radius: 7px; font-size: 12px;
-            }
-            .mm-ip-apikey-group { margin-bottom: 12px; }
-            .mm-ip-key-wrap { display: flex; flex: 1; gap: 6px; align-items: center; }
-            .mm-ip-key-wrap input { flex: 1; }
-            .mm-ip-eye {
-                background: transparent; border: none; color: #666; cursor: pointer;
-                font-size: 16px; padding: 2px 4px;
-            }
-            .mm-ip-eye:hover { color: #ccc; }
-            .mm-ip-ref-zone {
-                display: flex; align-items: center; gap: 12px;
-                border: 1px dashed rgba(255,255,255,.15); border-radius: 8px;
-                padding: 8px 12px; cursor: pointer; min-height: 44px;
-                transition: all .2s; margin-bottom: 4px;
-            }
-            .mm-ip-ref-zone:hover { border-color: #d4af37; background: rgba(212,175,55,.04); }
-            .mm-ip-ref-zone span { font-size: 12px; color: #666; }
-            .mm-ip-ref-clear {
-                background: rgba(255,0,0,.15); border: none; color: #f88; border-radius: 4px;
-                padding: 2px 6px; cursor: pointer; font-size: 11px; margin-left: auto;
-            }
-            .mm-ip-gen-btn {
-                display: block; width: 100%; padding: 11px;
-                background: linear-gradient(135deg, #d4af37, #b8942e);
-                border: none; border-radius: 9px; color: #000;
-                font-size: 14px; font-weight: 700; cursor: pointer;
-                margin: 4px 0 12px; transition: all .2s;
-            }
-            .mm-ip-gen-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-            .mm-ip-gen-btn:disabled { opacity: .6; cursor: wait; transform: none; }
-            .mm-ip-error {
-                background: rgba(231,76,60,.15); border: 1px solid rgba(231,76,60,.3);
-                border-radius: 7px; padding: 8px 12px; color: #e74c3c;
-                font-size: 12px; margin-bottom: 12px;
-            }
-            .mm-ip-field { margin-bottom: 14px; }
-            .mm-ip-field label { display: block; color: #888; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
-            .mm-ip-field input, .mm-ip-field textarea {
-                width: 100%; background: rgba(255,255,255,.05);
-                border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
-                padding: 9px 12px; color: #e8e8f0; font-size: 13px;
-                outline: none; transition: all .2s; resize: none;
-            }
-            .mm-ip-field input:focus, .mm-ip-field textarea:focus {
-                border-color: #d4af37; box-shadow: 0 0 0 3px rgba(212,175,55,.15);
-            }
-            .mm-ip-preview-wrap { padding: 0 24px; margin-top: 16px; }
-            .mm-ip-preview {
-                background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
-                border-radius: 10px; min-height: 80px;
-                display: flex; align-items: center; justify-content: center;
-                overflow: hidden;
-            }
-            .mm-ip-preview-empty { color: #444; font-size: 12px; }
-            .mm-ip-preview img { max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; }
-            .mm-ip-layout-section { padding: 16px 24px 0; }
-            .mm-ip-layout-section > label { color: #888; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; display: block; margin-bottom: 8px; }
-            .mm-ip-layout-btns { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-            .mm-ip-layout-btn {
-                padding: 7px 14px;
-                background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
-                border-radius: 8px; color: #888; font-size: 12px; font-weight: 600;
-                cursor: pointer; transition: all .2s;
-            }
-            .mm-ip-layout-btn:hover { border-color: #d4af37; color: #d4af37; }
-            .mm-ip-layout-btn.active { background: #d4af37; color: #000; border-color: #d4af37; }
-            #mm-ip-width-row { display: flex; align-items: center; gap: 10px; }
-            #mm-ip-width-row label { color: #888; font-size: 12px; white-space: nowrap; }
-            #mm-ip-width-row input[type=range] { flex: 1; accent-color: #d4af37; }
-            #mm-ip-width-val { color: #d4af37; font-weight: 700; font-size: 12px; min-width: 32px; text-align: right; }
-            .mm-ip-footer {
-                display: flex; justify-content: flex-end; gap: 10px;
-                padding: 20px 24px;
-            }
-            .mm-ip-md-btn {
-                background: transparent; border: 1px solid rgba(255,255,255,.15);
-                color: #888; padding: 9px 16px; border-radius: 8px;
-                font-size: 13px; cursor: pointer; transition: all .2s;
-            }
-            .mm-ip-md-btn:not(:disabled):hover { border-color: #d4af37; color: #d4af37; }
-            .mm-ip-md-btn:disabled { opacity: .35; cursor: default; }
-            .mm-ip-insert-btn {
-                background: linear-gradient(135deg, #d4af37, #b8942e);
-                border: none; color: #000; padding: 9px 22px;
-                border-radius: 8px; font-size: 13px; font-weight: 700;
-                cursor: pointer; transition: all .2s;
-            }
-            .mm-ip-insert-btn:not(:disabled):hover { filter: brightness(1.12); transform: translateY(-1px); }
-            .mm-ip-insert-btn:disabled { opacity: .35; cursor: default; transform: none; }
-        `;
-        document.head.appendChild(style);
+        const existing = document.getElementById('mm-ip-styles');
+        if (existing) existing.remove();
+        const s = document.createElement('style');
+        s.id = 'mm-ip-styles';
+        s.textContent = `
+/* Overlay */
+#mm-image-panel-overlay {
+    position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;z-index:99999;
+}
+#mm-image-panel {
+    background:#1a1a22;border:1px solid rgba(255,255,255,.12);border-radius:16px;
+    width:520px;max-width:calc(100vw - 32px);max-height:calc(100vh - 48px);
+    overflow-y:auto;color:#e8e8f0;font-family:'Inter',sans-serif;font-size:13px;
+    box-shadow:0 24px 64px rgba(0,0,0,.6);
+}
+/* Header */
+.mm-ip-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 0}
+.mm-ip-title{font-size:15px;font-weight:700;color:#d4af37}
+.mm-ip-close{background:0;border:0;color:#888;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px}
+.mm-ip-close:hover{background:rgba(255,255,255,.08);color:#fff}
+/* Smart input zone */
+.mm-ip-smart-zone{
+    margin:14px 22px 0;border:2px dashed rgba(255,255,255,.12);border-radius:12px;
+    padding:16px;transition:all .2s;position:relative;
+}
+.mm-ip-smart-zone:hover,.mm-ip-smart-zone.drag-over{
+    border-color:#d4af37;background:rgba(212,175,55,.04);
+}
+.mm-ip-smart-hint{color:#555;font-size:11px;margin-bottom:10px;text-align:center;line-height:1.6}
+.mm-ip-smart-hint b{color:#888}
+.mm-ip-smart-input{
+    width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+    border-radius:8px;padding:10px 12px;color:#e8e8f0;font-size:13px;resize:none;
+    outline:0;transition:all .2s;min-height:42px;
+}
+.mm-ip-smart-input:focus{border-color:#d4af37;box-shadow:0 0 0 3px rgba(212,175,55,.12)}
+.mm-ip-smart-input::placeholder{color:#555}
+input#mm-ip-file-hidden{display:none}
+/* Mode indicator */
+.mm-ip-mode-tag{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.06em;margin-top:10px;
+    transition:all .2s;
+}
+.mm-ip-mode-tag.mode-empty{background:rgba(255,255,255,.06);color:#888}
+.mm-ip-mode-tag.mode-url{background:rgba(59,130,246,.15);color:#60a5fa}
+.mm-ip-mode-tag.mode-ai{background:rgba(168,85,247,.15);color:#c084fc}
+.mm-ip-mode-tag.mode-image{background:rgba(34,197,94,.15);color:#4ade80}
+/* AI controls */
+.mm-ip-ai-bar{
+    display:flex;align-items:center;gap:8px;margin-top:10px;
+}
+.mm-ip-ai-prov{
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+    color:#ccc;padding:5px 8px;border-radius:7px;font-size:11px;cursor:pointer;
+}
+.mm-ip-ai-key{
+    flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+    color:#e8e8f0;padding:5px 8px;border-radius:7px;font-size:11px;outline:0;
+}
+.mm-ip-ai-key:focus{border-color:#d4af37}
+.mm-ip-gen-btn{
+    background:linear-gradient(135deg,#d4af37,#b8942e);border:0;border-radius:7px;
+    color:#000;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;
+    transition:all .2s;white-space:nowrap;
+}
+.mm-ip-gen-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.mm-ip-gen-btn:disabled{opacity:.5;cursor:wait;transform:none}
+/* Preview */
+.mm-ip-preview-area{
+    margin:12px 22px 0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;min-height:60px;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;position:relative;
+}
+.mm-ip-preview-area img{max-width:100%;max-height:180px;object-fit:contain;border-radius:8px}
+.mm-ip-preview-clear{
+    position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:0;
+    color:#f88;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.mm-ip-preview-clear:hover{background:rgba(231,76,60,.3);color:#fff}
+.mm-ip-img-info{display:flex;gap:12px;margin:6px 22px;color:#666;font-size:10px}
+.mm-ip-error{
+    margin:8px 22px 0;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.25);
+    border-radius:7px;padding:7px 12px;color:#e74c3c;font-size:11px;
+}
+/* Ratio selector */
+.mm-ip-ratio-section{margin:14px 22px 0}
+.mm-ip-ratio-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mm-ip-ratio-label{color:#888;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:5px}
+.mm-ip-ratio-reset{background:0;border:0;color:#555;font-size:10px;cursor:pointer;text-decoration:underline;padding:0}
+.mm-ip-ratio-reset:hover{color:#e8e8f0}
+.mm-ip-ratio-panel{
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+    border-radius:10px;padding:14px 12px 10px;
+    display:flex;flex-direction:column;align-items:stretch;gap:12px;
+}
+.mm-ip-ar-visual-row{display:flex;justify-content:center}
+.mm-ip-ar-visual{
+    width:120px;height:120px;background:rgba(255,255,255,.04);border-radius:8px;
+    position:relative;display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.07);transition:all .2s;
+}
+.mm-ip-ar-visual.swappable{cursor:pointer}
+.mm-ip-ar-visual.swappable:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12)}
+.mm-ip-ar-inverse{position:absolute;border:2px dashed rgba(255,255,255,.18);pointer-events:none;transition:all .3s;opacity:.4}
+.mm-ip-ar-active{
+    position:relative;border:2px solid #d4af37;display:flex;align-items:center;justify-content:center;
+    transition:all .3s;z-index:10;box-shadow:0 0 8px rgba(212,175,55,.2);
+}
+.mm-ip-ar-active-label{font-size:10px;font-weight:800;color:#d4af37;background:rgba(20,20,30,.8);padding:1px 5px;border-radius:3px}
+.mm-ip-ar-swap-hint{position:absolute;bottom:3px;right:5px;font-size:8px;color:#555;transition:color .2s}
+.mm-ip-ar-visual.swappable:hover .mm-ip-ar-swap-hint{color:#888}
+.mm-ip-ar-cats{display:flex;gap:6px}
+.mm-ip-ar-cat{
+    flex:1;padding:4px;font-size:9px;font-weight:700;text-transform:uppercase;
+    border-radius:16px;border:1px solid rgba(255,255,255,.1);background:0;color:#555;
+    cursor:pointer;transition:all .2s;letter-spacing:.03em;text-align:center;
+}
+.mm-ip-ar-cat:hover{border-color:rgba(255,255,255,.2);color:#bbb}
+.mm-ip-ar-cat.active{background:rgba(212,175,55,.15);color:#d4af37;border-color:rgba(212,175,55,.4)}
+.mm-ip-ar-slider-wrap{position:relative;width:100%;display:block;box-sizing:border-box}
+.mm-ip-ar-slider{
+    display:block;width:100%!important;min-width:100%;height:3px;
+    -webkit-appearance:none;appearance:none;
+    background:rgba(255,255,255,.1);border-radius:3px;outline:0;cursor:pointer;
+    margin:0;padding:0;box-sizing:border-box;
+}
+.mm-ip-ar-slider::-webkit-slider-thumb{
+    -webkit-appearance:none;width:14px;height:14px;background:#d4af37;
+    border-radius:50%;box-shadow:0 0 5px rgba(212,175,55,.4);cursor:pointer;
+}
+.mm-ip-ar-ticks{display:flex;justify-content:space-between;margin-top:5px;pointer-events:none;user-select:none}
+.mm-ip-ar-tick{display:flex;flex-direction:column;align-items:center;gap:2px;width:16px}
+.mm-ip-ar-tick-bar{width:1px;height:4px;background:rgba(255,255,255,.12);border-radius:1px;transition:background .2s}
+.mm-ip-ar-tick.active .mm-ip-ar-tick-bar{background:#d4af37}
+.mm-ip-ar-tick-label{font-size:7.5px;font-family:monospace;color:rgba(255,255,255,.2);white-space:nowrap;transition:color .2s}
+.mm-ip-ar-tick.active .mm-ip-ar-tick-label{color:#d4af37;font-weight:700}
+/* Crop fit buttons */
+.mm-ip-crop-row{display:flex;align-items:center;gap:5px;margin-top:2px}
+.mm-ip-crop-label{color:#888;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-right:4px}
+.mm-ip-crop-btn{
+    width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;
+    color:#888;font-size:14px;cursor:pointer;transition:all .2s;padding:0;
+}
+.mm-ip-crop-btn:hover{border-color:rgba(255,255,255,.25);color:#ccc}
+.mm-ip-crop-btn.active{background:rgba(212,175,55,.15);border-color:rgba(212,175,55,.4);color:#d4af37}
+.mm-ip-crop-btn svg{width:16px;height:16px}
+/* Layout */
+.mm-ip-layout-section{padding:12px 22px 0}
+.mm-ip-layout-section>label{color:#888;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px}
+.mm-ip-layout-btns{display:flex;gap:5px;margin-bottom:8px}
+.mm-ip-layout-btn{
+    padding:5px 10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+    border-radius:7px;color:#888;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;
+}
+.mm-ip-layout-btn:hover{border-color:#d4af37;color:#d4af37}
+.mm-ip-layout-btn.active{background:#d4af37;color:#000;border-color:#d4af37}
+#mm-ip-width-row{display:flex;align-items:center;gap:8px}
+#mm-ip-width-row label{color:#888;font-size:11px;white-space:nowrap}
+#mm-ip-width-row input[type=range]{flex:1;accent-color:#d4af37}
+#mm-ip-width-val{color:#d4af37;font-weight:700;font-size:11px;min-width:28px;text-align:right}
+/* Caption */
+.mm-ip-caption-row{padding:8px 22px 0}
+.mm-ip-caption-row label{color:#888;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px}
+.mm-ip-caption-input{
+    width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+    border-radius:7px;padding:7px 10px;color:#e8e8f0;font-size:12px;outline:0;transition:all .2s;
+}
+.mm-ip-caption-input:focus{border-color:#d4af37;box-shadow:0 0 0 3px rgba(212,175,55,.1)}
+/* Footer */
+.mm-ip-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px 18px}
+.mm-ip-md-btn{
+    background:0;border:1px solid rgba(255,255,255,.12);color:#888;padding:7px 14px;
+    border-radius:7px;font-size:12px;cursor:pointer;transition:all .2s;
+}
+.mm-ip-md-btn:not(:disabled):hover{border-color:#d4af37;color:#d4af37}
+.mm-ip-md-btn:disabled{opacity:.3;cursor:default}
+.mm-ip-insert-btn{
+    background:linear-gradient(135deg,#d4af37,#b8942e);border:0;color:#000;
+    padding:7px 20px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;
+}
+.mm-ip-insert-btn:not(:disabled):hover{filter:brightness(1.1);transform:translateY(-1px)}
+.mm-ip-insert-btn:disabled{opacity:.3;cursor:default;transform:none}
+`;
+        document.head.appendChild(s);
     }
 
     private buildHTML(): string {
         const provider = localStorage.getItem(LS_AI_PROVIDER) || 'gemini';
         const geminiKey = localStorage.getItem(LS_GEMINI_KEY) || '';
         const openaiKey = localStorage.getItem(LS_OPENAI_KEY) || '';
+        const apiKey = provider === 'gemini' ? geminiKey : openaiKey;
 
         return `
 <div id="mm-image-panel">
@@ -417,45 +299,68 @@ export class ImagePanel {
     <button class="mm-ip-close" id="mm-ip-close">✕</button>
   </div>
 
-  <!-- Tabs -->
-  <div class="mm-ip-tabs">
-    <button class="mm-ip-tab active" data-tab="placeholder">占位图</button>
-    <button class="mm-ip-tab" data-tab="upload">上传图片</button>
-    <button class="mm-ip-tab" data-tab="url">图片链接</button>
-    <button class="mm-ip-tab" data-tab="ai">✨ AI 生成</button>
+  <!-- Smart input zone -->
+  <div class="mm-ip-smart-zone" id="mm-ip-smart-zone">
+    <div class="mm-ip-smart-hint">
+      <b>拖拽图片</b> 到此 · 或输入 <b>URL</b> / <b>描述文字</b>生成AI图 · 留空插入占位图
+    </div>
+    <textarea class="mm-ip-smart-input" id="mm-ip-smart-input"
+      placeholder="粘贴图片 URL / 输入 AI 生成描述…" rows="1"></textarea>
+    <input type="file" id="mm-ip-file-hidden" accept="image/*">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+      <span class="mm-ip-mode-tag mode-empty" id="mm-ip-mode-tag">📌 占位图模式</span>
+      <button style="background:0;border:0;color:#555;font-size:11px;cursor:pointer;text-decoration:underline"
+              id="mm-ip-browse-btn">或 选择文件</button>
+    </div>
   </div>
 
-  <!-- Tab: Placeholder -->
-  <div class="mm-ip-tabcontent" id="mm-ip-tab-placeholder">
+  <!-- AI bar (hidden until AI mode) -->
+  <div class="mm-ip-ai-bar" id="mm-ip-ai-bar" style="display:none;margin:8px 22px 0">
+    <select class="mm-ip-ai-prov" id="mm-ip-ai-prov">
+      <option value="gemini" ${provider === 'gemini' ? 'selected' : ''}>Gemini</option>
+      <option value="openai" ${provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+    </select>
+    <input type="password" class="mm-ip-ai-key" id="mm-ip-ai-key"
+           value="${apiKey}" placeholder="API Key…" autocomplete="off">
+    <button class="mm-ip-gen-btn" id="mm-ip-gen-btn">✨ 生成</button>
+  </div>
 
-    <!-- Header -->
-    <div class="mm-ip-ar-header">
-      <label class="mm-ip-ar-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        占位图比例
+  <!-- Error -->
+  <div class="mm-ip-error" id="mm-ip-error" style="display:none"></div>
+
+  <!-- Preview (shown only when we have an image) -->
+  <div class="mm-ip-preview-area" id="mm-ip-preview-area" style="display:none">
+    <button class="mm-ip-preview-clear" id="mm-ip-preview-clear" title="清除图片">✕</button>
+  </div>
+  <div class="mm-ip-img-info" id="mm-ip-img-info" style="display:none">
+    <span id="mm-ip-img-dim">—</span>
+    <span id="mm-ip-img-size">—</span>
+  </div>
+
+  <!-- Ratio selector -->
+  <div class="mm-ip-ratio-section" id="mm-ip-ratio-section">
+    <div class="mm-ip-ratio-header">
+      <label class="mm-ip-ratio-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        比例
       </label>
-      <button class="mm-ip-ar-reset" id="mm-ip-ar-reset">重置 1:1</button>
+      <button class="mm-ip-ratio-reset" id="mm-ip-ratio-reset">重置</button>
     </div>
-
-    <div class="mm-ip-ar-panel">
-
-      <!-- Visual Preview (click to swap orientation) -->
-      <div class="mm-ip-ar-visual" id="mm-ip-ar-visual">
-        <div class="mm-ip-ar-inverse" id="mm-ip-ar-inverse"></div>
-        <div class="mm-ip-ar-active" id="mm-ip-ar-active">
-          <span class="mm-ip-ar-active-label" id="mm-ip-ar-active-label">1:1</span>
+    <div class="mm-ip-ratio-panel">
+      <div class="mm-ip-ar-visual-row">
+        <div class="mm-ip-ar-visual" id="mm-ip-ar-visual">
+          <div class="mm-ip-ar-inverse" id="mm-ip-ar-inverse"></div>
+          <div class="mm-ip-ar-active" id="mm-ip-ar-active">
+            <span class="mm-ip-ar-active-label" id="mm-ip-ar-active-label">1:1</span>
+          </div>
+          <span class="mm-ip-ar-swap-hint" id="mm-ip-ar-swap-hint">⇄</span>
         </div>
-        <span class="mm-ip-ar-swap-hint" id="mm-ip-ar-swap-hint">⇄ 点击翻转</span>
       </div>
-
-      <!-- Category buttons -->
       <div class="mm-ip-ar-cats" id="mm-ip-ar-cats">
         <button class="mm-ip-ar-cat" data-cat="Portrait">竖向</button>
         <button class="mm-ip-ar-cat active" data-cat="Square">方形</button>
         <button class="mm-ip-ar-cat" data-cat="Landscape">横向</button>
       </div>
-
-      <!-- Slider + ticks -->
       <div class="mm-ip-ar-slider-wrap">
         <input type="range" id="mm-ip-ar-slider" class="mm-ip-ar-slider"
                min="0" max="${ASPECT_RATIOS.length - 1}" step="1" value="4">
@@ -468,131 +373,41 @@ export class ImagePanel {
           `).join('')}
         </div>
       </div>
-
-    </div>
-
-    <div class="mm-ip-field">
-      <label>说明文字（可选）</label>
-      <input type="text" id="mm-ip-ph-caption" placeholder="图片说明文字…">
-    </div>
-  </div>
-
-  <!-- Tab: Upload -->
-  <div class="mm-ip-tabcontent" id="mm-ip-tab-upload" style="display:none">
-    <div class="mm-ip-dropzone" id="mm-ip-dropzone">
-      <div class="mm-ip-drop-icon">📁</div>
-      <p>拖拽图片至此，或点击选择文件</p>
-      <p class="mm-ip-hint">支持 PNG、JPG、GIF、WebP、SVG · 建议小于 2MB</p>
-      <input type="file" id="mm-ip-file" accept="image/*" hidden>
-    </div>
-    <div class="mm-ip-img-info" id="mm-ip-upload-info" style="display:none">
-      <span id="mm-ip-upload-dim">—</span>
-      <span id="mm-ip-upload-size">—</span>
-    </div>
-    <div class="mm-ip-field" id="mm-ip-upload-caption-wrap" style="display:none">
-      <label>说明文字（可选）</label>
-      <input type="text" id="mm-ip-upload-caption" placeholder="图片说明文字…">
-    </div>
-  </div>
-
-  <!-- Tab: URL -->
-  <div class="mm-ip-tabcontent" id="mm-ip-tab-url" style="display:none">
-    <div class="mm-ip-field">
-      <label>图片地址（URL）</label>
-      <div class="mm-ip-url-row">
-        <input type="url" id="mm-ip-url-input"
-               placeholder="https://example.com/image.jpg">
-        <button class="mm-ip-url-load" id="mm-ip-url-load">加载预览</button>
-      </div>
-      <p class="mm-ip-hint">支持任何公开可访问的图片 URL，包括 CDN、GitHub、Unsplash 等</p>
-    </div>
-    <div class="mm-ip-field">
-      <label>说明文字（可选）</label>
-      <input type="text" id="mm-ip-url-caption" placeholder="图片说明文字…">
-    </div>
-    <div class="mm-ip-error" id="mm-ip-url-error" style="display:none"></div>
-  </div>
-
-  <!-- Tab: AI Generate -->
-  <div class="mm-ip-tabcontent" id="mm-ip-tab-ai" style="display:none">
-    <div class="mm-ip-row">
-      <label>AI 提供商</label>
-      <select id="mm-ip-provider">
-        <option value="gemini" ${provider === 'gemini' ? 'selected' : ''}>Gemini Imagen 3</option>
-        <option value="openai" ${provider === 'openai' ? 'selected' : ''}>OpenAI DALL-E 3</option>
-      </select>
-    </div>
-
-    <div class="mm-ip-apikey-group" id="mm-ip-gemini-group"
-         style="${provider !== 'gemini' ? 'display:none' : ''}">
-      <div class="mm-ip-row">
-        <label>Gemini API Key</label>
-        <div class="mm-ip-key-wrap">
-          <input type="password" id="mm-ip-gemini-key" value="${geminiKey}"
-                 placeholder="AIza…" autocomplete="off">
-          <button class="mm-ip-eye" data-target="mm-ip-gemini-key">👁</button>
-        </div>
+      <!-- Crop fit mode -->
+      <div class="mm-ip-crop-row" id="mm-ip-crop-row">
+        <span class="mm-ip-crop-label">适配</span>
+        <button class="mm-ip-crop-btn active" data-fit="cover" title="裁切填充 (Cover)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="6" y="1" width="12" height="22" rx="1" stroke-dasharray="3 2" opacity=".5"/></svg>
+        </button>
+        <button class="mm-ip-crop-btn" data-fit="contain" title="完整显示 (Contain)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2" opacity=".5"/><rect x="3" y="6" width="18" height="12" rx="1"/></svg>
+        </button>
+        <button class="mm-ip-crop-btn" data-fit="fill" title="拉伸填充 (Fill)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 3v18M16 3v18M3 8h18M3 16h18" opacity=".3"/></svg>
+        </button>
+        <button class="mm-ip-crop-btn" data-fit="none" title="原始比例">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+        </button>
       </div>
     </div>
-
-    <div class="mm-ip-apikey-group" id="mm-ip-openai-group"
-         style="${provider !== 'openai' ? 'display:none' : ''}">
-      <div class="mm-ip-row">
-        <label>OpenAI API Key</label>
-        <div class="mm-ip-key-wrap">
-          <input type="password" id="mm-ip-openai-key" value="${openaiKey}"
-                 placeholder="sk-…" autocomplete="off">
-          <button class="mm-ip-eye" data-target="mm-ip-openai-key">👁</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="mm-ip-field">
-      <label>图片描述 (Prompt)</label>
-      <textarea id="mm-ip-prompt" rows="3"
-        placeholder="描述你想生成的图片，例如：一只在咖啡馆看书的猫，水彩画风格，温暖午后阳光透窗而入…"></textarea>
-    </div>
-
-    <div class="mm-ip-field">
-      <label>参考图片（可选，用于风格参考）</label>
-      <div class="mm-ip-ref-zone" id="mm-ip-ref-zone">
-        <input type="file" id="mm-ip-ref-file" accept="image/*" hidden>
-        <span id="mm-ip-ref-label">点击上传参考图片</span>
-        <img id="mm-ip-ref-preview"
-             style="display:none;max-height:72px;border-radius:4px;flex-shrink:0" alt="参考图">
-        <button class="mm-ip-ref-clear" id="mm-ip-ref-clear" style="display:none">✕</button>
-      </div>
-    </div>
-
-    <div class="mm-ip-field">
-      <label>说明文字（可选）</label>
-      <input type="text" id="mm-ip-ai-caption" placeholder="图片说明文字…">
-    </div>
-
-    <button class="mm-ip-gen-btn" id="mm-ip-gen-btn">
-      <span id="mm-ip-gen-label">✨ 生成图片</span>
-      <span id="mm-ip-gen-spinner" style="display:none">⏳ 生成中，请稍候…</span>
-    </button>
-    <div class="mm-ip-error" id="mm-ip-error" style="display:none"></div>
   </div>
 
-  <!-- Shared Preview -->
-  <div class="mm-ip-preview-wrap" id="mm-ip-preview-wrap">
-    <div class="mm-ip-preview" id="mm-ip-preview">
-      <span class="mm-ip-preview-empty">预览将在选图后显示</span>
-    </div>
+  <!-- Caption -->
+  <div class="mm-ip-caption-row">
+    <label>说明文字（可选）</label>
+    <input type="text" class="mm-ip-caption-input" id="mm-ip-caption" placeholder="图片说明…">
   </div>
 
-  <!-- Layout Options -->
+  <!-- Layout -->
   <div class="mm-ip-layout-section">
     <label>图文混排</label>
     <div class="mm-ip-layout-btns">
-      <button class="mm-ip-layout-btn active" data-layout="center"      title="居中">⬛ 居中</button>
-      <button class="mm-ip-layout-btn"        data-layout="float-left"  title="浮左图文混排">◧ 浮左</button>
-      <button class="mm-ip-layout-btn"        data-layout="float-right" title="浮右图文混排">浮右 ◨</button>
-      <button class="mm-ip-layout-btn"        data-layout="full"        title="全宽">↔ 全宽</button>
+      <button class="mm-ip-layout-btn active" data-layout="center">⬛ 居中</button>
+      <button class="mm-ip-layout-btn" data-layout="float-left">◧ 浮左</button>
+      <button class="mm-ip-layout-btn" data-layout="float-right">浮右 ◨</button>
+      <button class="mm-ip-layout-btn" data-layout="full">↔ 全宽</button>
     </div>
-    <div class="mm-ip-row" id="mm-ip-width-row">
+    <div id="mm-ip-width-row">
       <label>宽度 <span id="mm-ip-width-val">60%</span></label>
       <input type="range" id="mm-ip-width" min="20" max="100" value="60">
     </div>
@@ -600,17 +415,15 @@ export class ImagePanel {
 
   <!-- Footer -->
   <div class="mm-ip-footer">
-    <button class="mm-ip-md-btn" id="mm-ip-md-btn" disabled title="复制 Markdown 代码">📋 复制</button>
-    <button class="mm-ip-insert-btn" id="mm-ip-insert-btn" disabled>插入 Markdown →</button>
+    <button class="mm-ip-md-btn" id="mm-ip-md-btn" title="复制 Markdown">📋 复制</button>
+    <button class="mm-ip-insert-btn" id="mm-ip-insert-btn">插入 →</button>
   </div>
 </div>`;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Events
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─── Events ──────────────────────────────────────────────────────────────
 
-    private attachEventListeners() {
+    private attachEvents() {
         const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
 
         // Close
@@ -619,170 +432,303 @@ export class ImagePanel {
             if (e.target === this.overlay) this.close();
         });
 
-        // Tabs
-        this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-tab').forEach(btn => {
-            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab as typeof this.currentTab));
-        });
-
-        // ── Placeholder: slider ────────────────────────────────────────────
-        const arSlider = q<HTMLInputElement>('#mm-ip-ar-slider');
-        arSlider.addEventListener('input', () => {
-            this.selectAspectRatio(parseInt(arSlider.value));
-        });
-
-        // ── Placeholder: category buttons ──
-        q('#mm-ip-ar-cats').addEventListener('click', (e) => {
-            const btn = (e.target as HTMLElement).closest('.mm-ip-ar-cat') as HTMLButtonElement | null;
-            if (!btn || btn.disabled) return;
-            const cat = btn.dataset.cat;
-            // Default index per category
-            const targetMap: Record<string, number> = { Portrait: 0, Square: 4, Landscape: 8 };
-            this.selectAspectRatio(targetMap[cat!] ?? 4);
-        });
-
-        // ── Placeholder: reset button ──
-        q<HTMLButtonElement>('#mm-ip-ar-reset').addEventListener('click', () => {
-            this.selectAspectRatio(4); // 1:1
-        });
-
-        // ── Placeholder: visual box swap ──────────────────────────────────
-        q('#mm-ip-ar-visual').addEventListener('click', () => {
-            const r = ASPECT_RATIOS[this.currentRatioIdx];
-            // Find inverse label e.g. '16:9' -> '9:16'
-            const parts = r.value.split(':');
-            const inverse = `${parts[1]}:${parts[0]}`;
-            const invIdx = ASPECT_RATIOS.findIndex(x => x.value === inverse);
-            if (invIdx !== -1 && r.value !== '1:1') {
-                this.selectAspectRatio(invIdx);
+        // ── Smart zone: text input ──
+        const input = q<HTMLTextAreaElement>('#mm-ip-smart-input');
+        input.addEventListener('input', () => this.updateMode());
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (this.mode === 'url') this.loadUrl(input.value.trim());
+                else if (this.mode === 'ai') this.handleGenerate();
             }
         });
 
-        // ── Upload ──────────────────────────────────────────────────────────
-        const dropzone = q<HTMLElement>('#mm-ip-dropzone');
-        const fileInput = q<HTMLInputElement>('#mm-ip-file');
-
-        dropzone.addEventListener('click', () => fileInput.click());
-        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
-        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-        dropzone.addEventListener('drop', (e) => {
+        // ── Smart zone: drag & drop ──
+        const zone = q<HTMLElement>('#mm-ip-smart-zone');
+        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropzone.classList.remove('drag-over');
+            zone.classList.remove('drag-over');
             const file = e.dataTransfer?.files[0];
-            if (file && file.type.startsWith('image/')) this.handleFileUpload(file);
+            if (file && file.type.startsWith('image/')) this.handleFile(file);
         });
+
+        // ── Smart zone: paste ──
+        input.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = items[i].getAsFile();
+                    if (file) this.handleFile(file);
+                    return;
+                }
+            }
+        });
+
+        // ── Browse file button ──
+        const fileInput = q<HTMLInputElement>('#mm-ip-file-hidden');
+        q('#mm-ip-browse-btn').addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', () => {
             const file = fileInput.files?.[0];
-            if (file) this.handleFileUpload(file);
+            if (file) this.handleFile(file);
         });
 
-        // ── URL ─────────────────────────────────────────────────────────────
-        q<HTMLButtonElement>('#mm-ip-url-load').addEventListener('click', () => this.handleUrlLoad());
-        q<HTMLInputElement>('#mm-ip-url-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') this.handleUrlLoad();
-        });
+        // ── Preview clear ──
+        q('#mm-ip-preview-clear').addEventListener('click', () => this.clearImage());
 
-        // ── AI ──────────────────────────────────────────────────────────────
-        // Reference image
-        const refZone = q<HTMLElement>('#mm-ip-ref-zone');
-        const refFile = q<HTMLInputElement>('#mm-ip-ref-file');
-        refZone.addEventListener('click', (e) => {
-            if ((e.target as HTMLElement).id === 'mm-ip-ref-clear') return;
-            refFile.click();
-        });
-        refFile.addEventListener('change', () => {
-            const file = refFile.files?.[0];
-            if (file) this.handleRefUpload(file);
-        });
-        q<HTMLButtonElement>('#mm-ip-ref-clear').addEventListener('click', (e) => {
-            e.stopPropagation();
-            q<HTMLImageElement>('#mm-ip-ref-preview').style.display = 'none';
-            q<HTMLElement>('#mm-ip-ref-label').style.display = '';
-            q<HTMLButtonElement>('#mm-ip-ref-clear').style.display = 'none';
-            refFile.value = '';
-        });
-
-        // Provider switch
-        q<HTMLSelectElement>('#mm-ip-provider').addEventListener('change', (e) => {
+        // ── AI bar ──
+        q<HTMLSelectElement>('#mm-ip-ai-prov').addEventListener('change', (e) => {
             const prov = (e.target as HTMLSelectElement).value;
             localStorage.setItem(LS_AI_PROVIDER, prov);
-            q<HTMLElement>('#mm-ip-gemini-group').style.display = prov === 'gemini' ? '' : 'none';
-            q<HTMLElement>('#mm-ip-openai-group').style.display = prov === 'openai' ? '' : 'none';
+            const key = prov === 'gemini'
+                ? localStorage.getItem(LS_GEMINI_KEY) || ''
+                : localStorage.getItem(LS_OPENAI_KEY) || '';
+            q<HTMLInputElement>('#mm-ip-ai-key').value = key;
+        });
+        q<HTMLInputElement>('#mm-ip-ai-key').addEventListener('change', (e) => {
+            const prov = q<HTMLSelectElement>('#mm-ip-ai-prov').value;
+            const k = prov === 'gemini' ? LS_GEMINI_KEY : LS_OPENAI_KEY;
+            localStorage.setItem(k, (e.target as HTMLInputElement).value.trim());
+        });
+        q<HTMLButtonElement>('#mm-ip-gen-btn').addEventListener('click', () => this.handleGenerate());
+
+        // ── Ratio: slider ──
+        const arSlider = q<HTMLInputElement>('#mm-ip-ar-slider');
+        arSlider.addEventListener('input', () => this.selectAspectRatio(parseInt(arSlider.value)));
+
+        // ── Ratio: cats ──
+        q('#mm-ip-ar-cats').addEventListener('click', (e) => {
+            const btn = (e.target as HTMLElement).closest('.mm-ip-ar-cat') as HTMLButtonElement | null;
+            if (!btn) return;
+            const map: Record<string, number> = { Portrait: 0, Square: 4, Landscape: 8 };
+            this.selectAspectRatio(map[btn.dataset.cat!] ?? 4);
         });
 
-        // Eye toggles
-        this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-eye').forEach(btn => {
+        // ── Ratio: reset ──
+        q('#mm-ip-ratio-reset').addEventListener('click', () => this.selectAspectRatio(4));
+
+        // ── Ratio: visual box swap ──
+        q('#mm-ip-ar-visual').addEventListener('click', () => {
+            const r = ASPECT_RATIOS[this.currentRatioIdx];
+            const [a, b] = r.value.split(':');
+            const inv = `${b}:${a}`;
+            const idx = ASPECT_RATIOS.findIndex(x => x.value === inv);
+            if (idx !== -1 && r.value !== '1:1') this.selectAspectRatio(idx);
+        });
+
+        // ── Crop fit buttons ──
+        this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-crop-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const inp = this.overlay!.querySelector<HTMLInputElement>(`#${btn.dataset.target}`);
-                if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
+                this.overlay!.querySelectorAll('.mm-ip-crop-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
             });
         });
 
-        // Save API keys
-        q<HTMLInputElement>('#mm-ip-gemini-key').addEventListener('change', (e) => {
-            localStorage.setItem(LS_GEMINI_KEY, (e.target as HTMLInputElement).value.trim());
-        });
-        q<HTMLInputElement>('#mm-ip-openai-key').addEventListener('change', (e) => {
-            localStorage.setItem(LS_OPENAI_KEY, (e.target as HTMLInputElement).value.trim());
-        });
-
-        // Generate
-        q<HTMLButtonElement>('#mm-ip-gen-btn').addEventListener('click', () => this.handleGenerate());
-
-        // ── Layout ──────────────────────────────────────────────────────────
+        // ── Layout ──
         this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-layout-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.overlay!.querySelectorAll('.mm-ip-layout-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                const layout = btn.dataset.layout as ImageInsertOptions['layout'];
-                q<HTMLElement>('#mm-ip-width-row').style.display = layout === 'full' ? 'none' : '';
+                q<HTMLElement>('#mm-ip-width-row').style.display =
+                    btn.dataset.layout === 'full' ? 'none' : '';
             });
         });
-
         q<HTMLInputElement>('#mm-ip-width').addEventListener('input', (e) => {
             q<HTMLElement>('#mm-ip-width-val').textContent = (e.target as HTMLInputElement).value + '%';
         });
 
-        // ── Footer ──────────────────────────────────────────────────────────
+        // ── Footer ──
         q<HTMLButtonElement>('#mm-ip-insert-btn').addEventListener('click', () => this.handleInsert());
         q<HTMLButtonElement>('#mm-ip-md-btn').addEventListener('click', () => this.handleCopyMarkdown());
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Tab switching
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─── Smart mode detection ────────────────────────────────────────────────
 
-    private switchTab(tab: typeof this.currentTab) {
-        if (!this.overlay) return;
-        this.currentTab = tab;
-        this.overlay.querySelectorAll<HTMLButtonElement>('.mm-ip-tab').forEach(b => {
-            b.classList.toggle('active', b.dataset.tab === tab);
-        });
-        this.overlay.querySelectorAll<HTMLElement>('.mm-ip-tabcontent').forEach(tc => {
-            tc.style.display = 'none';
-        });
-        const tc = this.overlay.querySelector<HTMLElement>(`#mm-ip-tab-${tab}`);
-        if (tc) tc.style.display = 'block';
-    }
-
-    private applyPreset(preset: EditPreset) {
+    private updateMode() {
         if (!this.overlay) return;
         const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
-        // Set layout
-        this.overlay.querySelectorAll('.mm-ip-layout-btn').forEach(b => {
-            const el = b as HTMLElement;
-            el.classList.toggle('active', el.dataset.layout === preset.layout);
-        });
-        // Set width
-        const widthInput = q<HTMLInputElement>('#mm-ip-width');
-        widthInput.value = String(preset.width);
-        q<HTMLElement>('#mm-ip-width-val').textContent = preset.width + '%';
-        // Width row visibility
-        q<HTMLElement>('#mm-ip-width-row').style.display = preset.layout === 'full' ? 'none' : '';
+        const text = q<HTMLTextAreaElement>('#mm-ip-smart-input').value.trim();
+
+        // If we already have an uploaded/loaded image, mode stays 'image'
+        if (this.mode === 'image' && this.currentImageSrc) {
+            // But if text changes while in image mode, check URL override
+            if (text && (text.match(/^https?:\/\//i) || text.startsWith('//'))) {
+                this.mode = 'url';
+            } else {
+                return; // keep image mode
+            }
+        }
+
+        let newMode: InputMode;
+        if (!text) {
+            newMode = 'empty';
+        } else if (text.match(/^https?:\/\//i) || text.startsWith('//')) {
+            newMode = 'url';
+        } else {
+            newMode = 'ai';
+        }
+
+        if (newMode === this.mode) return;
+        this.mode = newMode;
+
+        // Update tag
+        const tag = q('#mm-ip-mode-tag');
+        tag.className = `mm-ip-mode-tag mode-${newMode}`;
+        const labels: Record<InputMode, string> = {
+            empty: '📌 占位图模式',
+            url: '🔗 URL 模式 · 按 Enter 加载',
+            ai: '✨ AI 生成 · 按 Enter 生成',
+            image: '📁 已选择图片',
+        };
+        tag.textContent = labels[newMode];
+
+        // Show/hide AI bar
+        q('#mm-ip-ai-bar').style.display = newMode === 'ai' ? 'flex' : 'none';
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Placeholder
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─── File handling ───────────────────────────────────────────────────────
+
+    private handleFile(file: File) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            this.setPreviewImage(dataUrl, file.name.replace(/\.[^.]+$/, ''));
+            this.mode = 'image';
+            this.updateModeTag();
+
+            // Show image info
+            const sizeKb = (file.size / 1024).toFixed(0);
+            const infoEl = this.overlay?.querySelector<HTMLElement>('#mm-ip-img-info');
+            const sizeEl = this.overlay?.querySelector<HTMLElement>('#mm-ip-img-size');
+            if (infoEl) infoEl.style.display = 'flex';
+            if (sizeEl) sizeEl.textContent = `${sizeKb} KB`;
+
+            const img = new Image();
+            img.onload = () => {
+                const dimEl = this.overlay?.querySelector<HTMLElement>('#mm-ip-img-dim');
+                if (dimEl) dimEl.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+            };
+            img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    private clearImage() {
+        this.currentImageSrc = '';
+        this.mode = 'empty';
+        const preview = this.overlay?.querySelector<HTMLElement>('#mm-ip-preview-area');
+        if (preview) { preview.innerHTML = '<button class="mm-ip-preview-clear" id="mm-ip-preview-clear" title="清除图片">✕</button>'; preview.style.display = 'none'; }
+        const info = this.overlay?.querySelector<HTMLElement>('#mm-ip-img-info');
+        if (info) info.style.display = 'none';
+        // Re-attach clear button listener
+        this.overlay?.querySelector('#mm-ip-preview-clear')?.addEventListener('click', () => this.clearImage());
+        this.updateMode();
+    }
+
+    // ─── URL loading ─────────────────────────────────────────────────────────
+
+    private loadUrl(url: string) {
+        if (!url) return;
+        const errEl = this.overlay?.querySelector<HTMLElement>('#mm-ip-error');
+        if (errEl) errEl.style.display = 'none';
+
+        if (!url.match(/^https?:\/\/.+/i) && !url.startsWith('//')) {
+            if (errEl) { errEl.textContent = '无效的 URL 格式'; errEl.style.display = ''; }
+            return;
+        }
+
+        const testImg = new Image();
+        testImg.crossOrigin = 'anonymous';
+        testImg.onload = () => {
+            this.setPreviewImage(url, url.split('/').pop() || '图片');
+            this.mode = 'image';
+            this.updateModeTag();
+        };
+        testImg.onerror = () => {
+            if (errEl) { errEl.textContent = '图片加载失败'; errEl.style.display = ''; }
+        };
+        testImg.src = url;
+    }
+
+    // ─── AI Generation ───────────────────────────────────────────────────────
+
+    private async handleGenerate() {
+        if (!this.overlay) return;
+        const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
+        const prompt = q<HTMLTextAreaElement>('#mm-ip-smart-input').value.trim();
+        const errEl = q<HTMLElement>('#mm-ip-error');
+        const genBtn = q<HTMLButtonElement>('#mm-ip-gen-btn');
+        errEl.style.display = 'none';
+
+        if (!prompt) { errEl.textContent = '请输入描述文字'; errEl.style.display = ''; return; }
+
+        genBtn.textContent = '⏳ 生成中…';
+        genBtn.disabled = true;
+
+        try {
+            const provider = q<HTMLSelectElement>('#mm-ip-ai-prov').value;
+            const imageB64 = provider === 'gemini'
+                ? await this.generateWithGemini(prompt)
+                : await this.generateWithOpenAI(prompt);
+            this.setPreviewImage(`data:image/png;base64,${imageB64}`, prompt.slice(0, 40));
+            this.mode = 'image';
+            this.updateModeTag();
+        } catch (err: unknown) {
+            errEl.textContent = '生成失败：' + (err instanceof Error ? err.message : String(err));
+            errEl.style.display = '';
+        } finally {
+            genBtn.textContent = '✨ 生成';
+            genBtn.disabled = false;
+        }
+    }
+
+    private async generateWithGemini(prompt: string): Promise<string> {
+        const apiKey = (this.overlay!.querySelector<HTMLInputElement>('#mm-ip-ai-key')?.value || '').trim();
+        if (!apiKey) throw new Error('请先填写 Gemini API Key');
+
+        const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(apiKey)}`,
+            {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instances: [{ prompt }], parameters: { sampleCount: 1 } })
+            }
+        );
+        if (!resp.ok) {
+            const d = await resp.json().catch(() => ({})) as { error?: { message?: string } };
+            throw new Error(d?.error?.message || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json() as { predictions?: Array<{ bytesBase64Encoded?: string }> };
+        const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
+        if (!b64) throw new Error('API 返回格式异常');
+        return b64;
+    }
+
+    private async generateWithOpenAI(prompt: string): Promise<string> {
+        const apiKey = (this.overlay!.querySelector<HTMLInputElement>('#mm-ip-ai-key')?.value || '').trim();
+        if (!apiKey) throw new Error('请先填写 OpenAI API Key');
+
+        const resp = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+                model: 'dall-e-3', prompt, n: 1,
+                size: '1024x1024', response_format: 'b64_json'
+            }),
+        });
+        if (!resp.ok) {
+            const d = await resp.json().catch(() => ({})) as { error?: { message?: string } };
+            throw new Error(d?.error?.message || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json() as { data?: Array<{ b64_json?: string }> };
+        const b64 = data?.data?.[0]?.b64_json;
+        if (!b64) throw new Error('API 返回格式异常');
+        return b64;
+    }
+
+    // ─── Aspect ratio ────────────────────────────────────────────────────────
 
     private selectAspectRatio(idx: number) {
         if (!this.overlay) return;
@@ -790,64 +736,41 @@ export class ImagePanel {
         const r = ASPECT_RATIOS[idx];
         const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
 
-        // Update SVG placeholder preview
-        const svgSrc = this.createPlaceholderSvg(r.rw, r.rh, r.label);
-        this.setPreviewImage(svgSrc, `placeholder-${r.label}`);
+        // Store placeholder SVG (used on insert when in empty mode)
+        this.currentImageSrc = this.createPlaceholderSvg(r.rw, r.rh, r.label);
 
-        // Update active box dimensions in visual
-        const activeBox = q<HTMLElement>('#mm-ip-ar-active');
-        activeBox.style.width = r.vw + 'px';
-        activeBox.style.height = r.vh + 'px';
+        // Update visual box
+        const active = q<HTMLElement>('#mm-ip-ar-active');
+        active.style.width = r.vw + 'px'; active.style.height = r.vh + 'px';
         q<HTMLElement>('#mm-ip-ar-active-label').textContent = r.label;
 
-        // Inverse box (swapped dimensions)
-        const inverseBox = q<HTMLElement>('#mm-ip-ar-inverse');
-        const parts = r.value.split(':');
-        const inverseVal = `${parts[1]}:${parts[0]}`;
-        const inverseExists = ASPECT_RATIOS.some(x => x.value === inverseVal);
-        const canSwap = inverseExists && r.value !== '1:1';
-
-        const visual = q<HTMLElement>('#mm-ip-ar-visual');
-        const swapHint = q<HTMLElement>('#mm-ip-ar-swap-hint');
+        // Inverse
+        const inv = q<HTMLElement>('#mm-ip-ar-inverse');
+        const [a, b] = r.value.split(':');
+        const invVal = `${b}:${a}`;
+        const canSwap = ASPECT_RATIOS.some(x => x.value === invVal) && r.value !== '1:1';
+        const vis = q<HTMLElement>('#mm-ip-ar-visual');
+        const hint = q<HTMLElement>('#mm-ip-ar-swap-hint');
         if (canSwap) {
-            inverseBox.style.width = r.vh + 'px';
-            inverseBox.style.height = r.vw + 'px';
-            inverseBox.style.display = '';
-            visual.classList.add('swappable');
-            swapHint.style.display = '';
+            inv.style.width = r.vh + 'px'; inv.style.height = r.vw + 'px'; inv.style.display = '';
+            vis.classList.add('swappable'); hint.style.display = '';
         } else {
-            inverseBox.style.display = 'none';
-            visual.classList.remove('swappable');
-            swapHint.style.display = 'none';
+            inv.style.display = 'none'; vis.classList.remove('swappable'); hint.style.display = 'none';
         }
 
-        // Update slider
-        const slider = q<HTMLInputElement>('#mm-ip-ar-slider');
-        slider.value = String(idx);
-
-        // Update tick marks
-        this.overlay!.querySelectorAll<HTMLElement>('.mm-ip-ar-tick').forEach((tick, i) => {
-            tick.classList.toggle('active', i === idx);
-        });
-
-        // Update category buttons
-        this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-ar-cat').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.cat === r.category);
-        });
-
-        // Update reset button text
-        const resetBtn = q<HTMLButtonElement>('#mm-ip-ar-reset');
-        if (resetBtn) resetBtn.textContent = idx === 4 ? '重置 1:1' : '重置 1:1';
+        // Slider + ticks + cats
+        q<HTMLInputElement>('#mm-ip-ar-slider').value = String(idx);
+        this.overlay!.querySelectorAll<HTMLElement>('.mm-ip-ar-tick').forEach((t, i) => t.classList.toggle('active', i === idx));
+        this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-ar-cat').forEach(btn =>
+            btn.classList.toggle('active', btn.dataset.cat === r.category));
     }
 
     private createPlaceholderSvg(w: number, h: number, label: string): string {
-        const W = 400;
-        const H = Math.round(W * h / w);
+        const W = 400, H = Math.round(W * h / w);
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2a2a3e"/>
-      <stop offset="100%" stop-color="#1a1a2e"/>
+      <stop offset="0%" stop-color="#2a2a3e"/><stop offset="100%" stop-color="#1a1a2e"/>
     </linearGradient>
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff10" stroke-width="0.5"/>
@@ -868,271 +791,94 @@ export class ImagePanel {
         return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Upload
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private handleFileUpload(file: File) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target?.result as string;
-            this.setPreviewImage(dataUrl, file.name.replace(/\.[^.]+$/, ''));
-
-            // Show file info
-            const sizeKb = (file.size / 1024).toFixed(0);
-            const infoEl = this.overlay?.querySelector<HTMLElement>('#mm-ip-upload-info');
-            const dimEl = this.overlay?.querySelector<HTMLElement>('#mm-ip-upload-dim');
-            const sizeEl = this.overlay?.querySelector<HTMLElement>('#mm-ip-upload-size');
-            if (infoEl) infoEl.style.display = 'flex';
-            if (sizeEl) sizeEl.textContent = `${sizeKb} KB`;
-
-            // Get image dimensions
-            const img = new Image();
-            img.onload = () => {
-                if (dimEl) dimEl.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
-            };
-            img.src = dataUrl;
-
-            // Show caption field
-            const captionWrap = this.overlay?.querySelector<HTMLElement>('#mm-ip-upload-caption-wrap');
-            if (captionWrap) captionWrap.style.display = '';
-        };
-        reader.readAsDataURL(file);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // URL loading
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private handleUrlLoad() {
-        const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
-        const url = q<HTMLInputElement>('#mm-ip-url-input').value.trim();
-        const errEl = q<HTMLElement>('#mm-ip-url-error');
-        errEl.style.display = 'none';
-
-        if (!url) { errEl.textContent = '请输入图片 URL'; errEl.style.display = ''; return; }
-        if (!url.match(/^https?:\/\/.+/i) && !url.startsWith('//')) {
-            errEl.textContent = '请输入有效的 http/https URL';
-            errEl.style.display = '';
-            return;
-        }
-
-        // Test load via img element
-        const testImg = new Image();
-        testImg.crossOrigin = 'anonymous';
-        const loadBtn = q<HTMLButtonElement>('#mm-ip-url-load');
-        loadBtn.textContent = '加载中…';
-        loadBtn.disabled = true;
-
-        testImg.onload = () => {
-            loadBtn.textContent = '加载预览';
-            loadBtn.disabled = false;
-            const caption = q<HTMLInputElement>('#mm-ip-url-caption').value;
-            this.setPreviewImage(url, caption || url.split('/').pop() || '图片');
-        };
-        testImg.onerror = () => {
-            loadBtn.textContent = '加载预览';
-            loadBtn.disabled = false;
-            errEl.textContent = '图片加载失败，请检查 URL 是否可访问（注意跨域限制）';
-            errEl.style.display = '';
-        };
-        testImg.src = url;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Reference image
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private handleRefUpload(file: File) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target?.result as string;
-            const preview = this.overlay?.querySelector<HTMLImageElement>('#mm-ip-ref-preview');
-            const label = this.overlay?.querySelector<HTMLElement>('#mm-ip-ref-label');
-            const clear = this.overlay?.querySelector<HTMLElement>('#mm-ip-ref-clear');
-            if (preview) { preview.src = dataUrl; preview.style.display = 'block'; }
-            if (label) label.style.display = 'none';
-            if (clear) clear.style.display = '';
-        };
-        reader.readAsDataURL(file);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // AI Generation
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private async handleGenerate() {
-        const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
-        const provider = q<HTMLSelectElement>('#mm-ip-provider').value;
-        const prompt = q<HTMLTextAreaElement>('#mm-ip-prompt').value.trim();
-        const errorEl = q<HTMLElement>('#mm-ip-error');
-        const genLabel = q<HTMLElement>('#mm-ip-gen-label');
-        const genSpinner = q<HTMLElement>('#mm-ip-gen-spinner');
-        const genBtn = q<HTMLButtonElement>('#mm-ip-gen-btn');
-
-        errorEl.style.display = 'none';
-        if (!prompt) { errorEl.textContent = '请输入图片描述（Prompt）'; errorEl.style.display = ''; return; }
-
-        genLabel.style.display = 'none';
-        genSpinner.style.display = '';
-        genBtn.disabled = true;
-
-        try {
-            const imageB64 = provider === 'gemini'
-                ? await this.generateWithGemini(prompt)
-                : await this.generateWithOpenAI(prompt);
-            this.setPreviewImage(`data:image/png;base64,${imageB64}`, prompt.slice(0, 40));
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : String(err);
-            errorEl.textContent = '生成失败：' + msg;
-            errorEl.style.display = '';
-        } finally {
-            genLabel.style.display = '';
-            genSpinner.style.display = 'none';
-            genBtn.disabled = false;
-        }
-    }
-
-    private async generateWithGemini(prompt: string): Promise<string> {
-        const apiKey = (this.overlay!.querySelector<HTMLInputElement>('#mm-ip-gemini-key')?.value || '').trim();
-        if (!apiKey) throw new Error('请先填写 Gemini API Key');
-
-        const refImg = this.overlay!.querySelector<HTMLImageElement>('#mm-ip-ref-preview');
-        const hasRef = refImg && refImg.style.display !== 'none' && refImg.src.startsWith('data:');
-        const instance: Record<string, unknown> = { prompt };
-
-        if (hasRef) {
-            const [header, data] = refImg.src.split(',');
-            const mimeType = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
-            instance['referenceImages'] = [{
-                referenceType: 'REFERENCE_TYPE_STYLE',
-                referenceImage: { bytesBase64Encoded: data, mimeType },
-            }];
-        }
-
-        const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(apiKey)}`,
-            {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ instances: [instance], parameters: { sampleCount: 1 } })
-            }
-        );
-        if (!resp.ok) {
-            const d = await resp.json().catch(() => ({})) as { error?: { message?: string } };
-            throw new Error(d?.error?.message || `HTTP ${resp.status}`);
-        }
-        const data = await resp.json() as { predictions?: Array<{ bytesBase64Encoded?: string }> };
-        const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
-        if (!b64) throw new Error('API 返回数据格式异常，未找到图像数据');
-        return b64;
-    }
-
-    private async generateWithOpenAI(prompt: string): Promise<string> {
-        const apiKey = (this.overlay!.querySelector<HTMLInputElement>('#mm-ip-openai-key')?.value || '').trim();
-        if (!apiKey) throw new Error('请先填写 OpenAI API Key');
-
-        const resp = await fetch('https://api.openai.com/v1/images/generations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({
-                model: 'dall-e-3', prompt, n: 1,
-                size: '1024x1024', response_format: 'b64_json'
-            }),
-        });
-        if (!resp.ok) {
-            const d = await resp.json().catch(() => ({})) as { error?: { message?: string } };
-            throw new Error(d?.error?.message || `HTTP ${resp.status}`);
-        }
-        const data = await resp.json() as { data?: Array<{ b64_json?: string }> };
-        const b64 = data?.data?.[0]?.b64_json;
-        if (!b64) throw new Error('API 返回数据格式异常，未找到图像数据');
-        return b64;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Preview & Insert
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─── Preview & Insert ────────────────────────────────────────────────────
 
     private setPreviewImage(src: string, alt: string) {
         this.currentImageSrc = src;
-        const preview = this.overlay?.querySelector<HTMLElement>('#mm-ip-preview');
-        if (!preview) return;
-        preview.innerHTML =
-            `<img src="${src}" alt="${alt}"` +
-            ` style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain">`;
-
-        // Enable footer buttons
-        const insertBtn = this.overlay?.querySelector<HTMLButtonElement>('#mm-ip-insert-btn');
-        const mdBtn = this.overlay?.querySelector<HTMLButtonElement>('#mm-ip-md-btn');
-        if (insertBtn) insertBtn.disabled = false;
-        if (mdBtn) mdBtn.disabled = false;
+        const area = this.overlay?.querySelector<HTMLElement>('#mm-ip-preview-area');
+        if (!area) return;
+        // Keep the clear button
+        area.innerHTML =
+            `<img src="${src}" alt="${alt}">` +
+            `<button class="mm-ip-preview-clear" id="mm-ip-preview-clear" title="清除图片">✕</button>`;
+        area.style.display = 'flex';
+        // Re-attach clear
+        area.querySelector('#mm-ip-preview-clear')?.addEventListener('click', () => this.clearImage());
     }
 
-    private getCaption(): string {
+    private updateModeTag() {
+        if (!this.overlay) return;
+        const tag = this.overlay.querySelector<HTMLElement>('#mm-ip-mode-tag');
+        if (!tag) return;
+        tag.className = `mm-ip-mode-tag mode-${this.mode}`;
+        const labels: Record<InputMode, string> = {
+            empty: '📌 占位图模式',
+            url: '🔗 URL 模式 · 按 Enter 加载',
+            ai: '✨ AI 生成 · 按 Enter 生成',
+            image: '📁 已选择图片',
+        };
+        tag.textContent = labels[this.mode];
+
+        // Hide AI bar unless in AI mode
+        const aiBar = this.overlay.querySelector<HTMLElement>('#mm-ip-ai-bar');
+        if (aiBar) aiBar.style.display = this.mode === 'ai' ? 'flex' : 'none';
+    }
+
+    private applyPreset(preset: EditPreset) {
+        if (!this.overlay) return;
         const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
-        if (this.currentTab === 'placeholder') return q<HTMLInputElement>('#mm-ip-ph-caption').value.trim();
-        if (this.currentTab === 'upload') return q<HTMLInputElement>('#mm-ip-upload-caption').value.trim();
-        if (this.currentTab === 'url') return q<HTMLInputElement>('#mm-ip-url-caption').value.trim();
-        /* ai */                                return q<HTMLInputElement>('#mm-ip-ai-caption').value.trim();
+        this.overlay.querySelectorAll('.mm-ip-layout-btn').forEach(b => {
+            (b as HTMLElement).classList.toggle('active', (b as HTMLElement).dataset.layout === preset.layout);
+        });
+        q<HTMLInputElement>('#mm-ip-width').value = String(preset.width);
+        q<HTMLElement>('#mm-ip-width-val').textContent = preset.width + '%';
+        q<HTMLElement>('#mm-ip-width-row').style.display = preset.layout === 'full' ? 'none' : '';
+        q<HTMLInputElement>('#mm-ip-caption').value = preset.caption || '';
     }
 
     private buildInsertOptions(): ImageInsertOptions {
+        if (!this.overlay) return { src: '', alt: '图片', layout: 'center', width: 60 };
         const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
-        const layoutBtn = this.overlay!.querySelector<HTMLButtonElement>('.mm-ip-layout-btn.active');
+        const layoutBtn = this.overlay.querySelector<HTMLButtonElement>('.mm-ip-layout-btn.active');
         const layout = (layoutBtn?.dataset.layout || 'center') as ImageInsertOptions['layout'];
         const width = parseInt(q<HTMLInputElement>('#mm-ip-width').value) || 60;
-        const caption = this.getCaption();
-        // For URL tab, use the URL input as src directly
+        const caption = q<HTMLInputElement>('#mm-ip-caption').value.trim();
+
         let src = this.currentImageSrc;
-        if (this.currentTab === 'url') {
-            const urlVal = q<HTMLInputElement>('#mm-ip-url-input').value.trim();
+        // In URL mode, prefer the text input value
+        if (this.mode === 'url') {
+            const urlVal = q<HTMLTextAreaElement>('#mm-ip-smart-input').value.trim();
             if (urlVal) src = urlVal;
         }
         return { src, alt: caption || '图片', caption, layout, width };
     }
 
     private handleInsert() {
-        if (!this.currentImageSrc && this.currentTab !== 'url') return;
+        if (!this.currentImageSrc && this.mode !== 'url') return;
         this.onInsert(this.buildInsertOptions());
         this.close();
     }
 
     private handleCopyMarkdown() {
-        if (!this.currentImageSrc && this.currentTab !== 'url') return;
-        const opts = this.buildInsertOptions();
-        const md = buildImageMarkdown(opts);
+        if (!this.currentImageSrc && this.mode !== 'url') return;
+        const md = buildImageMarkdown(this.buildInsertOptions());
         navigator.clipboard?.writeText(md).then(() => {
-            const mdBtn = this.overlay?.querySelector<HTMLButtonElement>('#mm-ip-md-btn');
-            if (mdBtn) {
-                const orig = mdBtn.textContent;
-                mdBtn.textContent = '✓ 已复制';
-                setTimeout(() => { if (mdBtn) mdBtn.textContent = orig; }, 1800);
-            }
-        }).catch(() => {
-            alert('复制失败，请手动复制：\n\n' + md);
-        });
+            const btn = this.overlay?.querySelector<HTMLButtonElement>('#mm-ip-md-btn');
+            if (btn) { const o = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = o; }, 1800); }
+        }).catch(() => alert('复制失败：\n\n' + md));
     }
 }
 
 /**
  * 根据 ImageInsertOptions 生成 Markdown 片段
- * 扩展语法：![alt](url){.layout width=N%}
  */
 export function buildImageMarkdown(opts: ImageInsertOptions): string {
     const alt = opts.alt || '图片';
     const attrs: string[] = [];
-
     if (opts.layout !== 'center') attrs.push(`.${opts.layout}`);
-    if (opts.layout !== 'full' && opts.layout !== 'inline') {
-        attrs.push(`width=${opts.width ?? 60}%`);
-    }
-
+    if (opts.layout !== 'full' && opts.layout !== 'inline') attrs.push(`width=${opts.width ?? 60}%`);
     const attrStr = attrs.length ? `{${attrs.join(' ')}}` : '';
     const imgLine = `![${alt}](${opts.src})${attrStr}`;
-
-    // 如果有独立的说明文字且与 alt 不同，追加斜体注记
-    if (opts.caption && opts.caption !== alt) {
-        return imgLine + '\n*' + opts.caption + '*';
-    }
+    if (opts.caption && opts.caption !== alt) return imgLine + '\n*' + opts.caption + '*';
     return imgLine;
 }
