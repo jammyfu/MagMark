@@ -1,11 +1,10 @@
 /**
- * MagMark 2.0 - Plugins Package
+ * MagMark 1.5.0 - Plugins Package
  * Export all remark/rehype plugins for markdown transformation
  */
 
 // Core transformer
-export {
-  default as markdownToMagazine,
+import markdownToMagazine, {
   createFullBleedImage,
   createPullQuote,
   createPageBreak,
@@ -13,16 +12,14 @@ export {
 } from './markdown-to-magazine';
 
 // CJK spacing
-export {
-  default as cjkSpacer,
+import cjkSpacer, {
   addCJKSpacing,
   containsCJK,
   normalizeCJKSpacing
 } from './cjk-spacer';
 
 // Pagination
-export {
-  default as paginationNodes,
+import paginationNodes, {
   createPageBreakNode,
   createPageNumberNode,
   calculatePagination,
@@ -33,15 +30,46 @@ export {
 } from './pagination-nodes';
 
 // Typography enhancers
-export {
-  default as typographyEnhancers,
+import typographyEnhancers, {
   smartenQuotes,
   noWidows,
   cjkBreaks
 } from './typography-enhancers';
 
+export {
+  markdownToMagazine, createFullBleedImage, createPullQuote, createPageBreak, createGridContainer,
+  cjkSpacer, addCJKSpacing, containsCJK, normalizeCJKSpacing,
+  paginationNodes, createPageBreakNode, createPageNumberNode, calculatePagination, insertPageBreak, insertChapterBreak, PageBreakType, DEFAULT_PAGE_BREAK_MARKERS,
+  typographyEnhancers, smartenQuotes, noWidows, cjkBreaks
+};
+
+export interface MagazineTransformOptions {
+  autoSpaceCjk?: boolean;
+  preventWidows?: boolean;
+  fullBleedImages?: boolean;
+  platform?: string;
+  classPrefix?: string;
+}
+
+export interface PaginationOptions {
+  markers?: string[];
+  chapterNewPage?: boolean;
+  avoidBreakInside?: boolean;
+}
+
+export interface TypographyOptions {
+  preventWidows?: boolean;
+  preventOrphans?: boolean;
+  smartQuotes?: boolean;
+  hangingPunctuation?: boolean;
+}
+
+export interface PipelineOptions extends MagazineTransformOptions, PaginationOptions, TypographyOptions {
+  pageBreakMarkers?: string[];
+}
+
 // Plugin composition for easy use
-export function createMagazinePipeline(options = {}) {
+export function createMagazinePipeline(options: PipelineOptions = {}) {
   return [
     cjkSpacer({ enabled: options.autoSpaceCjk !== false }),
     paginationNodes({

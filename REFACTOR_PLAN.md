@@ -1,4 +1,4 @@
-# MagMark 1.4: 工程化与设计重构计划 (Google Engineer & Designer Perspective)
+# MagMark 1.5.0: 工程化与设计重构计划 (Google Engineer & Designer Perspective)
 
 ## 一、 工程师视角的架构重构 (Engineered Logic)
 

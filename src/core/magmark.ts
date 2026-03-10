@@ -1,5 +1,5 @@
 /**
- * MagMark 2.0 - Core Class
+ * MagMark 1.5.0 - Core Class
  * Main API for magazine-quality markdown conversion
  */
 import { unified } from 'unified';
@@ -153,7 +153,7 @@ export class MagMark {
     const zip = await createCarouselZip(images, {
       resolution: this.options.resolution,
     });
-    
+
     // Write ZIP to file
     console.log(`Writing carousel to ${outputPath}...`);
   }
@@ -164,7 +164,7 @@ export class MagMark {
   async exportWeChat(outputPath: string, markdown: string): Promise<void> {
     const images = await this.exportImages(markdown);
     const combined = await combineToLongImage(images);
-    
+
     // Write image to file
     console.log(`Writing WeChat image to ${outputPath}...`);
   }

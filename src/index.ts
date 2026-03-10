@@ -104,4 +104,4 @@ export type {
 export { default as designTokens } from '../design-tokens/v2.0.json';
 
 // Version
-export const VERSION = '2.0.0';
+export const VERSION = '1.5.0';

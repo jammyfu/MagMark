@@ -23,7 +23,7 @@ function resolveImageSrc(src: string): string {
 }
 
 /**
- * MagMark 1.4 - Professional Refactored Entry
+ * MagMark 1.5.0 - Professional Refactored Entry
  * (C) 2026 Editorial Elite System
  *
  * 排版增强层：
@@ -470,15 +470,15 @@ function convertMarkdown(md: string): string {
     let i = 0;
 
     /** Helpers ──────────────────────────────────────────── */
-    const isBlank     = (l: string) => l.trim() === '';
-    const isHrLine    = (l: string) => /^(\*{3,}|-{3,}|_{3,})\s*$/.test(l.trim());
-    const isHeading   = (l: string) => /^#{1,6} /.test(l);
-    const isFence     = (l: string) => l.startsWith('```') || l.startsWith('~~~');
-    const isQuote     = (l: string) => l.startsWith('>');
-    const isTable     = (l: string) => l.startsWith('|');
-    const isUlItem    = (l: string) => /^(\s*)[-*+] /.test(l);
-    const isOlItem    = (l: string) => /^(\s*)\d+\. /.test(l);
-    const isListItem  = (l: string) => isUlItem(l) || isOlItem(l);
+    const isBlank = (l: string) => l.trim() === '';
+    const isHrLine = (l: string) => /^(\*{3,}|-{3,}|_{3,})\s*$/.test(l.trim());
+    const isHeading = (l: string) => /^#{1,6} /.test(l);
+    const isFence = (l: string) => l.startsWith('```') || l.startsWith('~~~');
+    const isQuote = (l: string) => l.startsWith('>');
+    const isTable = (l: string) => l.startsWith('|');
+    const isUlItem = (l: string) => /^(\s*)[-*+] /.test(l);
+    const isOlItem = (l: string) => /^(\s*)\d+\. /.test(l);
+    const isListItem = (l: string) => isUlItem(l) || isOlItem(l);
     // 独立图片行：整行内容只有一个图片标记（可带 {attrs}），作为块级 <figure>
     const isFigureLine = (l: string) =>
         /^\s*!\[[^\]]*\]\([^)]+\)(\{[^}]*\})?\s*$/.test(l);
@@ -489,8 +489,8 @@ function convertMarkdown(md: string): string {
     // ── Fenced code block ─────────────────────────────────
     function parseFenceBlock(): string {
         const opener = lines[i];
-        const fence  = opener.startsWith('~~~') ? '~~~' : '```';
-        const lang   = opener.slice(fence.length).trim().split(/\s+/)[0] || '';
+        const fence = opener.startsWith('~~~') ? '~~~' : '```';
+        const lang = opener.slice(fence.length).trim().split(/\s+/)[0] || '';
         const codeLines: string[] = [];
         i++;
         while (i < lines.length && !lines[i].trimEnd().startsWith(fence)) {
@@ -541,7 +541,7 @@ function convertMarkdown(md: string): string {
             ? `<tbody>${dataRows.map(row =>
                 `<tr>${parseCells(row).map(c =>
                     `<td>${inlineMarkdown(c)}</td>`).join('')}</tr>`
-              ).join('')}</tbody>`
+            ).join('')}</tbody>`
             : '';
 
         return `<table>${thead}${tbody}</table>`;
@@ -568,12 +568,12 @@ function convertMarkdown(md: string): string {
                 if (!ulMatch && !olMatch) break;
 
                 let content = ulMatch ? ulMatch[2] : olMatch![1];
-                let isTask  = false;
+                let isTask = false;
                 let checked = false;
 
                 // Task list item
                 if (ulMatch && ulMatch[1]) {
-                    isTask  = true;
+                    isTask = true;
                     checked = ulMatch[1].includes('x');
                     const checkbox = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> `;
                     content = checkbox + inlineMarkdown(content);
@@ -636,10 +636,10 @@ function convertMarkdown(md: string): string {
     while (i < lines.length) {
         const line = lines[i];
 
-        if (isBlank(line))  { i++; continue; }
+        if (isBlank(line)) { i++; continue; }
 
         // Fenced code block
-        if (isFence(line))  { blocks.push(parseFenceBlock()); continue; }
+        if (isFence(line)) { blocks.push(parseFenceBlock()); continue; }
 
         // HR / page-break marker
         if (isHrLine(line)) { blocks.push('<hr>'); i++; continue; }
@@ -654,16 +654,16 @@ function convertMarkdown(md: string): string {
         }
 
         // Blockquote
-        if (isQuote(line))      { blocks.push(parseBlockquote()); continue; }
+        if (isQuote(line)) { blocks.push(parseBlockquote()); continue; }
 
         // Table
-        if (isTable(line))      { blocks.push(parseTable()); continue; }
+        if (isTable(line)) { blocks.push(parseTable()); continue; }
 
         // Unordered list
-        if (isUlItem(line))     { blocks.push(parseList(false)); continue; }
+        if (isUlItem(line)) { blocks.push(parseList(false)); continue; }
 
         // Ordered list
-        if (isOlItem(line))     { blocks.push(parseList(true)); continue; }
+        if (isOlItem(line)) { blocks.push(parseList(true)); continue; }
 
         // Standalone figure (image-only line → block <figure>)
         if (isFigureLine(line)) { blocks.push(parseFigureLine()); continue; }
@@ -760,10 +760,10 @@ function inlineMarkdown(text: string): string {
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         // Bold + italic
         .replace(/\*{3}(.+?)\*{3}/g, '<strong><em>$1</em></strong>')
-        .replace(/_{3}(.+?)_{3}/g,   '<strong><em>$1</em></strong>')
+        .replace(/_{3}(.+?)_{3}/g, '<strong><em>$1</em></strong>')
         // Bold
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/__(.+?)__/g,     '<strong>$1</strong>')
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
         // Italic
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/_([^_]+)_/g, '<em>$1</em>')
@@ -886,16 +886,16 @@ function openPrintPreview() {
     // 读取当前生效的 CSS 变量
     const rootStyle = getComputedStyle(document.documentElement);
     const bodyStyle = getComputedStyle(document.body);
-    const mmFontSize     = rootStyle.getPropertyValue('--mm-font-size').trim()     || '14px';
-    const mmLineHeight   = rootStyle.getPropertyValue('--mm-line-height').trim()   || '1.75';
+    const mmFontSize = rootStyle.getPropertyValue('--mm-font-size').trim() || '14px';
+    const mmLineHeight = rootStyle.getPropertyValue('--mm-line-height').trim() || '1.75';
     const mmLetterSpacing = rootStyle.getPropertyValue('--mm-letter-spacing').trim() || '0.01em';
-    const userFont       = rootStyle.getPropertyValue('--user-font-family').trim();
-    const thFontBody     = rootStyle.getPropertyValue('--th-font-body').trim();
-    const mmFontFamily   = rootStyle.getPropertyValue('--mm-font-family').trim()   || "'Source Han Serif SC', serif";
-    const effectiveFont  = userFont || thFontBody || mmFontFamily;
-    const thPrimary  = rootStyle.getPropertyValue('--th-primary').trim()  || '#d4af37';
-    const thAccent   = rootStyle.getPropertyValue('--th-accent').trim()   || '#e67e22';
-    const thBgPage   = rootStyle.getPropertyValue('--th-bg-page').trim()  || '#ffffff';
+    const userFont = rootStyle.getPropertyValue('--user-font-family').trim();
+    const thFontBody = rootStyle.getPropertyValue('--th-font-body').trim();
+    const mmFontFamily = rootStyle.getPropertyValue('--mm-font-family').trim() || "'Source Han Serif SC', serif";
+    const effectiveFont = userFont || thFontBody || mmFontFamily;
+    const thPrimary = rootStyle.getPropertyValue('--th-primary').trim() || '#d4af37';
+    const thAccent = rootStyle.getPropertyValue('--th-accent').trim() || '#e67e22';
+    const thBgPage = rootStyle.getPropertyValue('--th-bg-page').trim() || '#ffffff';
     const thTextPage = rootStyle.getPropertyValue('--th-text-page').trim() || '#1a1a2e';
 
     // 拼合所有分页 HTML，每页之间插入强制分页符
@@ -1108,9 +1108,9 @@ if (typeof PagedPolyfill !== 'undefined') {
  */
 function insertAtCursor(ta: HTMLTextAreaElement, text: string) {
     const start = ta.selectionStart ?? ta.value.length;
-    const end   = ta.selectionEnd   ?? ta.value.length;
+    const end = ta.selectionEnd ?? ta.value.length;
     const before = ta.value.slice(0, start);
-    const after  = ta.value.slice(end);
+    const after = ta.value.slice(end);
     // Ensure we're on a new line before the insertion
     const needsNewLine = before.length > 0 && !before.endsWith('\n');
     const prefix = needsNewLine ? '\n' : '';
@@ -1175,7 +1175,7 @@ function insertImageRelativeToBlock(
 
     // Build the new markdown
     const before = lines.slice(0, insertAfterLine + 1).join('\n');
-    const after  = lines.slice(insertAfterLine + 1).join('\n');
+    const after = lines.slice(insertAfterLine + 1).join('\n');
 
     // Ensure blank-line separators so the image is a standalone block
     const sep = '\n\n';
@@ -1239,9 +1239,9 @@ function deleteFigureFromMarkdown(figEl: HTMLElement) {
 
     // Excise the line and clean up surrounding blank lines
     const before = lines.slice(0, targetLine).join('\n').trimEnd();
-    const after  = lines.slice(targetLine + 1).join('\n').trimStart();
+    const after = lines.slice(targetLine + 1).join('\n').trimStart();
     const newMd = before && after ? before + '\n\n' + after
-                : (before || after).trim();
+        : (before || after).trim();
 
     markdownInput.value = newMd;
     markdownInput.dispatchEvent(new Event('input'));
@@ -1493,7 +1493,7 @@ function init() {
             if (figEl) {
                 const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
                 if (imgEl) {
-                    const layout = (['float-left','float-right','full','center'] as const)
+                    const layout = (['float-left', 'float-right', 'full', 'center'] as const)
                         .find(cls => figEl.classList.contains('mm-' + cls)) || 'center';
                     const widthStr = figEl.style.width || imgEl.style.width || '60%';
                     const width = parseInt(widthStr) || 60;
@@ -1731,7 +1731,7 @@ async function exportPng() {
         });
 
         const link = document.createElement('a');
-        link.download = `MagMark-1.4-Page-${state.currentPage}.png`;
+        link.download = `MagMark-1.5.0-Page-${state.currentPage}.png`;
         link.href = dataUrl;
         link.click();
     } catch (e) {
@@ -1811,38 +1811,36 @@ function saveMd() {
 
 
 function loadDefault() {
-    markdownInput.value = `# MagMark 1.4 🎨✨
+    markdownInput.value = `# MagMark 1.5.0 🎨✨
 
-**世界级杂志级 Markdown 排版引擎 — 终极优化版**
+**世界级杂志级 Markdown 排版引擎 — CJK 高精度排印版**
 
-将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 1.4 彻底革新了导出流水线，带来了媲美《VOGUE》等高端纸媒的视觉体验。
+将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 1.5 引入 Han.css + Paged.js + Vivliostyle CSS 三层排版增强，带来媲美《VOGUE》等高端纸媒的中文视觉体验。
 
 ## 🏷️ 为什么叫 MagMark？
 
 **MagMark** 是由两个核心概念组合而成的：
 
-- **Mag** (取自 **Magazine**)：打破 Markdown 预览"简陋"的印象，赋予文字现代杂志感。
-- **Mark** (取自 **Markdown**)：坚持轻量级创作体验，让您专注于内容本身。
+- **Mag** (取自 **Magazine**)：打破 Markdown 预览"简陋"的印象，赋予文字具有现代杂志感的排版美学。
+- **Mark** (取自 **Markdown**)：坚持轻量级、纯文本的创作体验，让您专注于内容。
 
 **MagMark = 像写 Markdown 一样简单，像做杂志一样精美。**
 
 ---
 
-## 🚀 1.4 核心升级
+## 🚀 1.5.0 核心升级
 
-### 🎞️ 彻底抛弃 PDF 中间层
-直接采用 **高精度 Canvas + SVG 混合采样**，输出 3x 超采样 600DPI 级别超清 PNG，字体嵌入完美，所见即所得。
+### 🈶 Han.css — 汉字高精度排印
+集成 [Han.css v3](https://hanzi.pro/) 开源排版框架，对预览内容进行深度 CJK 处理。
 
-### 🖱️ 块级点击浮动微调 ✨
-**像编辑纸媒一样编辑预览！** 点击任何段落，立即激活浮动工具栏，支持 Shift 点击与拖拽框选多块同步调整。
+### 🖨 Paged.js — CSS Paged Media 打印预览
+新增"🖨 打印预览"按钮，支持 @page 规则、页页码与装订边距。
 
-### 🎨 11 套专业主题
-覆盖从东方金石到北欧极简，从科幻科技到自然植物的全系列设计风格，一键切换风格。
+### 📐 Vivliostyle CSS — 孤行寡行控制
+采用 Vivliostyle 排版标准，防止段落首行或末行孤立在页底/页顶。
 
-### 📄 智能分页控制
-- 手动分页：\`---\` 仅在开启"手动分页"时生效
-- 单页独立样式：每页可独立设置字号、行距
-- 预览比例：50% ～ 150% 自由缩放
+### 🎞️ 3× 高精度导出
+输出 600DPI 级别超清 PNG，字体嵌入完美，所见即所得。
 
 ---
 
@@ -1859,7 +1857,7 @@ npm run dev
 
 **为追求极致排版美学的创作者而生 ❤️**
 
-*MagMark 1.4 · 2026*
+*最近更新：2026-03-10 · v1.5.0*
 `;
     render();
 }
