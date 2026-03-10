@@ -28,13 +28,18 @@ export interface EditPreset {
     caption: string;
 }
 
+// Sorted Portrait → Square → Landscape
 const ASPECT_RATIOS = [
-    { label: '1:1', w: 1, h: 1 },
-    { label: '4:3', w: 4, h: 3 },
-    { label: '16:9', w: 16, h: 9 },
-    { label: '3:4', w: 3, h: 4 },
-    { label: '9:16', w: 9, h: 16 },
-    { label: '21:9', w: 21, h: 9 },
+    { label: '9:16', value: '9:16', category: 'Portrait', vw: 70, vh: 124, rw: 9, rh: 16 },
+    { label: '2:3', value: '2:3', category: 'Portrait', vw: 82, vh: 123, rw: 2, rh: 3 },
+    { label: '3:4', value: '3:4', category: 'Portrait', vw: 93, vh: 124, rw: 3, rh: 4 },
+    { label: '4:5', value: '4:5', category: 'Portrait', vw: 99, vh: 123, rw: 4, rh: 5 },
+    { label: '1:1', value: '1:1', category: 'Square', vw: 124, vh: 124, rw: 1, rh: 1 },
+    { label: '5:4', value: '5:4', category: 'Landscape', vw: 124, vh: 99, rw: 5, rh: 4 },
+    { label: '4:3', value: '4:3', category: 'Landscape', vw: 124, vh: 93, rw: 4, rh: 3 },
+    { label: '3:2', value: '3:2', category: 'Landscape', vw: 124, vh: 82, rw: 3, rh: 2 },
+    { label: '16:9', value: '16:9', category: 'Landscape', vw: 124, vh: 70, rw: 16, rh: 9 },
+    { label: '21:9', value: '21:9', category: 'Landscape', vw: 124, vh: 53, rw: 21, rh: 9 },
 ];
 
 const LS_GEMINI_KEY = 'magmark_gemini_apikey';
@@ -47,6 +52,7 @@ export class ImagePanel {
     private currentImageSrc = '';
     private currentTab: 'placeholder' | 'upload' | 'url' | 'ai' = 'placeholder';
     private editPreset: EditPreset | null = null;
+    private currentRatioIdx = 4; // default 1:1
 
     constructor(onInsert: ImageInsertCallback) {
         this.onInsert = onInsert;
@@ -106,7 +112,8 @@ export class ImagePanel {
         this.overlay = overlay;
         this.injectStyles();
         this.attachEventListeners();
-        this.selectAspectRatio(0);
+        this.currentRatioIdx = 4; // 1:1 default
+        this.selectAspectRatio(4);
     }
 
     private injectStyles() {
@@ -158,25 +165,129 @@ export class ImagePanel {
             .mm-ip-tab.active { color: #d4af37; background: rgba(212,175,55,.08); border-bottom: 2px solid #d4af37; }
             .mm-ip-tabcontent { padding: 20px 24px 0; }
             .mm-ip-hint { color: #666; font-size: 11px; margin-bottom: 12px; }
-            .mm-ip-ratio-grid {
-                display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+
+            /* ── Aspect Ratio Selector ── */
+            .mm-ip-ar-header {
+                display: flex; align-items: center; justify-content: space-between;
+                margin-bottom: 12px;
+            }
+            .mm-ip-ar-label {
+                display: flex; align-items: center; gap: 6px;
+                color: #888; font-size: 11px; font-weight: 700;
+                text-transform: uppercase; letter-spacing: .08em;
+            }
+            .mm-ip-ar-reset {
+                background: transparent; border: none;
+                color: #555; font-size: 11px; cursor: pointer;
+                text-decoration: underline; padding: 0;
+            }
+            .mm-ip-ar-reset:hover { color: #e8e8f0; }
+            .mm-ip-ar-panel {
+                background: rgba(255,255,255,.03);
+                border: 1px solid rgba(255,255,255,.08);
+                border-radius: 12px; padding: 20px 16px 16px;
+                display: flex; flex-direction: column; align-items: center; gap: 20px;
                 margin-bottom: 16px;
             }
-            .mm-ip-ratio-btn {
-                position: relative; width: 100%;
+            /* Visual preview box */
+            .mm-ip-ar-visual {
+                width: 160px; height: 160px;
                 background: rgba(255,255,255,.04);
-                border: 1px solid rgba(255,255,255,.1);
-                border-radius: 8px; cursor: pointer;
-                overflow: hidden; transition: all .2s;
-            }
-            .mm-ip-ratio-btn:hover { border-color: #d4af37; background: rgba(212,175,55,.06); }
-            .mm-ip-ratio-btn.active { border-color: #d4af37; background: rgba(212,175,55,.14); }
-            .mm-ip-ratio-btn span {
-                position: absolute; inset: 0;
+                border-radius: 10px;
+                position: relative;
                 display: flex; align-items: center; justify-content: center;
-                font-size: 12px; font-weight: 700; color: #aaa;
+                border: 1px solid rgba(255,255,255,.08);
+                transition: all .2s;
             }
-            .mm-ip-ratio-btn.active span { color: #d4af37; }
+            .mm-ip-ar-visual.swappable { cursor: pointer; }
+            .mm-ip-ar-visual.swappable:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.14); }
+            .mm-ip-ar-inverse {
+                position: absolute;
+                border: 2px dashed rgba(255,255,255,.2);
+                pointer-events: none;
+                transition: all .3s;
+                opacity: .45;
+            }
+            .mm-ip-ar-active {
+                position: relative;
+                border: 2px solid #d4af37;
+                display: flex; align-items: center; justify-content: center;
+                transition: all .3s;
+                z-index: 10;
+                box-shadow: 0 0 12px rgba(212,175,55,.25);
+            }
+            .mm-ip-ar-active-label {
+                font-size: 11px; font-weight: 800;
+                color: #d4af37;
+                background: rgba(20,20,30,.85);
+                padding: 2px 6px; border-radius: 4px;
+                letter-spacing: .04em;
+            }
+            /* Swap hint */
+            .mm-ip-ar-swap-hint {
+                position: absolute; bottom: 4px; right: 6px;
+                font-size: 9px; color: #555;
+                transition: color .2s;
+            }
+            .mm-ip-ar-visual.swappable:hover .mm-ip-ar-swap-hint { color: #888; }
+            /* Category buttons */
+            .mm-ip-ar-cats {
+                display: flex; gap: 8px; width: 100%; max-width: 280px;
+            }
+            .mm-ip-ar-cat {
+                flex: 1; padding: 5px 4px;
+                font-size: 10px; font-weight: 700; text-transform: uppercase;
+                border-radius: 20px; border: 1px solid rgba(255,255,255,.1);
+                background: transparent; color: #555; cursor: pointer;
+                transition: all .2s; letter-spacing: .04em;
+            }
+            .mm-ip-ar-cat:hover:not(:disabled) { border-color: rgba(255,255,255,.25); color: #bbb; }
+            .mm-ip-ar-cat.active { background: rgba(212,175,55,.18); color: #d4af37; border-color: rgba(212,175,55,.5); }
+            .mm-ip-ar-cat:disabled { opacity: .25; cursor: not-allowed; }
+            /* Slider */
+            .mm-ip-ar-slider-wrap {
+                width: 100%; padding: 0 4px;
+                position: relative;
+            }
+            .mm-ip-ar-slider {
+                width: 100%; height: 4px;
+                -webkit-appearance: none; appearance: none;
+                background: rgba(255,255,255,.12);
+                border-radius: 4px; outline: none; cursor: pointer;
+                accent-color: #d4af37;
+            }
+            .mm-ip-ar-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 16px; height: 16px;
+                background: #d4af37; border-radius: 50%;
+                box-shadow: 0 0 6px rgba(212,175,55,.5);
+                cursor: pointer;
+            }
+            .mm-ip-ar-ticks {
+                display: flex; justify-content: space-between;
+                padding: 0 2px;
+                margin-top: 8px;
+                pointer-events: none;
+                user-select: none;
+            }
+            .mm-ip-ar-tick {
+                display: flex; flex-direction: column; align-items: center;
+                gap: 3px; width: 20px;
+            }
+            .mm-ip-ar-tick-bar {
+                width: 1.5px; height: 6px;
+                background: rgba(255,255,255,.15);
+                border-radius: 1px;
+                transition: background .2s;
+            }
+            .mm-ip-ar-tick.active .mm-ip-ar-tick-bar { background: #d4af37; }
+            .mm-ip-ar-tick-label {
+                font-size: 8.5px; font-family: monospace;
+                color: rgba(255,255,255,.25);
+                white-space: nowrap;
+                transition: color .2s;
+            }
+            .mm-ip-ar-tick.active .mm-ip-ar-tick-label { color: #d4af37; font-weight: 700; }
             .mm-ip-dropzone {
                 border: 2px dashed rgba(255,255,255,.15); border-radius: 10px;
                 padding: 32px 20px; text-align: center; cursor: pointer;
@@ -316,14 +427,50 @@ export class ImagePanel {
 
   <!-- Tab: Placeholder -->
   <div class="mm-ip-tabcontent" id="mm-ip-tab-placeholder">
-    <p class="mm-ip-hint">选择比例，插入带尺寸的占位图</p>
-    <div class="mm-ip-ratio-grid" id="mm-ip-ratio-grid">
-      ${ASPECT_RATIOS.map((r, i) => `
-        <button class="mm-ip-ratio-btn${i === 0 ? ' active' : ''}" data-ratio-idx="${i}"
-                style="padding-bottom:${(r.h / r.w * 100).toFixed(1)}%">
-          <span>${r.label}</span>
-        </button>`).join('')}
+
+    <!-- Header -->
+    <div class="mm-ip-ar-header">
+      <label class="mm-ip-ar-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        占位图比例
+      </label>
+      <button class="mm-ip-ar-reset" id="mm-ip-ar-reset">重置 1:1</button>
     </div>
+
+    <div class="mm-ip-ar-panel">
+
+      <!-- Visual Preview (click to swap orientation) -->
+      <div class="mm-ip-ar-visual" id="mm-ip-ar-visual">
+        <div class="mm-ip-ar-inverse" id="mm-ip-ar-inverse"></div>
+        <div class="mm-ip-ar-active" id="mm-ip-ar-active">
+          <span class="mm-ip-ar-active-label" id="mm-ip-ar-active-label">1:1</span>
+        </div>
+        <span class="mm-ip-ar-swap-hint" id="mm-ip-ar-swap-hint">⇄ 点击翻转</span>
+      </div>
+
+      <!-- Category buttons -->
+      <div class="mm-ip-ar-cats" id="mm-ip-ar-cats">
+        <button class="mm-ip-ar-cat" data-cat="Portrait">竖向</button>
+        <button class="mm-ip-ar-cat active" data-cat="Square">方形</button>
+        <button class="mm-ip-ar-cat" data-cat="Landscape">横向</button>
+      </div>
+
+      <!-- Slider + ticks -->
+      <div class="mm-ip-ar-slider-wrap">
+        <input type="range" id="mm-ip-ar-slider" class="mm-ip-ar-slider"
+               min="0" max="${ASPECT_RATIOS.length - 1}" step="1" value="4">
+        <div class="mm-ip-ar-ticks" id="mm-ip-ar-ticks">
+          ${ASPECT_RATIOS.map((r, i) => `
+            <div class="mm-ip-ar-tick${i === 4 ? ' active' : ''}" data-idx="${i}">
+              <div class="mm-ip-ar-tick-bar"></div>
+              <span class="mm-ip-ar-tick-label">${r.label}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+    </div>
+
     <div class="mm-ip-field">
       <label>说明文字（可选）</label>
       <input type="text" id="mm-ip-ph-caption" placeholder="图片说明文字…">
@@ -477,13 +624,37 @@ export class ImagePanel {
             btn.addEventListener('click', () => this.switchTab(btn.dataset.tab as typeof this.currentTab));
         });
 
-        // ── Placeholder ────────────────────────────────────────────────────
-        q('#mm-ip-ratio-grid').addEventListener('click', (e) => {
-            const btn = (e.target as HTMLElement).closest('.mm-ip-ratio-btn') as HTMLElement | null;
-            if (!btn) return;
-            this.overlay!.querySelectorAll('.mm-ip-ratio-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            this.selectAspectRatio(parseInt(btn.dataset.ratioIdx || '0'));
+        // ── Placeholder: slider ────────────────────────────────────────────
+        const arSlider = q<HTMLInputElement>('#mm-ip-ar-slider');
+        arSlider.addEventListener('input', () => {
+            this.selectAspectRatio(parseInt(arSlider.value));
+        });
+
+        // ── Placeholder: category buttons ──
+        q('#mm-ip-ar-cats').addEventListener('click', (e) => {
+            const btn = (e.target as HTMLElement).closest('.mm-ip-ar-cat') as HTMLButtonElement | null;
+            if (!btn || btn.disabled) return;
+            const cat = btn.dataset.cat;
+            // Default index per category
+            const targetMap: Record<string, number> = { Portrait: 0, Square: 4, Landscape: 8 };
+            this.selectAspectRatio(targetMap[cat!] ?? 4);
+        });
+
+        // ── Placeholder: reset button ──
+        q<HTMLButtonElement>('#mm-ip-ar-reset').addEventListener('click', () => {
+            this.selectAspectRatio(4); // 1:1
+        });
+
+        // ── Placeholder: visual box swap ──────────────────────────────────
+        q('#mm-ip-ar-visual').addEventListener('click', () => {
+            const r = ASPECT_RATIOS[this.currentRatioIdx];
+            // Find inverse label e.g. '16:9' -> '9:16'
+            const parts = r.value.split(':');
+            const inverse = `${parts[1]}:${parts[0]}`;
+            const invIdx = ASPECT_RATIOS.findIndex(x => x.value === inverse);
+            if (invIdx !== -1 && r.value !== '1:1') {
+                this.selectAspectRatio(invIdx);
+            }
         });
 
         // ── Upload ──────────────────────────────────────────────────────────
@@ -614,9 +785,59 @@ export class ImagePanel {
     // ─────────────────────────────────────────────────────────────────────────
 
     private selectAspectRatio(idx: number) {
+        if (!this.overlay) return;
+        this.currentRatioIdx = idx;
         const r = ASPECT_RATIOS[idx];
-        const svgSrc = this.createPlaceholderSvg(r.w, r.h, r.label);
+        const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
+
+        // Update SVG placeholder preview
+        const svgSrc = this.createPlaceholderSvg(r.rw, r.rh, r.label);
         this.setPreviewImage(svgSrc, `placeholder-${r.label}`);
+
+        // Update active box dimensions in visual
+        const activeBox = q<HTMLElement>('#mm-ip-ar-active');
+        activeBox.style.width = r.vw + 'px';
+        activeBox.style.height = r.vh + 'px';
+        q<HTMLElement>('#mm-ip-ar-active-label').textContent = r.label;
+
+        // Inverse box (swapped dimensions)
+        const inverseBox = q<HTMLElement>('#mm-ip-ar-inverse');
+        const parts = r.value.split(':');
+        const inverseVal = `${parts[1]}:${parts[0]}`;
+        const inverseExists = ASPECT_RATIOS.some(x => x.value === inverseVal);
+        const canSwap = inverseExists && r.value !== '1:1';
+
+        const visual = q<HTMLElement>('#mm-ip-ar-visual');
+        const swapHint = q<HTMLElement>('#mm-ip-ar-swap-hint');
+        if (canSwap) {
+            inverseBox.style.width = r.vh + 'px';
+            inverseBox.style.height = r.vw + 'px';
+            inverseBox.style.display = '';
+            visual.classList.add('swappable');
+            swapHint.style.display = '';
+        } else {
+            inverseBox.style.display = 'none';
+            visual.classList.remove('swappable');
+            swapHint.style.display = 'none';
+        }
+
+        // Update slider
+        const slider = q<HTMLInputElement>('#mm-ip-ar-slider');
+        slider.value = String(idx);
+
+        // Update tick marks
+        this.overlay!.querySelectorAll<HTMLElement>('.mm-ip-ar-tick').forEach((tick, i) => {
+            tick.classList.toggle('active', i === idx);
+        });
+
+        // Update category buttons
+        this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-ar-cat').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.cat === r.category);
+        });
+
+        // Update reset button text
+        const resetBtn = q<HTMLButtonElement>('#mm-ip-ar-reset');
+        if (resetBtn) resetBtn.textContent = idx === 4 ? '重置 1:1' : '重置 1:1';
     }
 
     private createPlaceholderSvg(w: number, h: number, label: string): string {
