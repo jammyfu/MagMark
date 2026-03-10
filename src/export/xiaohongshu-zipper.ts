@@ -3,7 +3,7 @@
  * Creates carousel ZIP packages for Xiaohongshu
  */
 
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import { Readable } from 'stream';
 
 export interface XiaohongshuOptions {
@@ -51,7 +51,7 @@ export function getDimensions(
 ): { width: number; height: number; ratio: string } {
   const spec = PLATFORM_SPECS[variant];
   const multiplier = RESOLUTION_MULTIPLIERS[resolution];
-  
+
   return {
     width: spec.width * multiplier,
     height: spec.height * multiplier,
@@ -67,7 +67,7 @@ export function generateFilenames(
   options: { prefix?: string; format?: string } = {}
 ): string[] {
   const { prefix = 'xiaohongshu', format = 'jpg' } = options;
-  
+
   return Array.from({ length: count }, (_, i) => {
     const pageNum = String(i + 1).padStart(2, '0');
     return `${prefix}_${pageNum}.${format}`;
@@ -87,18 +87,18 @@ export async function createCarouselZip(
     sizeVariant = 'primary',
     resolution = 'standard',
   } = options;
-  
+
   return new Promise((resolve, reject) => {
     const archive = archiver('zip', {
       zlib: { level: 9 },
     });
-    
+
     const chunks: Buffer[] = [];
-    
+
     archive.on('data', (chunk) => chunks.push(chunk));
     archive.on('end', () => resolve(Buffer.concat(chunks)));
     archive.on('error', reject);
-    
+
     // Add metadata file
     const dimensions = getDimensions(sizeVariant, resolution);
     const metadata = {
@@ -111,22 +111,22 @@ export async function createCarouselZip(
       },
       createdAt: new Date().toISOString(),
     };
-    
+
     archive.append(JSON.stringify(metadata, null, 2), {
       name: 'metadata.json',
     });
-    
+
     // Add README
     const readme = generateReadme(imageBuffers.length, dimensions);
     archive.append(readme, { name: 'README.txt' });
-    
+
     // Add images
     const filenames = generateFilenames(imageBuffers.length, { format });
-    
+
     imageBuffers.forEach((buffer, i) => {
       archive.append(buffer, { name: filenames[i] });
     });
-    
+
     archive.finalize();
   });
 }
@@ -178,9 +178,9 @@ export function validateDimensions(
 ): { valid: boolean; ratio: number; expectedRatio: number } {
   const ratio = width / height;
   const expectedRatio = 3 / 4; // Xiaohongshu standard
-  
+
   const valid = Math.abs(ratio - expectedRatio) <= tolerance;
-  
+
   return { valid, ratio, expectedRatio };
 }
 
@@ -192,7 +192,7 @@ export function generatePreviewGrid(
   options: { columns?: number; gap?: number } = {}
 ): string {
   const { columns = 3, gap = 10 } = options;
-  
+
   const images = imageBuffers.map((buffer, i) => {
     const base64 = buffer.toString('base64');
     return `
@@ -202,7 +202,7 @@ export function generatePreviewGrid(
       </div>
     `;
   });
-  
+
   return `
 <!DOCTYPE html>
 <html>
@@ -268,14 +268,14 @@ export function estimateFileSize(
   options: { format?: string; quality?: number; resolution?: string } = {}
 ): string {
   const { format = 'jpg', quality = 85, resolution = 'standard' } = options;
-  
+
   const dimensions = getDimensions('primary', resolution as any);
   const pixels = dimensions.width * dimensions.height;
-  
+
   // Rough estimation
   const bytesPerPixel = format === 'png' ? 4 : quality / 100 * 0.5;
   const totalBytes = pixels * bytesPerPixel * pageCount;
-  
+
   if (totalBytes > 1024 * 1024 * 1024) {
     return `${(totalBytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
   } else if (totalBytes > 1024 * 1024) {

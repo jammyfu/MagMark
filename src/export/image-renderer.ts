@@ -76,18 +76,18 @@ export function getPlatformDimensions(
       return variant === 'alternative'
         ? PLATFORM_DIMENSIONS.xiaohongshu.alternative
         : PLATFORM_DIMENSIONS.xiaohongshu.primary;
-    
+
     case 'wechat':
       return PLATFORM_DIMENSIONS.wechat;
-    
+
     case 'cover':
       return PLATFORM_DIMENSIONS.cover;
-    
+
     case 'pdf':
       return variant === 'letter'
         ? PLATFORM_DIMENSIONS.pdf.letter
         : PLATFORM_DIMENSIONS.pdf.a4;
-    
+
     case 'web':
     default:
       return PLATFORM_DIMENSIONS.web;
@@ -106,7 +106,7 @@ export function generateRenderHtml(
   } = {}
 ): string {
   const { platform = 'web', darkMode = false, backgroundColor = '#ffffff' } = options;
-  
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -283,7 +283,7 @@ export async function exportImage(
   //   fullPage,
   // });
   // await browser.close();
-  
+
   // Return placeholder
   return Buffer.from('Image data would be generated here');
 }
@@ -293,13 +293,13 @@ export async function exportImage(
  */
 export async function exportImages(
   pages: string[],
-  options: ImageRenderOptions & { format?: ExportFormat } = {}
+  options: ImageRenderOptions & { exportFormat?: ExportFormat } = {}
 ): Promise<Buffer[]> {
-  const { platform = 'web', variant = 'single' } = options.format || {};
+  const { platform = 'web', variant = 'single' } = options.exportFormat || {};
   const dimensions = getPlatformDimensions(platform, variant);
-  
+
   const buffers: Buffer[] = [];
-  
+
   for (const page of pages) {
     const html = generateRenderHtml(page, { platform });
     const buffer = await exportImage(html, {
@@ -309,7 +309,7 @@ export async function exportImages(
     });
     buffers.push(buffer);
   }
-  
+
   return buffers;
 }
 
@@ -321,7 +321,7 @@ export async function combineToLongImage(
   options: ImageRenderOptions = {}
 ): Promise<Buffer> {
   const { width = 1080, scale = 2 } = options;
-  
+
   // Combine all pages into one HTML document
   const combinedHtml = `
 <!DOCTYPE html>
@@ -360,15 +360,15 @@ export async function exportXiaohongshuCarousel(
   const { resolution = 'standard' } = options;
   const { scale } = RESOLUTION_MODES[resolution];
   const { width, height } = PLATFORM_DIMENSIONS.xiaohongshu.primary;
-  
+
   const images = await exportImages(pages, {
-    format: { platform: 'xiaohongshu', variant: 'carousel' },
+    exportFormat: { platform: 'xiaohongshu', variant: 'carousel' },
     width: width * scale,
     height: height * scale,
     scale,
     format: 'png',
   });
-  
+
   return {
     images,
     dimensions: { width: width * scale, height: height * scale },
@@ -385,13 +385,13 @@ export async function exportWechatLongImage(
   const { resolution = 'standard' } = options;
   const { scale } = RESOLUTION_MODES[resolution];
   const { width } = PLATFORM_DIMENSIONS.wechat;
-  
+
   const image = await combineToLongImage(pages, {
     width: width * scale,
     scale,
     format: 'png',
   });
-  
+
   return {
     image,
     dimensions: { width: width * scale, height: 0 }, // Height determined by content
@@ -409,7 +409,7 @@ export async function exportAsZip(
   // const archiver = require('archiver');
   // const zip = archiver('zip');
   // ...add images to zip
-  
+
   return Buffer.from('ZIP data would be generated here');
 }
 
