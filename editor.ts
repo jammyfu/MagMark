@@ -2,6 +2,10 @@ import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/cor
 import { paginate, getPageDimensions } from './src/engine/layout';
 import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
+import { CoverPanel } from './src/cover/cover-panel';
+
+// Module-level cover HTML (null = no cover)
+let coverHtml: string | null = null;
 
 /**
  * 图片 Blob 存储 — 将大体积 data URL 存入内存，Markdown 中用短引用 mm-img://uuid
@@ -141,6 +145,27 @@ function renderPages() {
     requestAnimationFrame(() => {
         previewArea.innerHTML = '';
 
+        // ── Render cover page first if one is set ──────────────────────
+        if (coverHtml) {
+            const coverPage = document.createElement('div');
+            const formatClass = 'page-' + state.format;
+            coverPage.className = `page ${formatClass} mm-cover-page`;
+            coverPage.dataset.page = '0';
+            // Cover is visible only on page 0; real pages start at 1
+            const isCurrent = state.currentPage === 0;
+            coverPage.style.display = isCurrent ? 'block' : 'none';
+            (coverPage.style as any).zoom = String(state.scale);
+            coverPage.innerHTML = `<div class="mm-cover-wrap" style="width:100%;height:100%;overflow:hidden;">${coverHtml}</div>
+                <button class="mm-cover-remove-btn" title="移除封面">✕</button>`;
+            coverPage.querySelector('.mm-cover-remove-btn')!.addEventListener('click', (e) => {
+                e.stopPropagation();
+                coverHtml = null;
+                updateCoverBtn();
+                render();
+            });
+            previewArea.appendChild(coverPage);
+        }
+
         state.pageHtmls.forEach((pageData, i) => {
             const pageNum = i + 1;
             const page = document.createElement('div');
@@ -149,15 +174,10 @@ function renderPages() {
             page.dataset.page = String(pageNum);
             page.style.display = pageNum === state.currentPage ? 'block' : 'none';
 
-            // Apply scale transform
+            // Apply scale via CSS zoom — unlike transform, zoom affects layout flow
+            // so the preview area correctly adapts to the visual page size
             const scale = state.scale;
-            const dims = getPageDimensions(state.format);
-            page.style.transformOrigin = 'top center';
-            page.style.transform = `scale(${scale})`;
-            // Compensate margin so scaled page doesn't leave too much gap or overlap
-            const scaledH = dims.h * scale;
-            const deltaH = scaledH - dims.h;
-            page.style.marginBottom = `${Math.max(0, deltaH) + 32}px`;
+            (page.style as any).zoom = String(scale);
 
             // Apply page-level styles
             const s = pageData.settings;
@@ -200,7 +220,7 @@ function renderScroll(md: string) {
     const formatClass = 'page-' + state.format;
     const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
     previewArea.innerHTML = `
-        <div class="page ${formatClass} scrollable" style="transform-origin:top center;transform:scale(${state.scale})">
+        <div class="page ${formatClass} scrollable" style="zoom:${state.scale}">
             <div class="scroll-container ${magmarkClass}" lang="zh">${html}</div>
         </div>`;
     paginationBar.style.display = 'none';
@@ -464,8 +484,14 @@ function clearSelection() {
  * Returns a newline-joined string of top-level block HTML elements.
  * Each block becomes one pagination unit in the layout engine.
  */
+function stripFrontmatter(md: string): string {
+    // Strip YAML frontmatter: starts with `---` on line 1, ends with `---`
+    const match = md.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+    return match ? md.slice(match[0].length) : md;
+}
+
 function convertMarkdown(md: string): string {
-    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    const lines = stripFrontmatter(md).replace(/\r\n/g, '\n').split('\n');
     const blocks: string[] = [];
     let i = 0;
 
@@ -532,15 +558,27 @@ function convertMarkdown(md: string): string {
             row.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
 
         const headerCells = parseCells(tableLines[0]);
-        // Row 1 is separator (|:---|:---:|), skip it
+        // Row 1 is separator — parse alignment (:---|:---:|---:)
+        const sepCells = parseCells(tableLines[1]);
+        const aligns = sepCells.map(sep => {
+            const s = sep.trim();
+            if (s.startsWith(':') && s.endsWith(':')) return 'center';
+            if (s.endsWith(':')) return 'right';
+            return 'left';
+        });
         const dataRows = tableLines.slice(2);
 
-        const thead = `<thead><tr>${headerCells.map(c =>
-            `<th>${inlineMarkdown(c)}</th>`).join('')}</tr></thead>`;
+        const alignAttr = (idx: number) => {
+            const a = aligns[idx];
+            return a && a !== 'left' ? ` style="text-align:${a}"` : '';
+        };
+
+        const thead = `<thead><tr>${headerCells.map((c, j) =>
+            `<th${alignAttr(j)}>${inlineMarkdown(c)}</th>`).join('')}</tr></thead>`;
         const tbody = dataRows.length
             ? `<tbody>${dataRows.map(row =>
-                `<tr>${parseCells(row).map(c =>
-                    `<td>${inlineMarkdown(c)}</td>`).join('')}</tr>`
+                `<tr>${parseCells(row).map((c, j) =>
+                    `<td${alignAttr(j)}>${inlineMarkdown(c)}</td>`).join('')}</tr>`
             ).join('')}</tbody>`
             : '';
 
@@ -1248,6 +1286,41 @@ function deleteFigureFromMarkdown(figEl: HTMLElement) {
     debouncedRender();
 }
 
+// ── Cover helpers ────────────────────────────────────────────────────────────
+function updateCoverBtn() {
+    const btn = document.getElementById('btn-cover');
+    if (!btn) return;
+    if (coverHtml) {
+        btn.classList.add('has-cover');
+        btn.title = '封面已设置（点击重新生成）';
+    } else {
+        btn.classList.remove('has-cover');
+        btn.title = '生成封面';
+    }
+}
+
+// ── Zoom helpers ────────────────────────────────────────────────────────────
+function syncZoomUI(scale: number) {
+    const pct = Math.round(scale * 100);
+    const input = document.getElementById('zoom-value') as HTMLInputElement | null;
+    if (input) input.value = String(pct);
+}
+
+function applyZoom(scale: number) {
+    const clamped = Math.min(3, Math.max(0.25, Math.round(scale * 100) / 100));
+    store.setState({ scale: clamped });
+    syncZoomUI(clamped);
+    render();
+}
+
+function computeFitScale(): number {
+    const dims = getPageDimensions(store.getState().format);
+    const availW = previewArea.clientWidth - 64; // 32px padding each side
+    const raw = availW / dims.w;
+    // Round down to nearest 5%
+    return Math.floor(raw * 20) / 20;
+}
+
 /**
  * INITIALIZATION
  */
@@ -1315,23 +1388,30 @@ function init() {
         const formatSetting = getFormatDefaultSetting(fmt);
         // Auto-scale: xiaohongshu 1080px @ 75% is comfortable on most screens
         const autoScale = fmt === 'xiaohongshu' ? 0.75 : 1;
+        // Auto-suggest best font for format
+        const FORMAT_FONT_MAP: Partial<Record<AppState['format'], string>> = {
+            xiaohongshu: "'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+            mobile:      "'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+            a4:          "'Source Han Serif SC', 'Noto Serif SC', serif",
+            desktop:     "'Source Han Serif SC', 'Noto Serif SC', serif",
+        };
+        const autoFont = FORMAT_FONT_MAP[fmt] || "'Source Han Serif SC', 'Noto Serif SC', serif";
         store.setState({
             format: fmt,
             fontSize: formatSetting.fontSize,
             lineHeight: formatSetting.lineHeight,
             letterSpacing: formatSetting.letterSpacing,
+            fontFamily: autoFont,
             pageOverrides: {},
             blockOverrides: {},
             currentPage: 1,
             scale: autoScale,
         });
-        // Sync the scale dropdown to the nearest available option
-        const scaleEl = $<HTMLSelectElement>('#ctrl-scale');
-        const options = Array.from(scaleEl.options);
-        const best = options.reduce((prev, opt) =>
-            Math.abs(parseFloat(opt.value) - autoScale) < Math.abs(parseFloat(prev.value) - autoScale) ? opt : prev
-        );
-        scaleEl.value = best.value;
+        // Sync zoom input to auto-scale
+        syncZoomUI(autoScale);
+        // Sync font selector to auto-font
+        $<HTMLSelectElement>('#ctrl-font').value = autoFont;
+        document.documentElement.style.setProperty('--user-font-family', autoFont);
         syncControlsToPage(1);
         applyGlobalStyles();
         render();
@@ -1363,12 +1443,31 @@ function init() {
         debouncedRender();
     });
 
-    // Scale selector
-    $<HTMLSelectElement>('#ctrl-scale').addEventListener('change', (e) => {
-        const scale = parseFloat((e.target as HTMLSelectElement).value);
-        store.setState({ scale });
-        render();
+    // Zoom controls (Photoshop-style)
+    $('#zoom-out').addEventListener('click', () => applyZoom(store.getState().scale - 0.1));
+    $('#zoom-in').addEventListener('click',  () => applyZoom(store.getState().scale + 0.1));
+    $('#zoom-100').addEventListener('click', () => applyZoom(1));
+    $('#zoom-fit').addEventListener('click', () => applyZoom(computeFitScale()));
+    const zoomInput = $<HTMLInputElement>('#zoom-value');
+    zoomInput.addEventListener('change', (e) => {
+        const pct = parseFloat((e.target as HTMLInputElement).value);
+        if (!isNaN(pct)) applyZoom(pct / 100);
     });
+    zoomInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const pct = parseFloat((e.target as HTMLInputElement).value);
+            if (!isNaN(pct)) applyZoom(pct / 100);
+            (e.target as HTMLInputElement).blur();
+        }
+    });
+
+    // Ctrl/Cmd + scroll wheel to zoom
+    previewArea.addEventListener('wheel', (e) => {
+        const mod = navigator.platform.toUpperCase().includes('MAC') ? e.metaKey : e.ctrlKey;
+        if (!mod) return;
+        e.preventDefault();
+        applyZoom(store.getState().scale + (e.deltaY < 0 ? 0.05 : -0.05));
+    }, { passive: false });
 
     // Marquee drag \u2014 bind ONCE here, not in attachBlockListeners
     previewArea.addEventListener('mousedown', onMarqueeStart);
@@ -1411,6 +1510,18 @@ function init() {
         const inInput = focused && (focused.tagName === 'INPUT' || focused.tagName === 'SELECT');
         if (inTextarea || inInput) return;
 
+        // Zoom shortcuts (work even in textarea context)
+        const mod = e.ctrlKey || e.metaKey;
+        if (mod && (e.key === '=' || e.key === '+')) {
+            e.preventDefault(); applyZoom(store.getState().scale + 0.1); return;
+        } else if (mod && e.key === '-') {
+            e.preventDefault(); applyZoom(store.getState().scale - 0.1); return;
+        } else if (mod && e.key === '0') {
+            e.preventDefault(); applyZoom(computeFitScale()); return;
+        } else if (mod && e.key === '1') {
+            e.preventDefault(); applyZoom(1); return;
+        }
+
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
             e.preventDefault();
             navigate(1);
@@ -1425,6 +1536,21 @@ function init() {
 
     // Toolbar init
     initToolbar();
+
+    // Cover Panel
+    const coverPanel = new CoverPanel((html) => {
+        coverHtml = html;
+        updateCoverBtn();
+        render();
+    });
+
+    $('#btn-cover').addEventListener('click', () => {
+        // Auto-extract title from first H1 in markdown
+        const md = markdownInput.value;
+        const titleMatch = md.match(/^#\s+(.+)/m);
+        const title = titleMatch ? titleMatch[1].trim() : '';
+        coverPanel.open(title);
+    });
 
     // Image Panel — data URLs 自动存储为 mm-img://uuid 短引用
     const imagePanel = new ImagePanel((opts) => {
@@ -1904,7 +2030,7 @@ function resetAll() {
     $('#val-letterspacing').textContent = defaults.letterSpacing.toFixed(2) + 'em';
     $<HTMLSelectElement>('#ctrl-font').value = defaults.fontFamily;
     $<HTMLSelectElement>('#ctrl-format').value = defaults.format;
-    $<HTMLSelectElement>('#ctrl-scale').value = String(defaults.scale);
+    syncZoomUI(defaults.scale);
     $<HTMLSelectElement>('#ctrl-theme').value = defaults.theme;
     $<HTMLInputElement>('#chk-manual-pagination').checked = false;
     $<HTMLInputElement>('#chk-show-paragraph-dividers').checked = false;
