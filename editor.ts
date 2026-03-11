@@ -2,6 +2,10 @@ import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/cor
 import { paginate, getPageDimensions } from './src/engine/layout';
 import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
+import { CoverPanel } from './src/cover/cover-panel';
+
+// Module-level cover HTML (null = no cover)
+let coverHtml: string | null = null;
 
 /**
  * 图片 Blob 存储 — 将大体积 data URL 存入内存，Markdown 中用短引用 mm-img://uuid
@@ -140,6 +144,27 @@ function renderPages() {
     // Use requestAnimationFrame to allow paint before rebuilding
     requestAnimationFrame(() => {
         previewArea.innerHTML = '';
+
+        // ── Render cover page first if one is set ──────────────────────
+        if (coverHtml) {
+            const coverPage = document.createElement('div');
+            const formatClass = 'page-' + state.format;
+            coverPage.className = `page ${formatClass} mm-cover-page`;
+            coverPage.dataset.page = '0';
+            // Cover is visible only on page 0; real pages start at 1
+            const isCurrent = state.currentPage === 0;
+            coverPage.style.display = isCurrent ? 'block' : 'none';
+            (coverPage.style as any).zoom = String(state.scale);
+            coverPage.innerHTML = `<div class="mm-cover-wrap" style="width:100%;height:100%;overflow:hidden;">${coverHtml}</div>
+                <button class="mm-cover-remove-btn" title="移除封面">✕</button>`;
+            coverPage.querySelector('.mm-cover-remove-btn')!.addEventListener('click', (e) => {
+                e.stopPropagation();
+                coverHtml = null;
+                updateCoverBtn();
+                render();
+            });
+            previewArea.appendChild(coverPage);
+        }
 
         state.pageHtmls.forEach((pageData, i) => {
             const pageNum = i + 1;
@@ -1243,6 +1268,19 @@ function deleteFigureFromMarkdown(figEl: HTMLElement) {
     debouncedRender();
 }
 
+// ── Cover helpers ────────────────────────────────────────────────────────────
+function updateCoverBtn() {
+    const btn = document.getElementById('btn-cover');
+    if (!btn) return;
+    if (coverHtml) {
+        btn.classList.add('has-cover');
+        btn.title = '封面已设置（点击重新生成）';
+    } else {
+        btn.classList.remove('has-cover');
+        btn.title = '生成封面';
+    }
+}
+
 // ── Zoom helpers ────────────────────────────────────────────────────────────
 function syncZoomUI(scale: number) {
     const pct = Math.round(scale * 100);
@@ -1332,11 +1370,20 @@ function init() {
         const formatSetting = getFormatDefaultSetting(fmt);
         // Auto-scale: xiaohongshu 1080px @ 75% is comfortable on most screens
         const autoScale = fmt === 'xiaohongshu' ? 0.75 : 1;
+        // Auto-suggest best font for format
+        const FORMAT_FONT_MAP: Partial<Record<AppState['format'], string>> = {
+            xiaohongshu: "'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+            mobile:      "'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+            a4:          "'Source Han Serif SC', 'Noto Serif SC', serif",
+            desktop:     "'Source Han Serif SC', 'Noto Serif SC', serif",
+        };
+        const autoFont = FORMAT_FONT_MAP[fmt] || "'Source Han Serif SC', 'Noto Serif SC', serif";
         store.setState({
             format: fmt,
             fontSize: formatSetting.fontSize,
             lineHeight: formatSetting.lineHeight,
             letterSpacing: formatSetting.letterSpacing,
+            fontFamily: autoFont,
             pageOverrides: {},
             blockOverrides: {},
             currentPage: 1,
@@ -1344,6 +1391,9 @@ function init() {
         });
         // Sync zoom input to auto-scale
         syncZoomUI(autoScale);
+        // Sync font selector to auto-font
+        $<HTMLSelectElement>('#ctrl-font').value = autoFont;
+        document.documentElement.style.setProperty('--user-font-family', autoFont);
         syncControlsToPage(1);
         applyGlobalStyles();
         render();
@@ -1468,6 +1518,21 @@ function init() {
 
     // Toolbar init
     initToolbar();
+
+    // Cover Panel
+    const coverPanel = new CoverPanel((html) => {
+        coverHtml = html;
+        updateCoverBtn();
+        render();
+    });
+
+    $('#btn-cover').addEventListener('click', () => {
+        // Auto-extract title from first H1 in markdown
+        const md = markdownInput.value;
+        const titleMatch = md.match(/^#\s+(.+)/m);
+        const title = titleMatch ? titleMatch[1].trim() : '';
+        coverPanel.open(title);
+    });
 
     // Image Panel — data URLs 自动存储为 mm-img://uuid 短引用
     const imagePanel = new ImagePanel((opts) => {
