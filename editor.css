@@ -556,6 +556,80 @@ input:checked+.slider:before {
     transform: rotate(-180deg);
 }
 
+/* ---------- Zoom Controls ---------- */
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: nowrap;
+}
+
+.zoom-btn {
+    width: 22px;
+    height: 22px;
+    background: var(--ctrl-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+    letter-spacing: 0;
+    font-family: system-ui, sans-serif;
+}
+
+.zoom-btn:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.zoom-btn:active {
+    transform: scale(0.92);
+}
+
+.zoom-input {
+    width: 38px;
+    text-align: center;
+    background: var(--ctrl-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 12px;
+    padding: 2px 2px;
+    height: 22px;
+    font-family: system-ui, sans-serif;
+}
+
+.zoom-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Hide number input spinners */
+.zoom-input::-webkit-inner-spin-button,
+.zoom-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.zoom-input { -moz-appearance: textfield; }
+
+.zoom-pct {
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.zoom-preset {
+    font-size: 10px;
+    padding: 0 5px;
+    width: auto;
+    min-width: 24px;
+    letter-spacing: 0;
+}
+
 
 /* ---------- Preview Area ---------- */
 .preview-area {
