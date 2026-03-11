@@ -53,6 +53,10 @@ function isPreBlock(html: string): boolean {
     return /^\s*<pre[\s>]/i.test(html);
 }
 
+function isTableBlock(html: string): boolean {
+    return /^\s*<table[\s>]/i.test(html);
+}
+
 function collectTextNodes(root: Node): Text[] {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
@@ -330,6 +334,82 @@ function splitPreBlock(
     };
 }
 
+function splitTableBlock(
+    html: string,
+    remainingHeight: number,
+    availableH: number,
+    measurer: HTMLElement,
+    settings: PageSetting,
+    blockOverride: PageSetting | undefined,
+    fontFamily: string
+): { before: string; after: string; beforeHeight: number } | null {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    const table = wrapper.firstElementChild as HTMLTableElement | null;
+    if (!table || table.tagName !== 'TABLE') return null;
+
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return null;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length < 2) return null;
+
+    let low = 1;
+    let high = rows.length - 1;
+    let bestCount = -1;
+    let bestHeight = 0;
+
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+
+        // Before table: thead + first N rows
+        const beforeTable = table.cloneNode(false) as HTMLTableElement;
+        if (thead) beforeTable.appendChild(thead.cloneNode(true));
+        const beforeTbody = document.createElement('tbody');
+        rows.slice(0, mid).forEach(r => beforeTbody.appendChild(r.cloneNode(true)));
+        beforeTable.appendChild(beforeTbody);
+
+        // After table: thead (repeated for continuity) + remaining rows
+        const afterTable = table.cloneNode(false) as HTMLTableElement;
+        if (thead) afterTable.appendChild(thead.cloneNode(true));
+        const afterTbody = document.createElement('tbody');
+        rows.slice(mid).forEach(r => afterTbody.appendChild(r.cloneNode(true)));
+        afterTable.appendChild(afterTbody);
+
+        const beforeHeight = measureBlock(beforeTable.outerHTML, measurer, settings, blockOverride, fontFamily);
+        const afterHeight = measureBlock(afterTable.outerHTML, measurer, settings, blockOverride, fontFamily);
+
+        if (beforeHeight <= remainingHeight && afterHeight <= availableH) {
+            bestCount = mid;
+            bestHeight = beforeHeight;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    if (bestCount === -1) return null;
+
+    const beforeTable = table.cloneNode(false) as HTMLTableElement;
+    if (thead) beforeTable.appendChild(thead.cloneNode(true));
+    const beforeTbody = document.createElement('tbody');
+    rows.slice(0, bestCount).forEach(r => beforeTbody.appendChild(r.cloneNode(true)));
+    beforeTable.appendChild(beforeTbody);
+
+    const afterTable = table.cloneNode(false) as HTMLTableElement;
+    if (thead) afterTable.appendChild(thead.cloneNode(true));
+    const afterTbody = document.createElement('tbody');
+    rows.slice(bestCount).forEach(r => afterTbody.appendChild(r.cloneNode(true)));
+    afterTable.appendChild(afterTbody);
+
+    return {
+        before: beforeTable.outerHTML,
+        after: afterTable.outerHTML,
+        beforeHeight: bestHeight,
+    };
+}
+
 /**
  * Measure a block's full rendered height including CSS margins (getComputedStyle).
  * The measurer must already be in the DOM with the correct width set.
@@ -445,10 +525,13 @@ export async function paginate(
         'z-index:-1',
         'transform:none',
         'display:block',
+        'height:auto',       // override page-xiaohongshu: height:1440px
+        'overflow:visible',  // override page-xiaohongshu: overflow:hidden
     ].join(';');
     const measurer = document.createElement('div');
     measurer.className = 'page-content magmark';
     measurer.style.width = `${dim.w - dim.pl - dim.pr}px`;
+    measurer.style.transition = 'none'; // prevent font-size transitions during measurement
     measurePage.appendChild(measurer);
     document.body.appendChild(measurePage);
 
@@ -581,6 +664,33 @@ export async function paginate(
 
             if (isParagraphBlock(block)) {
                 const split = splitParagraphBlock(
+                    block,
+                    availableH - measureCurrentPage(settings),
+                    availableH,
+                    measurer,
+                    settings,
+                    blockOver,
+                    state.fontFamily
+                );
+
+                if (split) {
+                    const splitCandidateBlocks = [...pageBlocks, split.before];
+                    const splitCandidateHeight = measurePageContent(splitCandidateBlocks, measurer, settings, state.fontFamily);
+
+                    if (splitCandidateHeight <= availableH) {
+                        pageBlocks.push(split.before);
+                        pageHeights.push(split.beforeHeight);
+                        pageHeight = splitCandidateHeight;
+                        workBlocks[idx] = split.after;
+                        preHeights[idx] = remeasure(split.after, settings, blockOver);
+                        flushPage(settings);
+                        continue;
+                    }
+                }
+            }
+
+            if (isTableBlock(block)) {
+                const split = splitTableBlock(
                     block,
                     availableH - measureCurrentPage(settings),
                     availableH,

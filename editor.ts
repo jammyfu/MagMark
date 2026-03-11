@@ -484,8 +484,14 @@ function clearSelection() {
  * Returns a newline-joined string of top-level block HTML elements.
  * Each block becomes one pagination unit in the layout engine.
  */
+function stripFrontmatter(md: string): string {
+    // Strip YAML frontmatter: starts with `---` on line 1, ends with `---`
+    const match = md.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+    return match ? md.slice(match[0].length) : md;
+}
+
 function convertMarkdown(md: string): string {
-    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    const lines = stripFrontmatter(md).replace(/\r\n/g, '\n').split('\n');
     const blocks: string[] = [];
     let i = 0;
 
@@ -552,15 +558,27 @@ function convertMarkdown(md: string): string {
             row.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
 
         const headerCells = parseCells(tableLines[0]);
-        // Row 1 is separator (|:---|:---:|), skip it
+        // Row 1 is separator — parse alignment (:---|:---:|---:)
+        const sepCells = parseCells(tableLines[1]);
+        const aligns = sepCells.map(sep => {
+            const s = sep.trim();
+            if (s.startsWith(':') && s.endsWith(':')) return 'center';
+            if (s.endsWith(':')) return 'right';
+            return 'left';
+        });
         const dataRows = tableLines.slice(2);
 
-        const thead = `<thead><tr>${headerCells.map(c =>
-            `<th>${inlineMarkdown(c)}</th>`).join('')}</tr></thead>`;
+        const alignAttr = (idx: number) => {
+            const a = aligns[idx];
+            return a && a !== 'left' ? ` style="text-align:${a}"` : '';
+        };
+
+        const thead = `<thead><tr>${headerCells.map((c, j) =>
+            `<th${alignAttr(j)}>${inlineMarkdown(c)}</th>`).join('')}</tr></thead>`;
         const tbody = dataRows.length
             ? `<tbody>${dataRows.map(row =>
-                `<tr>${parseCells(row).map(c =>
-                    `<td>${inlineMarkdown(c)}</td>`).join('')}</tr>`
+                `<tr>${parseCells(row).map((c, j) =>
+                    `<td${alignAttr(j)}>${inlineMarkdown(c)}</td>`).join('')}</tr>`
             ).join('')}</tbody>`
             : '';
 
