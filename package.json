@@ -97,5 +97,9 @@
     "playwright-core": {
       "optional": true
     }
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-arm64-gnu": "4.59.0",
+    "@rollup/wasm-node": "4.59.0"
   }
 }

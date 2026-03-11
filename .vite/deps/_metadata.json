@@ -1,0 +1,15 @@
+{
+  "hash": "4623b077",
+  "configHash": "8283d071",
+  "lockfileHash": "f67bd509",
+  "browserHash": "d18a4a21",
+  "optimized": {
+    "html-to-image": {
+      "src": "../../../MagMark/node_modules/html-to-image/es/index.js",
+      "file": "html-to-image.js",
+      "fileHash": "ceccd0f2",
+      "needsInterop": false
+    }
+  },
+  "chunks": {}
+}
