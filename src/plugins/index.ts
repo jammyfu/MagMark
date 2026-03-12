@@ -1,5 +1,5 @@
 /**
- * MagMark 1.5.0 - Plugins Package
+ * MagMark 1.6.0 - Plugins Package
  * Export all remark/rehype plugins for markdown transformation
  */
 
@@ -87,7 +87,7 @@ export function createMagazinePipeline(options: PipelineOptions = {}) {
       autoSpaceCjk: options.autoSpaceCjk !== false,
       preventWidows: options.preventWidows !== false,
       fullBleedImages: options.fullBleedImages !== false,
-      platform: options.platform || 'web',
+      platform: (options.platform || 'web') as any,
       classPrefix: options.classPrefix || 'mm-'
     })
   ];

@@ -1,5 +1,5 @@
 /**
- * MagMark 1.5.0 - Core Class
+ * MagMark 1.6.0 - Core Class
  * Main API for magazine-quality markdown conversion
  */
 import { unified } from 'unified';

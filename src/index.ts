@@ -1,5 +1,5 @@
 /**
- * MagMark 2.0 - Main Entry Point
+ * MagMark 1.6.0 - Professional Refactored Entry Point
  * World-class magazine-quality markdown converter
  */
 
@@ -104,4 +104,5 @@ export type {
 export { default as designTokens } from '../design-tokens/v2.0.json';
 
 // Version
-export const VERSION = '1.5.0';
+import { version } from '../package.json';
+export const VERSION = version;

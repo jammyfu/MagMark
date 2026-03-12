@@ -3,6 +3,7 @@ import { paginate, getPageDimensions } from './src/engine/layout';
 import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
 import { CoverPanel } from './src/cover/cover-panel';
+import { version } from './package.json';
 
 // Module-level cover HTML (null = no cover)
 let coverHtml: string | null = null;
@@ -27,7 +28,7 @@ function resolveImageSrc(src: string): string {
 }
 
 /**
- * MagMark 1.5.0 - Professional Refactored Entry
+ * MagMark 1.6.0 - Professional Refactored Entry
  * (C) 2026 Editorial Elite System
  *
  * 排版增强层：
@@ -40,6 +41,21 @@ function resolveImageSrc(src: string): string {
 declare const Han: ((el: Element) => { render(): void }) | undefined;
 
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
+
+/**
+ * Update UI version strings from package.json
+ */
+function updateUIVersion() {
+    document.title = `MagMark ${version} — Ultra-Precision Magazine Markdown Editor`;
+    const logoVersion = $('.logo-version');
+    if (logoVersion) logoVersion.textContent = version;
+    
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+        metaDesc.setAttribute('content', metaDesc.getAttribute('content')!.replace(/MagMark [\d\.]+/, `MagMark ${version}`));
+    }
+}
+updateUIVersion();
 
 // UI Elements
 const markdownInput = $('#markdown-input') as HTMLTextAreaElement;
@@ -2067,7 +2083,7 @@ async function exportPng() {
         });
 
         const link = document.createElement('a');
-        link.download = `MagMark-1.5.0-Page-${state.currentPage}.png`;
+        link.download = `MagMark-${version}-Page-${state.currentPage}.png`;
         link.href = dataUrl;
         link.click();
     } catch (e) {

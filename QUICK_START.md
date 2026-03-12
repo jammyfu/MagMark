@@ -1,6 +1,6 @@
-# 🚀 MagMark 1.5.0 - 5 分钟快速开始指南
+# 🚀 MagMark 1.6.0 - 5 分钟快速开始指南
 
-本指南帮助你快速体验 MagMark 1.5.0 的精美排版效果。
+本指南帮助你快速体验 MagMark 1.6.0 的精美排版效果。
 
 ---
 
@@ -223,7 +223,7 @@ npm run dev
 
 1. **深入自定义**: 修改 `design-tokens/` 下的配置调整样式
 2. **扩展功能**: 添加新的 Remark/Rehype plugins
-3. **集成项目**: 将 MagMark 1.5.0 嵌入你的应用中
+3. **集成项目**: 将 MagMark 1.6.0 嵌入你的应用中
 4. **贡献代码**: Fork 仓库并提交 PR
 
 对于高级定制和 API 用法，请阅读 **[README.md](README.md)** 的 API Reference 部分。
