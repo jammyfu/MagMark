@@ -104,7 +104,7 @@ function debounce(fn: Function, delay: number) {
 /**
  * MAIN RENDER PIPELINE
  */
-async function render() {
+async function render(stabilized = false) {
     const state = store.getState();
     const md = markdownInput.value;
     store.setState({ md });
@@ -127,7 +127,7 @@ async function render() {
         const nextCurrentPage = Math.min(store.getState().currentPage, Math.max(1, pages.length));
         store.setState({ pageHtmls: pages, totalPages: pages.length, currentPage: nextCurrentPage });
 
-        renderPages();
+        renderPages(stabilized);
     } else {
         renderScroll(md);
     }
@@ -149,13 +149,17 @@ function finalizePaginationUpdate() {
  * Multi-Page Display Logic
  * Uses opacity fade to prevent flash-of-blank during re-render
  */
-function renderPages() {
+function renderPages(stabilized = false) {
     const state = store.getState();
     const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
+    const shouldFade = !stabilized;
 
-    // Fade-to-invisible first to prevent blank flash
-    previewArea.style.opacity = '0';
-    previewArea.style.transition = 'opacity 0.12s ease';
+    if (shouldFade) {
+        // Only hide the preview on the first pass. The stabilized pass should
+        // swap in quietly so format/theme switches do not visibly double-flash.
+        previewArea.style.opacity = '0';
+        previewArea.style.transition = 'opacity 0.12s ease';
+    }
 
     // Use requestAnimationFrame to allow paint before rebuilding
     requestAnimationFrame(() => {
@@ -170,7 +174,8 @@ function renderPages() {
             // Cover is visible only on page 0; real pages start at 1
             const isCurrent = state.currentPage === 0;
             coverPage.style.display = isCurrent ? 'block' : 'none';
-            (coverPage.style as any).zoom = String(state.scale);
+            coverPage.style.setProperty('--page-scale', String(state.scale));
+            coverPage.style.marginBottom = `${Math.max(0, getPageDimensions(state.format).h * state.scale - getPageDimensions(state.format).h) + 32}px`;
             coverPage.innerHTML = `<div class="mm-cover-wrap" style="width:100%;height:100%;overflow:hidden;">${coverHtml}</div>
                 <button class="mm-cover-remove-btn" title="移除封面">✕</button>`;
             coverPage.querySelector('.mm-cover-remove-btn')!.addEventListener('click', (e) => {
@@ -190,10 +195,9 @@ function renderPages() {
             page.dataset.page = String(pageNum);
             page.style.display = pageNum === state.currentPage ? 'block' : 'none';
 
-            // Apply scale via CSS zoom — unlike transform, zoom affects layout flow
-            // so the preview area correctly adapts to the visual page size
             const scale = state.scale;
-            (page.style as any).zoom = String(scale);
+            page.style.setProperty('--page-scale', String(scale));
+            page.style.marginBottom = `${Math.max(0, getPageDimensions(state.format).h * scale - getPageDimensions(state.format).h) + 32}px`;
 
             // Apply page-level styles
             const s = pageData.settings;
@@ -222,11 +226,17 @@ function renderPages() {
         renderPageStrip();
         fixRenderedPageImages();
 
-        // Fade back in，然后触发 Han.css 排印处理
+        // Run Han.css after DOM is attached. If we need a stabilization pass,
+        // keep this first paint hidden and reveal only after the final pass.
         requestAnimationFrame(() => {
+            initHanTypography();
+            // Han.css 会插入额外排印节点，初始化后高度可能变化。
+            // 对分页视图补做一次稳定化分页，避免“初始化能塞下，缩放后却换页”。
+            if (!stabilized && store.getState().viewMode === 'multi') {
+                requestAnimationFrame(() => render(true));
+                return;
+            }
             previewArea.style.opacity = '1';
-            // 延迟一帧确保 DOM 完全可见后再处理 Han.css
-            requestAnimationFrame(initHanTypography);
         });
     });
 }
@@ -278,7 +288,7 @@ function renderScroll(md: string) {
     const formatClass = 'page-' + state.format;
     const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
     previewArea.innerHTML = `
-        <div class="page ${formatClass} scrollable" style="zoom:${state.scale}">
+        <div class="page ${formatClass} scrollable" style="--page-scale:${state.scale};transform:scale(var(--page-scale));margin-bottom:${Math.max(0, getPageDimensions(state.format).h * state.scale - getPageDimensions(state.format).h) + 32}px">
             <div class="scroll-container ${magmarkClass}" lang="zh">${html}</div>
         </div>`;
     paginationBar.style.display = 'none';
@@ -397,6 +407,22 @@ function showToolbar(els: HTMLElement | HTMLElement[]) {
 
     const bid = primary.dataset.blockId!;
     const state = store.getState();
+    const isSingleFigure = elArray.length === 1 && primary.classList.contains('mm-figure');
+    toolbar.querySelectorAll<HTMLElement>('.toolbar-typography-item').forEach(item => {
+        item.style.display = isSingleFigure ? 'none' : 'flex';
+    });
+    const imageToolbar = toolbar.querySelector<HTMLElement>('#toolbar-image-align');
+    if (imageToolbar) imageToolbar.style.display = isSingleFigure ? 'flex' : 'none';
+
+    if (isSingleFigure) {
+        const activeLayout = (['float-left', 'center', 'float-right', 'full'] as const)
+            .find(layout => primary.classList.contains(`mm-${layout}`)) || 'center';
+        toolbar.querySelectorAll<HTMLElement>('.toolbar-align-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.id === `toolbar-align-${activeLayout.replace('float-', '')}`);
+        });
+        return;
+    }
+
     const over = state.blockOverrides[bid] || {
         fontSize: parseInt(getComputedStyle(primary).fontSize),
         lineHeight: parseFloat(getComputedStyle(primary).lineHeight) / parseInt(getComputedStyle(primary).fontSize) || 1.75,
@@ -833,10 +859,12 @@ function buildFigureHtml(src: string, alt: string, title: string, attrStr: strin
     // Resolve mm-img:// references to actual data URLs
     const resolvedSrc = resolveImageSrc(src);
 
-    const figStyle = layout === 'float-left' || layout === 'float-right'
-        ? (width ? ` style="width:${escapeAttr(width)}"` : '')
+    const figStyle = width && layout !== 'full'
+        ? ` style="width:${escapeAttr(width)}"`
         : '';
-    const imgStyle = layout === 'center' && width ? ` style="width:${escapeAttr(width)}"` : '';
+    const imgStyle = (layout === 'full' || !!width)
+        ? ' style="width:100%;height:auto"'
+        : '';
     const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
     // Use explicit caption if provided, otherwise use alt (if non-empty and not a UUID ref)
     const displayCaption = caption || (alt && !alt.startsWith('mm-img://') ? alt : '');
@@ -940,7 +968,7 @@ function renderPageStrip() {
             thumb.innerHTML = `<span class="pt-num">${i}</span>`;
             thumb.addEventListener('click', () => {
                 store.setState({ currentPage: i });
-                renderPages();
+                renderPages(true);
                 syncControlsToPage(i);
             });
             strip.appendChild(thumb);
@@ -1454,6 +1482,45 @@ function updateFigureWidthInMarkdown(figEl: HTMLElement, widthStr: string) {
     debouncedRender();
 }
 
+function updateFigureLayoutInMarkdown(figEl: HTMLElement, layout: 'float-left' | 'center' | 'float-right' | 'full') {
+    const originalSrc = figEl.dataset.mmSrc || '';
+    const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
+    const alt = imgEl?.alt || '';
+    const md = markdownInput.value;
+    const lines = md.split('\n');
+
+    let targetLine = -1;
+    for (let j = 0; j < lines.length; j++) {
+        const line = lines[j];
+        if (!line.includes('![')) continue;
+        if (originalSrc && line.includes(originalSrc)) { targetLine = j; break; }
+        if (alt && line.includes(`![${alt}]`)) { targetLine = j; break; }
+    }
+    if (targetLine === -1) return;
+
+    const line = lines[targetLine];
+    const layoutToken = layout === 'center' ? '' : `.${layout}`;
+    let newLine: string;
+
+    if (line.includes('{')) {
+        newLine = line.replace(/\{([^}]*)\}/, (_match, inner) => {
+            const tokens = inner
+                .split(/\s+/)
+                .filter(Boolean)
+                .filter(token => !['.float-left', '.float-right', '.full', '.center'].includes(token));
+            if (layoutToken) tokens.unshift(layoutToken);
+            return `{${tokens.join(' ')}}`;
+        });
+    } else {
+        newLine = layoutToken ? `${line.trimEnd()}{${layoutToken}}` : line;
+    }
+
+    lines[targetLine] = newLine;
+    markdownInput.value = lines.join('\n');
+    markdownInput.dispatchEvent(new Event('input'));
+    debouncedRender();
+}
+
 // ── Resize drag state ──────────────────────────────────────────────────────
 interface FigResizeDrag {
     figEl: HTMLElement;
@@ -1487,11 +1554,25 @@ function syncZoomUI(scale: number) {
     if (input) input.value = String(pct);
 }
 
+function getRequestedZoomScale(): number {
+    const input = document.getElementById('zoom-value') as HTMLInputElement | null;
+    const typedPct = input ? parseFloat(input.value) : NaN;
+    if (!Number.isNaN(typedPct) && typedPct > 0) {
+        return typedPct / 100;
+    }
+    return store.getState().scale;
+}
+
 function applyZoom(scale: number) {
     const clamped = Math.min(3, Math.max(0.25, Math.round(scale * 100) / 100));
     store.setState({ scale: clamped });
     syncZoomUI(clamped);
-    render();
+    const state = store.getState();
+    if (state.viewMode === 'multi') {
+        renderPages(true);
+    } else {
+        renderScroll(markdownInput.value);
+    }
 }
 
 function computeFitScale(): number {
@@ -1625,8 +1706,8 @@ function init() {
     });
 
     // Zoom controls (Photoshop-style)
-    $('#zoom-out').addEventListener('click', () => applyZoom(store.getState().scale - 0.1));
-    $('#zoom-in').addEventListener('click',  () => applyZoom(store.getState().scale + 0.1));
+    $('#zoom-out').addEventListener('click', () => applyZoom(getRequestedZoomScale() - 0.1));
+    $('#zoom-in').addEventListener('click',  () => applyZoom(getRequestedZoomScale() + 0.1));
     $('#zoom-100').addEventListener('click', () => applyZoom(1));
     $('#zoom-fit').addEventListener('click', () => applyZoom(computeFitScale()));
     const zoomInput = $<HTMLInputElement>('#zoom-value');
@@ -1778,6 +1859,28 @@ function init() {
             imagePanel.open();
         });
     }
+
+    [
+        ['toolbar-align-left', 'float-left'],
+        ['toolbar-align-center', 'center'],
+        ['toolbar-align-right', 'float-right'],
+        ['toolbar-align-full', 'full'],
+    ].forEach(([id, layout]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            const bid = store.getState().selectedBlockId;
+            if (!bid) return;
+            const figEl = previewArea.querySelector(`[data-block-id="${bid}"]`) as HTMLElement | null;
+            if (!figEl || !figEl.classList.contains('mm-figure')) return;
+
+            figEl.classList.remove('mm-float-left', 'mm-center', 'mm-float-right', 'mm-full');
+            figEl.classList.add(`mm-${layout}`);
+            updateFigureLayoutInMarkdown(figEl, layout as 'float-left' | 'center' | 'float-right' | 'full');
+            showToolbar(figEl);
+            render();
+        });
+    });
 
     // Figure interaction — event delegation covers dynamically injected action buttons
     previewArea.addEventListener('click', (e) => {
@@ -1944,7 +2047,7 @@ function navigate(dir: number) {
     if (target < 1 || target > state.totalPages) return;
 
     store.setState({ currentPage: target });
-    renderPages();
+    renderPages(true);
     syncControlsToPage(target);
 }
 

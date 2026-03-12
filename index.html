@@ -197,20 +197,29 @@
 
     <!-- Block Floating Toolbar -->
     <div id="block-toolbar" class="floating-toolbar" style="display: none;">
-        <div class="toolbar-item">
+        <div class="toolbar-item toolbar-typography-item">
             <label>字号</label>
             <input type="range" id="toolbar-fontsize" min="10" max="64" step="1">
             <span class="toolbar-val" id="toolbar-val-fontsize">14px</span>
         </div>
-        <div class="toolbar-item">
+        <div class="toolbar-item toolbar-typography-item">
             <label>行高</label>
             <input type="range" id="toolbar-lineheight" min="1" max="3" step="0.05">
             <span class="toolbar-val" id="toolbar-val-lineheight">1.75</span>
         </div>
-        <div class="toolbar-item">
+        <div class="toolbar-item toolbar-typography-item">
             <label>间距</label>
             <input type="range" id="toolbar-letterspacing" min="-0.1" max="0.5" step="0.01">
             <span class="toolbar-val" id="toolbar-val-letterspacing">0.01</span>
+        </div>
+        <div class="toolbar-item toolbar-image-item" id="toolbar-image-align" style="display:none;">
+            <label>对齐</label>
+            <div class="toolbar-align-group">
+                <button id="toolbar-align-left" class="toolbar-btn toolbar-align-btn" title="左对齐">左</button>
+                <button id="toolbar-align-center" class="toolbar-btn toolbar-align-btn" title="居中">中</button>
+                <button id="toolbar-align-right" class="toolbar-btn toolbar-align-btn" title="右对齐">右</button>
+                <button id="toolbar-align-full" class="toolbar-btn toolbar-align-btn" title="全宽">满</button>
+            </div>
         </div>
         <div class="toolbar-divider"></div>
         <!-- Insert image above: up-arrow pointing up, divider line, image rect on top -->

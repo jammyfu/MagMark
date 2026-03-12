@@ -706,6 +706,7 @@ input:checked+.slider:before {
     position: relative;
     overflow: hidden;
     flex-shrink: 0;
+    transform-origin: top center;
     transition: box-shadow var(--transition), background 0.5s, color 0.5s;
 }
 
@@ -715,8 +716,8 @@ input:checked+.slider:before {
 
 /* Page enter animation */
 @keyframes pageEnter {
-    from { opacity: 0; transform: translateY(8px) scale(var(--page-enter-scale, 1)); }
-    to   { opacity: 1; transform: translateY(0)  scale(var(--page-enter-scale, 1)); }
+    from { opacity: 0; transform: translateY(8px) scale(var(--page-scale, 1)); }
+    to   { opacity: 1; transform: translateY(0)  scale(var(--page-scale, 1)); }
 }
 
 .page[data-page] {
@@ -1396,6 +1397,26 @@ input:checked+.slider:before {
     border-color: var(--th-primary);
 }
 
+.toolbar-align-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-align-btn {
+    min-width: 28px;
+    width: auto;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.toolbar-align-btn.active {
+    background: var(--th-primary);
+    color: #fff;
+    border-color: var(--th-primary);
+}
+
 /* ── Block Editing Highlights ── */
 .magmark>* {
     transition: outline 0.2s, box-shadow 0.2s;
@@ -1704,11 +1725,16 @@ input:checked+.slider:before {
     margin: 1.2em 0;
     page-break-inside: avoid;
     break-inside: avoid;
+    display: flow-root;
+    max-width: 100%;
+    width: fit-content;
 }
 
 .magmark figure.mm-figure img {
     border-radius: 8px;
     display: block;
+    max-width: 100%;
+    height: auto;
 }
 
 .magmark figure.mm-figure figcaption {
@@ -1723,6 +1749,9 @@ input:checked+.slider:before {
 /* 居中（默认） */
 .magmark figure.mm-center {
     text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    clear: both;
 }
 .magmark figure.mm-center img {
     margin: 0 auto;
