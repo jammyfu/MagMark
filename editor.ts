@@ -306,7 +306,23 @@ function attachBlockListeners() {
 
         b.addEventListener('click', (e) => {
             if ((e.target as HTMLElement).closest('.mm-fig-actions')) return;
+            // Don't intercept clicks on resize handles — let pointerdown handle them
+            if ((e.target as HTMLElement).closest('.mm-fig-handle')) return;
             e.stopPropagation();
+
+            // ── Figure: toggle resize handles selection ────────────────────
+            if (b.classList.contains('mm-figure')) {
+                previewArea.querySelectorAll('figure.mm-figure.mm-fig-selected').forEach(f => {
+                    if (f !== b) f.classList.remove('mm-fig-selected');
+                });
+                b.classList.toggle('mm-fig-selected');
+            } else {
+                // Non-figure block clicked → clear all figure selections
+                previewArea.querySelectorAll('figure.mm-figure.mm-fig-selected').forEach(f => {
+                    f.classList.remove('mm-fig-selected');
+                });
+            }
+
             const me = e as MouseEvent;
             if (me.shiftKey) {
                 shiftSelectBlock(b);
