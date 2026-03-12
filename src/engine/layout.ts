@@ -59,6 +59,92 @@ function isTableBlock(html: string): boolean {
     return /^\s*<table[\s>]/i.test(html);
 }
 
+/**
+ * Pre-set explicit pixel dimensions on any <img> elements inside the measurement
+ * container so the browser can correctly calculate `offsetHeight` before images finish
+ * loading.
+ *
+ * Why this is needed:
+ *   Images with `height: auto` report offsetHeight = 0 when their intrinsic size is
+ *   not yet known (image still decoding). This makes the layout engine think an image
+ *   block is negligibly small, so it places the block on the current page. When the
+ *   page actually renders and the image decodes to its real dimensions, the content
+ *   overflows the page boundary and gets clipped by `overflow: hidden`.
+ *
+ * Strategy (synchronous, no awaiting required):
+ *   1. If img.complete && naturalWidth > 0  → image already decoded; use natural dims.
+ *   2. If src is a data:image/svg+xml URI   → parse width/height from SVG markup.
+ *   3. If src is a data:image/png;base64 URI → create a temp Image to get natural dims
+ *      synchronously (base64 data URIs decode synchronously in all major browsers).
+ *   4. Otherwise (remote URL not yet loaded) → leave as-is (can't know dimensions
+ *      synchronously; the page-overflow fallback will push it to the next page once
+ *      measured again on the second page).
+ */
+function fixImageDimensions(container: HTMLElement): void {
+    const containerW = container.clientWidth || 400;
+
+    container.querySelectorAll<HTMLImageElement>('img').forEach(img => {
+        // Skip images that already have explicit CSS height set
+        if (img.style.height || img.style.width) return;
+
+        // ── Inline vs block distinction ──────────────────────────────────────
+        // Inline images (badges, icons) live inside <p>, <a>, <li>, etc.
+        // Their natural height is tiny (20–40 px) so measuring them as 0-height
+        // while they're loading is fine — the paragraph's font-based line height
+        // dominates anyway.
+        //
+        // Block images live inside <figure> elements and ARE the whole block.
+        // If we leave them at 0-height the paginator thinks the block is empty
+        // and puts it on the current page; when the image finally loads it
+        // overflows the page boundary and gets clipped.
+        //
+        // Therefore: only apply dimension-fixing to <figure> images.
+        const isBlockImage = !!img.closest('figure');
+        if (!isBlockImage) return;
+
+        let natW = 0, natH = 0;
+
+        if (img.complete && img.naturalWidth > 0) {
+            // Already decoded (cached or data URI resolved)
+            natW = img.naturalWidth;
+            natH = img.naturalHeight;
+        } else if (img.src.startsWith('data:image/svg+xml')) {
+            // Parse dimensions from inline SVG source
+            try {
+                const comma = img.src.indexOf(',');
+                const raw   = img.src.slice(comma + 1);
+                const text  = img.src.includes(';base64,') ? atob(raw) : decodeURIComponent(raw);
+                const wm = text.match(/\bwidth="(\d+(?:\.\d+)?)"/);
+                const hm = text.match(/\bheight="(\d+(?:\.\d+)?)"/);
+                if (wm && hm) { natW = parseFloat(wm[1]); natH = parseFloat(hm[1]); }
+            } catch { /* ignore malformed SVG */ }
+        } else if (img.src.startsWith('data:image/')) {
+            // For other data URIs (PNG, JPEG, etc.), probe with a temp Image object.
+            // This is synchronous for data URIs that have already been decoded.
+            try {
+                const probe = new Image();
+                probe.src = img.src;
+                if (probe.complete && probe.naturalWidth > 0) {
+                    natW = probe.naturalWidth;
+                    natH = probe.naturalHeight;
+                }
+            } catch { /* ignore */ }
+        }
+
+        if (natW > 0 && natH > 0) {
+            const dispW  = Math.min(natW, containerW);
+            const dispH  = Math.round(dispW * natH / natW);
+            img.style.width  = dispW  + 'px';
+            img.style.height = dispH + 'px';
+        } else if (!img.complete || img.naturalWidth === 0) {
+            // Block image not yet loaded — apply 16:9 fallback so the figure block
+            // is measured with a sensible height rather than 0.
+            img.style.height = Math.round(containerW * 9 / 16) + 'px';
+            img.style.width  = '100%';
+        }
+    });
+}
+
 function collectTextNodes(root: Node): Text[] {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
@@ -454,6 +540,9 @@ function measureBlock(
     const el = measurer.firstElementChild as HTMLElement | null;
     if (!el) return 0;
 
+    // Pre-set image dimensions so height:auto images measure correctly even before load.
+    fixImageDimensions(measurer);
+
     if (blockOverride) {
         el.style.fontSize      = blockOverride.fontSize + 'px';
         el.style.lineHeight    = String(blockOverride.lineHeight);
@@ -481,6 +570,7 @@ function measurePageContent(
     measurer.style.setProperty('--mm-letter-spacing', settings.letterSpacing + 'em');
     measurer.style.setProperty('--mm-font-family', fontFamily);
     measurer.innerHTML = blocks.join('');
+    fixImageDimensions(measurer);
     void measurer.offsetHeight;
     return measurer.scrollHeight;
 }
@@ -668,6 +758,9 @@ export async function paginate(
                 const split = splitTableBlock(block, pageBlocks, availableH, measurer, settings, blockOver, state.fontFamily);
                 if (split && applySplit(split)) continue;
             }
+
+            // Figure/image blocks are never split — always push intact to the next page.
+            // (No split function is attempted; fall through to standard overflow below.)
 
             // Orphan-heading prevention: if the last block already added is a heading,
             // pull it off the current page and push it to the next one so the heading

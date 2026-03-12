@@ -204,6 +204,7 @@ function renderPages() {
         attachFigureListeners();
         updatePaginationUI();
         renderPageStrip();
+        fixRenderedPageImages();
 
         // Fade back in，然后触发 Han.css 排印处理
         requestAnimationFrame(() => {
@@ -211,6 +212,47 @@ function renderPages() {
             // 延迟一帧确保 DOM 完全可见后再处理 Han.css
             requestAnimationFrame(initHanTypography);
         });
+    });
+}
+
+/**
+ * After rendering pages into the DOM, ensure images that fail to load (404 or
+ * cross-origin block) don't silently collapse to 0-height and break the layout.
+ * For each <img> in the preview area:
+ *   • If already broken  → apply fallback size immediately
+ *   • If still loading   → attach an onerror handler
+ * The fallback size matches what fixImageDimensions() uses for the measurer,
+ * so the pagination reservations and visual output stay consistent.
+ */
+function fixRenderedPageImages(): void {
+    previewArea.querySelectorAll<HTMLImageElement>('img').forEach(img => {
+        const containerW = () => img.closest('.page-content')?.clientWidth || 400;
+
+        const applyFallback = () => {
+            if (img.naturalWidth > 0) return; // already decoded successfully
+            img.style.width      = '100%';
+            img.style.height     = Math.round(containerW() * 9 / 16) + 'px';
+            img.style.background = 'rgba(128,128,128,0.06)';
+            img.style.borderRadius = '8px';
+        };
+
+        const clearFallback = () => {
+            img.style.width      = '';
+            img.style.height     = '';
+            img.style.background = '';
+            img.style.borderRadius = '';
+        };
+
+        if (img.complete) {
+            // Already decoded (success or error)
+            if (img.naturalWidth === 0) applyFallback();
+        } else {
+            // Not yet decoded — apply placeholder immediately so the page doesn't
+            // collapse the image to 0-height while loading
+            applyFallback();
+            img.addEventListener('load',  clearFallback, { once: true });
+            img.addEventListener('error', applyFallback, { once: true });
+        }
     });
 }
 
@@ -661,13 +703,24 @@ function convertMarkdown(md: string): string {
     }
 
     // ── Paragraph ─────────────────────────────────────────
+    // Badge line: entire line is a linked image  [![alt](img)](link)
+    const isBadgeLine = (l: string) =>
+        /^\[!\[[^\]]*\]\([^)]+\)\]\([^)]+\)\s*$/.test(l.trim());
+
     function parseParagraph(): string {
+        const rawLines: string[] = [];
         const paraLines: string[] = [];
         while (i < lines.length && !isBlockStop(lines[i])) {
+            rawLines.push(lines[i]);
             paraLines.push(inlineMarkdown(lines[i]));
             i++;
         }
-        return paraLines.length ? `<p>${paraLines.join('<br>')}</p>` : '';
+        if (!paraLines.length) return '';
+        // Badge row: all lines are linked-image (shields.io style) → inline flex
+        if (rawLines.length > 0 && rawLines.every(isBadgeLine)) {
+            return `<p class="mm-badge-row">${paraLines.join(' ')}</p>`;
+        }
+        return `<p>${paraLines.join('<br>')}</p>`;
     }
 
     // ── Main parsing loop ─────────────────────────────────
@@ -761,7 +814,7 @@ function buildFigureHtml(src: string, alt: string, title: string, attrStr: strin
 
     // data-mm-src stores the ORIGINAL (unresolved) src so deletion can search the markdown directly
     return `<figure class="mm-figure mm-${layout}"${figStyle} data-mm-src="${escapeAttr(src)}">` +
-        `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${titleAttr}${imgStyle} loading="lazy">` +
+        `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${titleAttr}${imgStyle}>` +
         captionHtml +
         `</figure>`;
 }
@@ -783,14 +836,14 @@ function inlineMarkdown(text: string): string {
                 const widthMatch = attrs.match(/width=(\d+%?)/);
                 const style = widthMatch ? ` style="width:${widthMatch[1]}"` : '';
                 const resolvedSrc = resolveImageSrc(src);
-                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${style} loading="lazy">`;
+                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${style}>`;
             })
         // Plain image — resolve mm-img:// if needed
         .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/g,
             (_, alt, src, title) => {
                 const t = title ? ` title="${escapeAttr(title)}"` : '';
                 const resolvedSrc = resolveImageSrc(src);
-                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${t} loading="lazy">`;
+                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${t}>`;
             })
         // Links
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
@@ -1104,6 +1157,26 @@ img {
     page-break-inside: avoid; break-inside: avoid;
 }
 
+/* ── Badge 行 (shields.io 等行内徽章) ──────── */
+.mm-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+    margin: 0.3em 0 0.1em;
+    line-height: 1;
+}
+.mm-badge-row img {
+    display: inline-block;
+    margin: 0;
+    border-radius: 3px;
+    vertical-align: middle;
+    height: auto;
+}
+.mm-badge-row + figure {
+    margin-top: 0.5em;
+}
+
 /* ── Paged.js 过渡状态隐藏闪烁 ───────────────── */
 .pagedjs_pages { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
 .pagedjs_page  { background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
@@ -1248,6 +1321,21 @@ function attachFigureListeners() {
                 '<button class="mm-fig-btn mm-fig-delete" title="删除图片">✕</button>';
             figEl.appendChild(div);
         }
+        // Resize handles (8-point, PS style) — only injected once per figure
+        if (!figEl.querySelector('.mm-fig-handles')) {
+            const handles = document.createElement('div');
+            handles.className = 'mm-fig-handles';
+            handles.innerHTML =
+                '<div class="mm-fig-handle" data-dir="nw"></div>' +
+                '<div class="mm-fig-handle" data-dir="n"></div>' +
+                '<div class="mm-fig-handle" data-dir="ne"></div>' +
+                '<div class="mm-fig-handle" data-dir="e"></div>' +
+                '<div class="mm-fig-handle" data-dir="se"></div>' +
+                '<div class="mm-fig-handle" data-dir="s"></div>' +
+                '<div class="mm-fig-handle" data-dir="sw"></div>' +
+                '<div class="mm-fig-handle" data-dir="w"></div>';
+            figEl.appendChild(handles);
+        }
     });
 }
 
@@ -1285,6 +1373,67 @@ function deleteFigureFromMarkdown(figEl: HTMLElement) {
     markdownInput.dispatchEvent(new Event('input'));
     debouncedRender();
 }
+
+/**
+ * Update the width attribute of a figure's markdown source line.
+ * Called after a resize drag completes to persist the new size.
+ */
+function updateFigureWidthInMarkdown(figEl: HTMLElement, widthStr: string) {
+    const originalSrc = figEl.dataset.mmSrc || '';
+    const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
+    const alt = imgEl?.alt || '';
+
+    // Determine current layout class
+    const layout = (['float-left', 'float-right', 'full', 'center'] as const)
+        .find(cls => figEl.classList.contains('mm-' + cls)) || 'center';
+
+    const md = markdownInput.value;
+    const lines = md.split('\n');
+
+    let targetLine = -1;
+    for (let j = 0; j < lines.length; j++) {
+        const line = lines[j];
+        if (!line.includes('![')) continue;
+        if (originalSrc && line.includes(originalSrc)) { targetLine = j; break; }
+        if (alt && line.includes(`![${alt}]`)) { targetLine = j; break; }
+    }
+    if (targetLine === -1) return;
+
+    const line = lines[targetLine];
+    let newLine: string;
+    if (line.includes('{')) {
+        // Update width inside existing {attrs}
+        newLine = line.replace(/\{([^}]*)\}/, (_match, inner) => {
+            const updated = inner.includes('width=')
+                ? inner.replace(/width=\S+/, `width=${widthStr}`)
+                : (inner.trim() ? `${inner.trim()} width=${widthStr}` : `width=${widthStr}`);
+            return `{${updated}}`;
+        });
+    } else {
+        // Append new attrs  — keep layout if non-default
+        const attrContent = layout !== 'center'
+            ? `.${layout} width=${widthStr}`
+            : `width=${widthStr}`;
+        newLine = line.trimEnd() + `{${attrContent}}`;
+    }
+    lines[targetLine] = newLine;
+    markdownInput.value = lines.join('\n');
+    markdownInput.dispatchEvent(new Event('input'));
+    debouncedRender();
+}
+
+// ── Resize drag state ──────────────────────────────────────────────────────
+interface FigResizeDrag {
+    figEl: HTMLElement;
+    dir: string;
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+    pageW: number;
+    scale: number;
+}
+let figResizeDrag: FigResizeDrag | null = null;
 
 // ── Cover helpers ────────────────────────────────────────────────────────────
 function updateCoverBtn() {
@@ -1650,6 +1799,67 @@ function init() {
         });
     });
 
+    // ── Figure resize drag (PS-style handles) ────────────────────────────────
+    previewArea.addEventListener('pointerdown', (e) => {
+        const handle = (e.target as HTMLElement).closest('.mm-fig-handle') as HTMLElement | null;
+        if (!handle) return;
+        const figEl = handle.closest('figure.mm-figure') as HTMLElement | null;
+        if (!figEl) return;
+
+        const dir = handle.dataset.dir || 'se';
+        const scale = store.getState().scale;
+        const pageContent = figEl.closest('.page-content') as HTMLElement | null;
+        const pageW = pageContent ? pageContent.clientWidth : 400;
+
+        figResizeDrag = {
+            figEl, dir,
+            startX: e.clientX,
+            startY: e.clientY,
+            startW: figEl.clientWidth,
+            startH: figEl.clientHeight,
+            pageW, scale,
+        };
+        figEl.classList.add('mm-fig-resizing');
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    document.addEventListener('pointermove', (e) => {
+        if (!figResizeDrag) return;
+        const { figEl, dir, startX, startY, startW, startH, pageW, scale } = figResizeDrag;
+
+        // Convert viewport px → layout px (account for page scale transform)
+        const dx = (e.clientX - startX) / scale;
+        const dy = (e.clientY - startY) / scale;
+
+        let newW = startW;
+        if (dir.includes('e'))       newW = startW + dx;
+        else if (dir.includes('w')) newW = startW - dx;
+        else if (dir === 's')       newW = startW + dy * (startW / Math.max(startH, 1));
+        else if (dir === 'n')       newW = startW - dy * (startW / Math.max(startH, 1));
+
+        const pct = Math.round((newW / pageW) * 100);
+        const clamped = Math.max(15, Math.min(100, pct));
+
+        // Live preview — inline style on figure
+        figEl.style.width = clamped + '%';
+        const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
+        if (imgEl) { imgEl.style.width = '100%'; imgEl.style.height = 'auto'; }
+
+        e.preventDefault();
+    });
+
+    document.addEventListener('pointerup', () => {
+        if (!figResizeDrag) return;
+        const { figEl, pageW } = figResizeDrag;
+        figResizeDrag = null;
+        figEl.classList.remove('mm-fig-resizing');
+
+        const finalPct = Math.round((figEl.clientWidth / pageW) * 100);
+        const clampedPct = Math.max(15, Math.min(100, finalPct));
+        updateFigureWidthInMarkdown(figEl, clampedPct + '%');
+    });
+
     // Print Preview (Paged.js + Han.css)
     const btnPrintPreview = document.getElementById('btn-print-preview');
     if (btnPrintPreview) btnPrintPreview.addEventListener('click', openPrintPreview);
@@ -1937,11 +2147,18 @@ function saveMd() {
 
 
 function loadDefault() {
-    markdownInput.value = `# MagMark 1.5.0 🎨✨
+    markdownInput.value = `# MagMark 1.6.0 🎨✨
 
 **世界级杂志级 Markdown 排版引擎 — CJK 高精度排印版**
 
-将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 1.5 引入 Han.css + Paged.js + Vivliostyle CSS 三层排版增强，带来媲美《VOGUE》等高端纸媒的中文视觉体验。
+将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 1.6 引入封面生成器全面升级，并继承 Han.css + Paged.js + Vivliostyle CSS 三层排版增强，带来媲美《VOGUE》等高端纸媒的中文视觉体验。
+
+[![版本](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
+[![许可](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+![MagMark 编辑器预览](screenshots/magmark-main.png)
+
+---
 
 ## 🏷️ 为什么叫 MagMark？
 
@@ -1954,36 +2171,195 @@ function loadDefault() {
 
 ---
 
-## 🚀 1.5.0 核心升级
+## 🆕 1.6.0 新增：封面生成器全面升级
 
-### 🈶 Han.css — 汉字高精度排印
-集成 [Han.css v3](https://hanzi.pro/) 开源排版框架，对预览内容进行深度 CJK 处理。
+### 🖼 封面比例自由出图
 
-### 🖨 Paged.js — CSS Paged Media 打印预览
-新增"🖨 打印预览"按钮，支持 @page 规则、页页码与装订边距。
+封面生成面板比例选择逻辑与图片插入面板完全对齐：
 
-### 📐 Vivliostyle CSS — 孤行寡行控制
-采用 Vivliostyle 排版标准，防止段落首行或末行孤立在页底/页顶。
+- **10 档比例**：9:16 → 21:9，覆盖竖版（小红书/微信）、方形、横版（PPT/公众号封面）全场景
+- **可视比例框**：实时直观显示当前比例，支持一键翻转横/竖
+- **滑杆 + 分类按钮**：「竖向 / 方形 / 横向」快速跳转 + 精细滑动选择
+- **预览随比例自适应**：切换比例时，预览框平滑过渡，无需重新生成
 
-### 🎞️ 3× 高精度导出
-输出 600DPI 级别超清 PNG，字体嵌入完美，所见即所得。
+### ✦ 标题 / 副标题可拖拽定位
+
+- 预览区中，标题与副标题元素显示金色虚线轮廓，**鼠标直接拖拽**即可调整位置
+- 使用 CSS \`transform: translate()\` 叠加偏移，不破坏模板原始布局
+- **拖拽位置随插入保留**：最终插入文章的 HTML 完整包含位置信息
+- 输入文字实时更新（直接操作 iframe DOM），**拖拽后再改文字，位置不丢失**
 
 ---
 
-## 🛠️ 本地开发
+## 🆕 1.5.0 核心升级：三层 CJK 排版增强
+
+### 1. 🈶 Han.css — 汉字高精度排印
+
+集成 [Han.css v3](https://hanzi.pro/) 开源排版框架，对预览内容进行深度 CJK 处理：
+
+- **汉字↔拉丁字间距**：自动在中文与英文/数字之间插入 1/4 em 间距，告别"中英文混排拥挤感"。
+- **标点宽度压缩**：句号、逗号、顿号等全角标点不再占据完整字宽，版面更紧凑匀称。
+- **引号悬挂**：「」『』等 CJK 引号正确向行首/行末悬挂，实现光学对齐。
+- **OpenType 字距**：启用 \`kern\`、\`liga\`、\`calt\`、\`locl\` 特性，在支持的字体（如思源宋体）上实现亚像素级字距微调。
+
+### 2. 🖨 Paged.js — CSS Paged Media 打印预览
+
+新增"🖨 打印预览"按钮，在独立弹出窗口中加载 [Paged.js](https://pagedjs.org/) polyfill：
+
+- **\`@page\` 规则完整支持**：A4 页面边距 22mm/18mm/28mm，首页特殊处理，左右页面交替内侧边距（适合装订）。
+- **CSS 页脚页码**：\`@bottom-center\` 自动注入 \`PAGE n / total\` 样式页码。
+- **全主题继承**：自动读取编辑器当前主题色变量，打印预览与编辑器视觉完全一致。
+- **打印预览同时启用 Han.css**：Paged.js 分页完成后触发 Han.js 排印处理，中文输出质量达到印刷标准。
+
+### 3. 📐 Vivliostyle CSS — 孤行寡行 & 分页规则
+
+采用 [Vivliostyle](https://vivliostyle.org/) 排版标准中的 CSS 分页规则：
+
+- **孤行/寡行控制**：\`orphans: 3; widows: 3\` 防止段落首行或末行孤立在页底/页顶。
+- **标题防分页**：\`break-after: avoid\` 确保标题后至少跟随一段正文，不出现"标题挂在页尾"的情况。
+- **代码块/表格完整性**：\`break-inside: avoid\` 防止代码块和表格在中间被分页打断。
+- **\`@media print\`**：浏览器原生打印时自动隐藏编辑器 UI，仅输出页面内容，\`print-color-adjust: exact\` 保证主题背景色正确打印。
+
+### 4. 🔧 word-break 关键修复
+
+修复了原版中错误的 \`word-break: break-all\` 设置（该值会将英文单词在任意字符处强制折断）：
+
+| | 修改前 | 修改后 |
+|---|---|---|
+| \`word-break\` | \`break-all\` ❌ | \`normal\` ✅ |
+| 溢出处理 | — | \`overflow-wrap: break-word\` ✅ |
+| CJK 禁则 | — | \`line-break: strict\` ✅ |
+| 行末标点悬挂 | \`first last\` | \`first last\` ✅ |
+
+---
+
+## 🚀 1.4 核心功能（继承）
+
+### 🎞️ 高精度 Canvas 导出
+直接采用 **3× 超采样**，输出 600DPI 级别超清 PNG，字体嵌入完美，所见即所得。
+
+### 🖱️ 块级点击浮动微调
+点击任何段落，立即激活浮动工具栏，支持 Shift 点击与拖拽框选多块同步调整字号、行高、字间距。
+
+### 🎨 11 套专业主题
+覆盖从东方金石到北欧极简的全系列风格，主题色自动传递至打印预览和导出。
+
+### 📄 智能分页控制
+手动/自动分页、单页独立样式、50%～150% 自由缩放预览。
+
+---
+
+## ✨ 完整特性列表
+
+| 特性 | 说明 |
+|---|---|
+| Han.css CJK 排印 | 字间距、标点压缩、引号悬挂 |
+| Paged.js 打印预览 | @page 规则、页码、装订边距 |
+| Vivliostyle CSS 分页 | 孤行/寡行控制、标题防分页 |
+| word-break 修正 | 正确处理中英文混排换行 |
+| 3× PNG 导出 | 全页/当页高精度导出 |
+| 11 套主题 | 一键切换，打印预览同步 |
+| 块级浮动微调 | 点击/框选块，独立调整排版 |
+| 手动分页 | \`---\` 作为精确分页符 |
+| 小红书格式 | 1080×1440 竖版原尺寸 |
+| A4 / 移动 / 桌面 | 多格式自适应排版 |
+| 🖼 智能图片面板 | 拖拽/URL/AI 生成/占位图，自动判断意图 |
+| 🎨 封面生成面板 | 4 套模板 + AI 生成 + 10 档比例 + 拖拽定位文字 |
+
+### 🖼 智能图片插入面板
+
+全新 v2.0 智能图片面板——一个窗口完成所有图片操作，自动判断意图：
+
+- **拖拽 / 粘贴图片** → 直接上传预览
+- **输入 URL** → 按 Enter 自动加载
+- **输入描述文字** → AI 生成（Gemini / OpenAI）
+- **留空** → 插入指定比例的占位图
+
+支持 10 种比例选择（9:16 ~ 21:9）、4 种裁切适配模式、图文混排布局和宽度调节。
+
+![智能图片面板](screenshots/image-panel-smart.png)
+
+---
+
+## 🔑 API Key 配置
+
+MagMark 支持通过 \`.env\` 文件预设 AI 生成图片 / 封面所需的 API Key，省去每次手动填写。
+
+\`\`\`bash
+# 复制示例文件
+cp .env.example .env
+
+# 用编辑器打开 .env，填写您的 Key
+VITE_GEMINI_API_KEY=your_gemini_key_here
+VITE_OPENAI_API_KEY=your_openai_key_here
+\`\`\`
+
+| 变量 | 用途 | 申请地址 |
+|---|---|---|
+| \`VITE_GEMINI_API_KEY\` | AI 生成图片（Imagen 3）、AI 生成封面（Gemini Flash） | https://aistudio.google.com/app/apikey |
+| \`VITE_OPENAI_API_KEY\` | AI 生成图片（DALL-E 3） | https://platform.openai.com/api-keys |
+
+> **安全提示**：\`.env\` 已加入 \`.gitignore\`，不会被提交到版本库。Key 仅在浏览器端使用，不经过任何中间服务器。
+> 也可以不配置 \`.env\`，直接在编辑器界面的图片/封面面板中填写，Key 会保存在浏览器 \`localStorage\`。
+
+---
+
+## 🚀 快速开始
 
 \`\`\`bash
 npm install
 npm run dev
 \`\`\`
 
-访问 http://localhost:5173 开启排版之旅。
+访问 \`http://localhost:5173/\` 开启排版之旅。
+
+### 使用打印预览
+
+1. 在编辑器中输入 Markdown 内容
+2. 点击右上角 **🖨 打印预览** 按钮
+3. 新窗口中 Paged.js 自动分页，Han.css 完成 CJK 排印
+4. 使用浏览器 \`Ctrl+P\` / \`Cmd+P\` 打印或另存为 PDF
+
+---
+
+## 📁 项目结构
+
+\`\`\`bash
+magmark/
+├── .env.example       # API Key 配置示例（复制为 .env 填写实际 Key）
+├── .env               # 本地 API Key（已加入 .gitignore，不提交）
+├── editor.ts          # 核心逻辑：分页引擎、Han.js 初始化、打印预览生成
+├── editor.css         # 样式系统：Han.css 集成、@page 规则、@media print
+├── index.html         # UI 框架：引入 Han.css CDN、打印预览按钮
+├── src/
+│   ├── core/          # 状态管理
+│   ├── engine/        # 分页引擎
+│   ├── image/         # 图片插入面板（v2 智能单窗口）
+│   └── cover/         # 封面生成面板（v2 比例+拖拽）
+└── README.md
+\`\`\`
+
+---
+
+## 🔗 技术栈
+
+- [Han.css](https://hanzi.pro/) — CJK 汉字排版框架
+- [Paged.js](https://pagedjs.org/) — CSS Paged Media polyfill
+- [Vivliostyle](https://vivliostyle.org/) — CSS 分页排版标准
+- [html-to-image](https://github.com/bubkoo/html-to-image) — 高精度 PNG 导出
+- [Vite](https://vitejs.dev/) + TypeScript
+
+---
+
+## 📄 许可证
+
+基于 MIT 协议发布。详见 [LICENSE](LICENSE)。
 
 ---
 
 **为追求极致排版美学的创作者而生 ❤️**
 
-*最近更新：2026-03-10 · v1.5.0*
+*最近更新：2026-03-12 · v1.6.0*
 `;
     render();
 }
