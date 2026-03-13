@@ -525,6 +525,7 @@ input:checked+.slider:before {
 }
 
 /* ---------- Reset Button ---------- */
+.ctrl-style-btn,
 .ctrl-reset-btn {
     display: flex;
     align-items: center;
@@ -541,10 +542,16 @@ input:checked+.slider:before {
     white-space: nowrap;
 }
 
+.ctrl-style-btn:hover,
 .ctrl-reset-btn:hover {
     background: color-mix(in srgb, var(--th-primary) 12%, transparent);
     border-color: var(--th-primary);
     box-shadow: 0 0 8px color-mix(in srgb, var(--th-primary) 25%, transparent);
+}
+
+.ctrl-style-btn.is-success {
+    background: color-mix(in srgb, var(--th-primary) 16%, transparent);
+    border-color: var(--th-primary);
 }
 
 .ctrl-reset-btn svg {

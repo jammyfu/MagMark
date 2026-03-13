@@ -1021,6 +1021,145 @@ function getBlockBaseSetting(el: HTMLElement, state: AppState): PageSetting {
     };
 }
 
+function flashButtonLabel(btn: HTMLElement, temporaryText: string) {
+    const original = btn.textContent || '';
+    btn.textContent = temporaryText;
+    btn.classList.add('is-success');
+    window.setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('is-success');
+    }, 1200);
+}
+
+function copyComputedStyles(source: HTMLElement, clone: HTMLElement) {
+    const computed = getComputedStyle(source);
+    for (const prop of computed) {
+        clone.style.setProperty(
+            prop,
+            computed.getPropertyValue(prop),
+            computed.getPropertyPriority(prop),
+        );
+    }
+}
+
+function sanitizeCopiedPage(root: HTMLElement) {
+    root.querySelectorAll('.mm-fig-actions, .mm-fig-handles, .page-setting-indicator, .page-footer').forEach(el => el.remove());
+    root.querySelectorAll('.mm-fig-selected, .mm-fig-resizing, .block-editing').forEach(el => {
+        el.classList.remove('mm-fig-selected', 'mm-fig-resizing', 'block-editing');
+    });
+}
+
+function inlinePageForClipboard(source: HTMLElement): HTMLElement {
+    const clone = source.cloneNode(true) as HTMLElement;
+    const sourceNodes = [source, ...Array.from(source.querySelectorAll<HTMLElement>('*'))];
+    const cloneNodes = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))];
+
+    sourceNodes.forEach((sourceNode, index) => {
+        const cloneNode = cloneNodes[index];
+        if (!cloneNode) return;
+        copyComputedStyles(sourceNode, cloneNode);
+        cloneNode.removeAttribute('id');
+        cloneNode.removeAttribute('data-block-id');
+        cloneNode.removeAttribute('data-mm-src');
+
+        if (sourceNode instanceof HTMLImageElement && cloneNode instanceof HTMLImageElement) {
+            cloneNode.src = sourceNode.currentSrc || sourceNode.src;
+        }
+        if (sourceNode instanceof HTMLAnchorElement && cloneNode instanceof HTMLAnchorElement) {
+            cloneNode.href = sourceNode.href;
+        }
+    });
+
+    sanitizeCopiedPage(clone);
+    const rootComputed = getComputedStyle(source);
+    clone.style.transform = 'none';
+    clone.style.margin = '0';
+    clone.style.boxShadow = 'none';
+    clone.style.opacity = '1';
+    clone.style.display = 'block';
+    clone.style.color = rootComputed.color;
+    clone.style.backgroundColor = rootComputed.backgroundColor;
+    clone.style.fontFamily = rootComputed.fontFamily;
+    clone.style.lineHeight = rootComputed.lineHeight;
+    clone.style.letterSpacing = rootComputed.letterSpacing;
+
+    return clone;
+}
+
+function getClipboardSourceElement(): HTMLElement | null {
+    const state = store.getState();
+    if (state.viewMode === 'scroll') {
+        return previewArea.querySelector<HTMLElement>('.scroll-container');
+    }
+    const currentPage = previewArea.querySelector<HTMLElement>(`.page[data-page="${state.currentPage}"]`);
+    return currentPage?.querySelector<HTMLElement>('.page-content') || null;
+}
+
+function buildClipboardHtmlFromCurrentPage(): { html: string; text: string } | null {
+    const source = getClipboardSourceElement();
+    if (!source) return null;
+
+    const clonedPage = inlinePageForClipboard(source);
+    const html = clonedPage.outerHTML;
+    const text = source.textContent?.trim() || '';
+
+    return { html, text };
+}
+
+async function copyCurrentPageRichContent() {
+    const payload = buildClipboardHtmlFromCurrentPage();
+    if (!payload) {
+        alert('当前没有可复制的排版页。');
+        return false;
+    }
+
+    let modernCopied = false;
+    try {
+        if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/html': new Blob([payload.html], { type: 'text/html' }),
+                    'text/plain': new Blob([payload.text], { type: 'text/plain' }),
+                }),
+            ]);
+            modernCopied = true;
+        }
+    } catch {
+        // Continue to legacy copy path for broader compatibility.
+    }
+
+    const holder = document.createElement('div');
+    holder.contentEditable = 'true';
+    holder.style.position = 'fixed';
+    holder.style.left = '-9999px';
+    holder.style.top = '0';
+    holder.style.whiteSpace = 'pre-wrap';
+    holder.style.userSelect = 'text';
+    holder.innerHTML = payload.html;
+    document.body.appendChild(holder);
+    holder.focus();
+
+    const range = document.createRange();
+    range.selectNodeContents(holder);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    let legacyCopied = false;
+    const onCopy = (event: ClipboardEvent) => {
+        if (!event.clipboardData) return;
+        event.preventDefault();
+        event.clipboardData.setData('text/html', payload.html);
+        event.clipboardData.setData('text/plain', payload.text);
+        legacyCopied = true;
+    };
+    document.addEventListener('copy', onCopy, { once: true });
+    const ok = document.execCommand('copy');
+    document.removeEventListener('copy', onCopy);
+    selection?.removeAllRanges();
+    holder.remove();
+    return modernCopied || (ok && legacyCopied);
+}
+
 /**
  * 打印预览窗口（Paged.js + Han.css）
  *
@@ -1704,6 +1843,14 @@ function init() {
         applyGlobalStyles();
         debouncedRender();
     });
+
+    const btnCopyPageRich = document.getElementById('btn-copy-page-rich');
+    if (btnCopyPageRich) {
+        btnCopyPageRich.addEventListener('click', async () => {
+            const ok = await copyCurrentPageRichContent();
+            flashButtonLabel(btnCopyPageRich, ok ? '已复制' : '复制失败');
+        });
+    }
 
     // Zoom controls (Photoshop-style)
     $('#zoom-out').addEventListener('click', () => applyZoom(getRequestedZoomScale() - 0.1));
