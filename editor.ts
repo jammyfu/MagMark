@@ -4,9 +4,21 @@ import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
 import { CoverPanel } from './src/cover/cover-panel';
 import { version } from './package.json';
+import { WECHAT_THEMES, WECHAT_DEVICE_OPTIONS } from './src/wechat/wechat-themes';
+import { renderWechatHtml, copyWechatHtml } from './src/wechat/wechat-renderer';
 
 // Module-level cover HTML (null = no cover)
 let coverHtml: string | null = null;
+
+// ── WeChat Mode State ──────────────────────────────────────────────────────
+/** 当前是否处于公众号模式（主题以 'wc-' 开头） */
+let wcMode = false;
+/** 当前微信字号倍率 */
+let wcFontMultiplier = 1.0;
+/** 当前微信预览设备 */
+let wcDevice: keyof typeof WECHAT_DEVICE_OPTIONS = 'iphone';
+/** 微信模式下的字体（从字体选择器同步） */
+let wcFontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 /**
  * 图片 Blob 存储 — 将大体积 data URL 存入内存，Markdown 中用短引用 mm-img://uuid
@@ -105,6 +117,12 @@ function debounce(fn: Function, delay: number) {
  * MAIN RENDER PIPELINE
  */
 async function render(stabilized = false) {
+    // WeChat mode: delegate to WeChat preview renderer instead of the paginator
+    if (wcMode) {
+        renderWechatPreview();
+        return;
+    }
+
     const state = store.getState();
     const md = markdownInput.value;
     store.setState({ md });
@@ -1646,7 +1664,7 @@ function updateFigureLayoutInMarkdown(figEl: HTMLElement, layout: 'float-left' |
             const tokens = inner
                 .split(/\s+/)
                 .filter(Boolean)
-                .filter(token => !['.float-left', '.float-right', '.full', '.center'].includes(token));
+                .filter((token: string) => !['.float-left', '.float-right', '.full', '.center'].includes(token));
             if (layoutToken) tokens.unshift(layoutToken);
             return `{${tokens.join(' ')}}`;
         });
@@ -1832,7 +1850,17 @@ function init() {
         const theme = (e.target as HTMLSelectElement).value;
         store.setState({ theme });
         applyTheme();
-        render();
+        // 微信模式：识别 'wc-' 前缀主题
+        const newWcMode = theme.startsWith('wc-');
+        if (newWcMode !== wcMode) {
+            wcMode = newWcMode;
+            toggleWechatUI(wcMode);
+        }
+        if (wcMode) {
+            renderWechatPreview();
+        } else {
+            render();
+        }
     });
 
     // Font selector — sets user override variable so it wins over theme fonts
@@ -1849,6 +1877,43 @@ function init() {
         btnCopyPageRich.addEventListener('click', async () => {
             const ok = await copyCurrentPageRichContent();
             flashButtonLabel(btnCopyPageRich, ok ? '已复制' : '复制失败');
+        });
+    }
+
+    // ── WeChat Controls ───────────────────────────────────────────────────
+    const wcFontsizeSlider = document.getElementById('ctrl-wc-fontsize') as HTMLInputElement | null;
+    if (wcFontsizeSlider) {
+        wcFontsizeSlider.addEventListener('input', (e) => {
+            wcFontMultiplier = parseFloat((e.target as HTMLInputElement).value);
+            const label = document.getElementById('val-wc-fontsize');
+            if (label) label.textContent = wcFontMultiplier.toFixed(2) + '×';
+            if (wcMode) debounceWcRender();
+        });
+    }
+
+    const wcDeviceSelect = document.getElementById('ctrl-wc-device') as HTMLSelectElement | null;
+    if (wcDeviceSelect) {
+        wcDeviceSelect.addEventListener('change', (e) => {
+            wcDevice = (e.target as HTMLSelectElement).value as keyof typeof WECHAT_DEVICE_OPTIONS;
+            if (wcMode) renderWechatPreview();
+        });
+    }
+
+    const btnWcCopy = document.getElementById('btn-wc-copy') as HTMLButtonElement | null;
+    if (btnWcCopy) {
+        btnWcCopy.addEventListener('click', async () => {
+            const md = markdownInput.value;
+            if (!md.trim()) { alert('请先输入内容'); return; }
+            const themeKey = store.getState().theme.replace('wc-', '');
+            const theme = WECHAT_THEMES[themeKey] || WECHAT_THEMES.minimalist;
+            const html = renderWechatHtml(md, {
+                theme,
+                fontFamily: wcFontFamily,
+                fontSizeMultiplier: wcFontMultiplier,
+                resolveImageSrc,
+            });
+            const ok = await copyWechatHtml(html);
+            flashButtonLabel(btnWcCopy, ok ? '✓ 已复制！' : '复制失败');
         });
     }
 
@@ -2186,6 +2251,109 @@ function init() {
     loadDefault();
     applyTheme();
     applyGlobalStyles();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WeChat Mode Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 显示/隐藏微信专属控件，同步字体选择器的值到 wcFontFamily
+ */
+function toggleWechatUI(enabled: boolean) {
+    const ids = ['wc-fontsize-group', 'wc-device-group', 'wc-copy-group'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = enabled ? 'flex' : 'none';
+    });
+
+    // 同步字体选择器的当前值
+    const fontSel = document.getElementById('ctrl-font') as HTMLSelectElement | null;
+    if (fontSel) wcFontFamily = fontSel.value;
+
+    // 微信模式下同步输入监听：字体切换时更新 wcFontFamily
+    if (enabled) {
+        fontSel?.addEventListener('change', syncWcFont);
+    } else {
+        fontSel?.removeEventListener('change', syncWcFont);
+    }
+}
+
+function syncWcFont(e: Event) {
+    wcFontFamily = (e.target as HTMLSelectElement).value;
+    if (wcMode) renderWechatPreview();
+}
+
+// Debounced WeChat renderer (for font-size slider which fires rapidly)
+const debounceWcRender = debounce(renderWechatPreview, 150);
+
+/**
+ * 微信公众号预览渲染：
+ * 将 Markdown 使用当前微信主题渲染为内联样式 HTML，
+ * 并在预览区域以手机 mock 框架展示。
+ */
+function renderWechatPreview() {
+    const md = markdownInput.value;
+    const themeKey = store.getState().theme.replace('wc-', '');
+    const theme = WECHAT_THEMES[themeKey] || WECHAT_THEMES.minimalist;
+    const deviceInfo = WECHAT_DEVICE_OPTIONS[wcDevice];
+
+    // 渲染内联样式 HTML
+    const innerHtml = md.trim()
+        ? renderWechatHtml(md, {
+            theme,
+            fontFamily: wcFontFamily,
+            fontSizeMultiplier: wcFontMultiplier,
+            resolveImageSrc,
+        })
+        : `<div class="placeholder"><div class="placeholder-icon">✦</div><p>在左侧输入 Markdown，预览将在这里实时呈现</p></div>`;
+
+    // 判断是否为移动设备（显示微信 mock 头部）
+    const isMobile = wcDevice === 'iphone' || wcDevice === 'android';
+    const bgColor = theme.styles.container?.match(/background-color:\s*([^;]+)/)?.[1] || '#ffffff';
+    const textColor = theme.styles.container?.match(/(?:^|;)\s*color:\s*([^;]+)/)?.[1] || '#333';
+    const scale = store.getState().scale;
+
+    const mobileFrame = isMobile ? `
+        <div class="wc-mock-statusbar" style="background:${bgColor};color:${textColor};height:44px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;flex-shrink:0;">
+            <span>9:41</span>
+            <div style="display:flex;gap:4px;align-items:center;">
+                <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${textColor};opacity:.7;"></div>
+                <div style="width:20px;height:10px;border-radius:2px;background:${textColor};opacity:.7;"></div>
+            </div>
+        </div>
+        <div class="wc-mock-header" style="height:48px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,0.06);background:${bgColor};color:${textColor};flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.7;transform:rotate(180deg)"><polyline points="9 18 15 12 9 6"/></svg>
+            <span style="font-size:15px;font-weight:600;">文章详情</span>
+            <div style="display:flex;gap:3px;">${'<div style="width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.4;"></div>'.repeat(3)}</div>
+        </div>` : '';
+
+    const mockBorderRadius = isMobile ? 'border-radius:32px;border:12px solid #1a1a1a;' : 'border-radius:4px;border:1px solid #ddd;';
+    const pageWidth = deviceInfo.width;
+
+    previewArea.innerHTML = `
+        <div class="wc-preview-wrapper" style="
+            width:${pageWidth}px;
+            min-height:500px;
+            background:${bgColor};
+            ${mockBorderRadius}
+            box-shadow:0 8px 40px rgba(0,0,0,0.5);
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+            transform:scale(${scale});
+            transform-origin:top center;
+            margin-bottom:${Math.max(0, 500 * scale - 500) + 32}px;
+            flex-shrink:0;
+        ">
+            ${mobileFrame}
+            <div class="wc-content" style="flex:1;overflow-y:auto;padding:4px 0;-webkit-overflow-scrolling:touch;">
+                ${innerHtml}
+            </div>
+        </div>`;
+
+    // 隐藏分页栏（微信模式下是单页滚动）
+    paginationBar.style.display = 'none';
 }
 
 function navigate(dir: number) {

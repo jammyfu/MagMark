@@ -587,6 +587,39 @@ input:checked+.slider:before {
     background: color-mix(in srgb, var(--th-primary) 20%, transparent);
 }
 
+/* ---------- WeChat Copy Button ---------- */
+.ctrl-wc-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #07c160;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(7, 193, 96, 0.35);
+}
+
+.ctrl-wc-copy-btn:hover {
+    background: #06ae56;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(7, 193, 96, 0.4);
+}
+
+.ctrl-wc-copy-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(7, 193, 96, 0.3);
+}
+
+.ctrl-wc-copy-btn.is-success {
+    background: #05894a;
+}
+
 /* ---------- Cover Page Remove Button ---------- */
 .mm-cover-remove-btn {
     position: absolute;

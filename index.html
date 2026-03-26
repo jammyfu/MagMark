@@ -56,17 +56,54 @@
                 <div class="control-group">
                     <label class="control-label">风格主题</label>
                     <select id="ctrl-theme">
-                        <option value="elite">旗舰金石 (Elite)</option>
-                        <option value="ocean-depths">深海 (Ocean)</option>
-                        <option value="sunset-boulevard">日落大道 (Sunset)</option>
-                        <option value="forest-canopy">森之冠 (Forest)</option>
-                        <option value="modern-minimalist">现代极简 (Modern)</option>
-                        <option value="golden-hour">黄金时刻 (Golden)</option>
-                        <option value="arctic-frost">北极霜晨 (Arctic)</option>
-                        <option value="desert-rose">沙漠玫瑰 (Rose)</option>
-                        <option value="tech-innovation">科技创新 (Tech)</option>
-                        <option value="botanical-garden">植物园 (Garden)</option>
-                        <option value="midnight-galaxy">午夜星系 (Galaxy)</option>
+                        <optgroup label="── 杂志排版主题 ──">
+                            <option value="elite">旗舰金石 (Elite)</option>
+                            <option value="ocean-depths">深海 (Ocean)</option>
+                            <option value="sunset-boulevard">日落大道 (Sunset)</option>
+                            <option value="forest-canopy">森之冠 (Forest)</option>
+                            <option value="modern-minimalist">现代极简 (Modern)</option>
+                            <option value="golden-hour">黄金时刻 (Golden)</option>
+                            <option value="arctic-frost">北极霜晨 (Arctic)</option>
+                            <option value="desert-rose">沙漠玫瑰 (Rose)</option>
+                            <option value="tech-innovation">科技创新 (Tech)</option>
+                            <option value="botanical-garden">植物园 (Garden)</option>
+                            <option value="midnight-galaxy">午夜星系 (Galaxy)</option>
+                        </optgroup>
+                        <optgroup label="── 公众号主题 (内联样式) ──">
+                            <option value="wc-minimalist">极简主义</option>
+                            <option value="wc-elegant">优雅青绿</option>
+                            <option value="wc-modern">活力橙红</option>
+                            <option value="wc-business">商务深蓝</option>
+                            <option value="wc-retro">复古纸张</option>
+                            <option value="wc-pink">少女粉色</option>
+                            <option value="wc-dark">极简暗黑</option>
+                            <option value="wc-forest">森林呼吸</option>
+                            <option value="wc-ocean">深海之蓝</option>
+                            <option value="wc-lavender">薰衣草紫</option>
+                            <option value="wc-coffee">咖啡时光</option>
+                            <option value="wc-cyberpunk">赛博朋克</option>
+                            <option value="wc-premium_gold">尊享金典</option>
+                            <option value="wc-tech_blueprint">技术蓝图</option>
+                            <option value="wc-sunset">落日余晖</option>
+                            <option value="wc-mint">薄荷清爽</option>
+                            <option value="wc-hand_written">手写文艺</option>
+                            <option value="wc-wechat_green">微信绿 (官方)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <!-- 微信公众号字号倍率（选中微信主题时显示） -->
+                <div class="control-group" id="wc-fontsize-group" style="display:none;">
+                    <label class="control-label">字号倍率 <span class="val" id="val-wc-fontsize">1.0×</span></label>
+                    <input type="range" id="ctrl-wc-fontsize" min="0.8" max="1.5" step="0.05" value="1">
+                </div>
+                <!-- 微信预览设备（选中微信主题时显示） -->
+                <div class="control-group" id="wc-device-group" style="display:none;">
+                    <label class="control-label">预览设备</label>
+                    <select id="ctrl-wc-device">
+                        <option value="iphone">手机 (375px)</option>
+                        <option value="android">安卓 (412px)</option>
+                        <option value="tablet">平板 (768px)</option>
+                        <option value="desktop">宽屏 (800px)</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -136,6 +173,15 @@
                 <div class="control-group">
                     <button id="btn-copy-page-rich" class="ctrl-style-btn" title="复制当前页的排版结果，可直接粘贴到 Word 或网页编辑器">
                         复制排版页
+                    </button>
+                </div>
+                <!-- 微信富文本复制按钮（选中微信主题时显示） -->
+                <div class="control-group" id="wc-copy-group" style="display:none;">
+                    <button id="btn-wc-copy" class="ctrl-wc-copy-btn" title="将内联样式 HTML 复制到剪贴板，可直接粘贴到微信公众号后台">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        复制富文本
                     </button>
                 </div>
                 <div class="control-group" id="manual-pag-group" style="display: flex;">
