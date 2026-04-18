@@ -21,3 +21,4 @@ tmp/
 *.jpg
 !.github/
 !tests/samples/
+.claude/worktrees/

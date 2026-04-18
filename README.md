@@ -1,3 +1,22 @@
+<!-- BEGIN:personal-project-standard-entry -->
+## Project Entry
+
+- Project brief: [PROJECT_BRIEF.md](PROJECT_BRIEF.md)
+- Long-range roadmap: [MASTER_PLAN.md](MASTER_PLAN.md)
+- Current execution entry: [CURRENT_PLAN.md](CURRENT_PLAN.md)
+- Candidate backlog: [TODO_BACKLOG.md](TODO_BACKLOG.md)
+- Governance log: [docs/project-governance/WORKLOG.md](docs/project-governance/WORKLOG.md)
+- Automation notes: [docs/AUTOMATION_COMMANDS.md](docs/AUTOMATION_COMMANDS.md)
+- Long-running autonomy: [docs/LONG_RUNNING_AUTONOMY.md](docs/LONG_RUNNING_AUTONOMY.md)
+- Verification entry: `python3 tools/verify.py`
+
+## Standardized Summary
+
+- Positioning: Magazine-grade Markdown layout and export engine with strong CJK typography ambitions.
+- Stack: Vite + TypeScript with rendering, export, and typography pipelines.
+- Current goal: Standardize the core product repository without disturbing its existing rendering and export codepaths.
+<!-- END:personal-project-standard-entry -->
+
 # MagMark 1.6.0 🎨✨
 
 **世界级杂志级 Markdown 排版引擎 — CJK 高精度排印版**
