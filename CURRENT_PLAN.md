@@ -11,7 +11,7 @@ Publish MagMark as a stable public entity for generative engines (ChatGPT, Perpl
 - [x] Add FAQ (CJK magazine Markdown, Markdown to print-quality PDF) plus comparison vs Typora / VuePress / Vivliostyle, and author jammyfu / PaintingCoder.
 - [x] Add root `llms.txt` and `llms-full.txt`.
 - [x] Leave MIT `LICENSE` unchanged.
-- [ ] Open a docs-only PR with a proposed GitHub About description (≤350 chars) and 8–12 topics. Do not merge.
+- [x] Open a docs-only PR with a proposed GitHub About description (≤350 chars) and 8–12 topics. Do not merge. (https://github.com/jammyfu/MagMark/pull/1)
 
 ## Out Of Scope
 
