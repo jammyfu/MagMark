@@ -1,5 +1,205 @@
+# MagMark
+
+**MagMark** is a magazine-grade Markdown layout and export engine for writers, editors, and publishers who need print-quality **CJK typography**. Write in Markdown; preview paginated magazine pages; export high-resolution PNG or a print-quality PDF through Paged.js print preview.
+
+**MagMark** 是面向中文创作者与出版流程的杂志级 Markdown 排版与导出引擎。它用 **Han.css + Paged.js + Vivliostyle CSS** 处理汉字高精度排印，把 Markdown 变成可分页的杂志版面，并导出高精度 PNG 或印刷级 PDF。
+
+Canonical repo: [github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) · Author: **Fu Jam** ([jammyfu](https://github.com/jammyfu) / **PaintingCoder**) · License: [MIT](LICENSE) · Machine brief: [llms.txt](llms.txt)
+
+[![version](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+![MagMark editor preview](screenshots/magmark-main.png)
+
+---
+
+## What MagMark is
+
+MagMark is **not** a generic Markdown previewer. It is a local Vite + TypeScript editor that applies three complementary typesetting layers:
+
+| Layer | Role in MagMark |
+| --- | --- |
+| [Han.css](https://hanzi.pro/) v3 | CJK–Latin spacing, punctuation compression, hanging quotes, OpenType `kern` / `liga` / `calt` / `locl` |
+| [Paged.js](https://pagedjs.org/) | CSS Paged Media `@page` rules, A4 margins, running page numbers, print preview |
+| [Vivliostyle](https://vivliostyle.org/) CSS rules | `orphans` / `widows`, heading break avoidance, keep-together for code and tables |
+
+**Who it is for:** Chinese (and mixed CJK + Latin) writers who want magazine pages from Markdown — long-form essays, print-adjacent PDFs, Xiaohongshu-sized vertical pages, and themeable WeChat-style articles — without building a typesetting toolchain from scratch.
+
+**Why the name:** **Mag** from *magazine*, **Mark** from *Markdown*. Write like Markdown; look like a magazine.
+
+---
+
+## Quick start
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173/` and paste Markdown into the editor. The right pane paginates and typesets as you type.
+
+### Markdown to print-quality PDF
+
+1. Write or open a `.md` file in the editor.
+2. Click **打印预览** (Paged.js print preview) in the header.
+3. The popup paginates with `@page` rules, then runs Han.js so CJK spacing and punctuation are applied on the printed pages.
+4. Use the browser **Print** dialog (`Ctrl+P` / `Cmd+P`) and choose **Save as PDF**.
+
+This is the supported print-quality PDF path: Paged.js preview + browser print. MagMark also exports **3× supersampled PNG** (full document or current page) for social and image-first workflows.
+
+---
+
+## MagMark vs Typora, VuePress, and Vivliostyle
+
+These tools overlap on “Markdown,” but they solve different jobs.
+
+| | **MagMark** | **Typora** | **VuePress** | **Vivliostyle alone** |
+| --- | --- | --- | --- | --- |
+| Job | Magazine layout + export engine from Markdown | Desktop WYSIWYG Markdown writing app | Vue static site generator for docs sites | CSS typesetting / HTML-to-print toolkit |
+| Primary output | Paginated magazine preview, 3× PNG, print-quality PDF via Paged.js + browser print | Formatted document; generic HTML/PDF export | Documentation websites | Print-ready pages if you author the HTML/CSS pipeline |
+| CJK magazine typography | Han.css + Vivliostyle page-break rules + Paged.js `@page`, plus `word-break: normal` / `line-break: strict` | Theme-dependent; not a CJK magazine print stack | Theme/CSS-dependent; built for websites, not magazine signatures | Excellent paged media **if** you supply the styles and content pipeline |
+| Pagination | Editor pagination + print preview (A4, Xiaohongshu 1080×1440, mobile/desktop) | Not a magazine page engine | Web routes and pages, not print signatures | Strong, once configured |
+| Best when | You want **CJK magazine Markdown** and a path to **print-quality PDF** | You want a polished writing surface | You want a docs website | You are building a custom publishing pipeline |
+
+MagMark **uses** Vivliostyle CSS pagination rules; it is not a wrapper that replaces the Vivliostyle CLI. It does not generate a VuePress site.
+
+---
+
+## FAQ
+
+### What is MagMark?
+
+MagMark is an open-source, MIT-licensed magazine-grade Markdown layout and export engine with strong CJK typography. Fu Jam (GitHub [jammyfu](https://github.com/jammyfu), display name PaintingCoder) maintains it at [github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark).
+
+### What is “CJK magazine Markdown”?
+
+It is Markdown written for Chinese / Japanese / Korean pages that should look like a magazine, not a GitHub readme: mixed Han–Latin spacing, compressed punctuation, hanging quotes, strict line breaks, and print pagination (widows/orphans, headings that do not sit alone at the bottom of a page). MagMark implements that stack with Han.css, Paged.js, and Vivliostyle CSS.
+
+### How do I turn Markdown into a print-quality PDF?
+
+Use MagMark’s **打印预览** button (Paged.js), then the browser Print dialog → Save as PDF. Han.css runs after pagination so the PDF keeps CJK spacing and punctuation. See [Quick start](#quick-start).
+
+### Does MagMark replace Typora?
+
+No. Typora is a writing app. MagMark is a layout and export engine optimized for CJK magazine pages, print preview, and high-resolution PNG export.
+
+### Does MagMark replace VuePress?
+
+No. VuePress builds documentation websites. MagMark paginates and typesets Markdown for magazine-like pages and print/PNG export.
+
+### Is MagMark the same as Vivliostyle?
+
+No. Vivliostyle is a CSS typesetting standard and toolchain. MagMark applies Vivliostyle-style page-break CSS inside a Markdown editor, together with Han.css and Paged.js, plus themes, cover generation, and image export.
+
+### Which CJK typography features are actually implemented?
+
+Only these, as shipped in the 1.6 editor and print preview:
+
+- Han.css: Han–Latin spacing (about 1/4 em), full-width punctuation compression, hanging CJK quotes, OpenType `kern` / `liga` / `calt` / `locl` on fonts that support them (for example Source Han Serif)
+- Paged.js print preview: A4 `@page` margins 22mm / 18mm / 28mm, first-page footer suppressed, mirrored inner margins for binding, `PAGE n / total` at `@bottom-center`, current editor theme variables, Han.js after pagination
+- Vivliostyle-inspired CSS: `orphans: 3; widows: 3`, `break-after: avoid` on headings, `break-inside: avoid` on code blocks and tables, `@media print` hides the editor chrome and uses `print-color-adjust: exact`
+- Line breaking: `word-break: normal` (not `break-all`), `overflow-wrap: break-word`, `line-break: strict`, `hanging-punctuation: first last`
+
+### Who created MagMark?
+
+**Fu Jam** — GitHub [@jammyfu](https://github.com/jammyfu), profile display name **PaintingCoder**. Site: [bubufu.com](https://bubufu.com).
+
+---
+
+## Features (1.6.0)
+
+### Cover generator
+
+- **10 aspect ratios** from 9:16 to 21:9 (vertical / square / landscape), with a visible ratio frame and one-click flip
+- **Draggable title and subtitle** on the preview (`transform: translate()`), persisted when the cover is inserted
+- Four cover templates, optional AI generation, live text updates inside the preview iframe
+
+### CJK typesetting (1.5 stack, still current)
+
+See the [implemented list](#which-cjk-typography-features-are-actually-implemented) above. The editor also inherited:
+
+- **3× canvas PNG export** for full-document or current-page images
+- **Block-level floating toolbar** — click a block (Shift-click or drag to multi-select) to adjust size, line-height, and tracking
+- **11 magazine themes** plus WeChat inline-style themes; theme colors flow into print preview and export
+- Manual / automatic pagination, per-page styles, 50%–150% preview zoom
+- Xiaohongshu 1080×1440 vertical pages; A4 / mobile / desktop formats
+- Image panel: drag, URL, AI generate (Gemini / OpenAI), or ratio placeholders
+
+![Smart image panel](screenshots/image-panel-smart.png)
+
+---
+
+## API keys (optional, for AI images / covers)
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Use | Where to get it |
+| --- | --- | --- |
+| `VITE_GEMINI_API_KEY` | AI images (Imagen 3), AI covers (Gemini Flash) | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| `VITE_OPENAI_API_KEY` | AI images (DALL·E 3) | [platform.openai.com](https://platform.openai.com/api-keys) |
+
+`.env` is gitignored. Keys stay in the browser; you can also paste them in the image/cover panels (stored in `localStorage`). Core layout, print preview, and PNG export work without keys.
+
+---
+
+## Project layout
+
+```text
+magmark/
+├── .env.example       # API key template
+├── editor.ts          # Pagination, Han.js init, print-preview document
+├── editor.css         # Han.css integration, @page, @media print
+├── index.html         # Editor chrome; Han.css CDN
+├── src/core/          # Editor state
+├── src/engine/        # Pagination engine
+├── src/image/         # Image panel
+├── src/cover/         # Cover generator
+├── llms.txt           # Short machine-readable product brief
+├── llms-full.txt      # Expanded machine-readable brief
+└── README.md
+```
+
+---
+
+## Stack
+
+- [Han.css](https://hanzi.pro/) — CJK typesetting
+- [Paged.js](https://pagedjs.org/) — CSS Paged Media polyfill
+- [Vivliostyle](https://vivliostyle.org/) — CSS pagination conventions used in MagMark styles
+- [html-to-image](https://github.com/bubkoo/html-to-image) — high-resolution PNG export
+- [Vite](https://vitejs.dev/) + TypeScript
+
+---
+
+## Author
+
+**Fu Jam** (傅 Jam) maintains MagMark.
+
+| Identity | Value |
+| --- | --- |
+| GitHub | [jammyfu](https://github.com/jammyfu) |
+| Display name | PaintingCoder |
+| Product | MagMark |
+| Canonical URL | https://github.com/jammyfu/MagMark |
+| Site | https://bubufu.com |
+| License | MIT |
+
+---
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+For agents and longer context, start with [llms.txt](llms.txt) or [llms-full.txt](llms-full.txt).
+
+---
+
 <!-- BEGIN:personal-project-standard-entry -->
-## Project Entry
+## Project governance (internal)
+
+Internal planning files live **below** the public product entity. They are for maintainers and agents, not the MagMark definition.
 
 - Project brief: [PROJECT_BRIEF.md](PROJECT_BRIEF.md)
 - Long-range roadmap: [MASTER_PLAN.md](MASTER_PLAN.md)
@@ -10,223 +210,9 @@
 - Long-running autonomy: [docs/LONG_RUNNING_AUTONOMY.md](docs/LONG_RUNNING_AUTONOMY.md)
 - Verification entry: `python3 tools/verify.py`
 
-## Standardized Summary
+### Standardized Summary
 
-- Positioning: Magazine-grade Markdown layout and export engine with strong CJK typography ambitions.
+- Positioning: Magazine-grade Markdown layout and export engine with strong CJK typography (Han.css + Paged.js + Vivliostyle).
 - Stack: Vite + TypeScript with rendering, export, and typography pipelines.
-- Current goal: Standardize the core product repository without disturbing its existing rendering and export codepaths.
+- Author: Fu Jam (GitHub jammyfu, display name PaintingCoder).
 <!-- END:personal-project-standard-entry -->
-
-# MagMark 1.6.0 🎨✨
-
-**世界级杂志级 Markdown 排版引擎 — CJK 高精度排印版**
-
-将您的 Markdown 转换为具备专业字体排版、智能分页和高精度导出的出版级文档。MagMark 1.6 引入封面生成器全面升级，并继承 Han.css + Paged.js + Vivliostyle CSS 三层排版增强，带来媲美《VOGUE》等高端纸媒的中文视觉体验。
-
-[![版本](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
-[![许可](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-
-![MagMark 编辑器预览](screenshots/magmark-main.png)
-
----
-
-## 🏷️ 为什么叫 MagMark？
-
-**MagMark** 是由两个核心概念组合而成的：
-
-- **Mag** (取自 **Magazine**)：打破 Markdown 预览"简陋"的印象，赋予文字具有现代杂志感的排版美学。
-- **Mark** (取自 **Markdown**)：坚持轻量级、纯文本的创作体验，让您专注于内容。
-
-**MagMark = 像写 Markdown 一样简单，像做杂志一样精美。**
-
----
-
-## 🆕 1.6.0 新增：封面生成器全面升级
-
-### 🖼 封面比例自由出图
-
-封面生成面板比例选择逻辑与图片插入面板完全对齐：
-
-- **10 档比例**：9:16 → 21:9，覆盖竖版（小红书/微信）、方形、横版（PPT/公众号封面）全场景
-- **可视比例框**：实时直观显示当前比例，支持一键翻转横/竖
-- **滑杆 + 分类按钮**：「竖向 / 方形 / 横向」快速跳转 + 精细滑动选择
-- **预览随比例自适应**：切换比例时，预览框平滑过渡，无需重新生成
-
-### ✦ 标题 / 副标题可拖拽定位
-
-- 预览区中，标题与副标题元素显示金色虚线轮廓，**鼠标直接拖拽**即可调整位置
-- 使用 CSS `transform: translate()` 叠加偏移，不破坏模板原始布局
-- **拖拽位置随插入保留**：最终插入文章的 HTML 完整包含位置信息
-- 输入文字实时更新（直接操作 iframe DOM），**拖拽后再改文字，位置不丢失**
-
----
-
-## 🆕 1.5.0 核心升级：三层 CJK 排版增强
-
-### 1. 🈶 Han.css — 汉字高精度排印
-
-集成 [Han.css v3](https://hanzi.pro/) 开源排版框架，对预览内容进行深度 CJK 处理：
-
-- **汉字↔拉丁字间距**：自动在中文与英文/数字之间插入 1/4 em 间距，告别"中英文混排拥挤感"。
-- **标点宽度压缩**：句号、逗号、顿号等全角标点不再占据完整字宽，版面更紧凑匀称。
-- **引号悬挂**：「」『』等 CJK 引号正确向行首/行末悬挂，实现光学对齐。
-- **OpenType 字距**：启用 `kern`、`liga`、`calt`、`locl` 特性，在支持的字体（如思源宋体）上实现亚像素级字距微调。
-
-### 2. 🖨 Paged.js — CSS Paged Media 打印预览
-
-新增"🖨 打印预览"按钮，在独立弹出窗口中加载 [Paged.js](https://pagedjs.org/) polyfill：
-
-- **`@page` 规则完整支持**：A4 页面边距 22mm/18mm/28mm，首页特殊处理，左右页面交替内侧边距（适合装订）。
-- **CSS 页脚页码**：`@bottom-center` 自动注入 `PAGE n / total` 样式页码。
-- **全主题继承**：自动读取编辑器当前主题色变量，打印预览与编辑器视觉完全一致。
-- **打印预览同时启用 Han.css**：Paged.js 分页完成后触发 Han.js 排印处理，中文输出质量达到印刷标准。
-
-### 3. 📐 Vivliostyle CSS — 孤行寡行 & 分页规则
-
-采用 [Vivliostyle](https://vivliostyle.org/) 排版标准中的 CSS 分页规则：
-
-- **孤行/寡行控制**：`orphans: 3; widows: 3` 防止段落首行或末行孤立在页底/页顶。
-- **标题防分页**：`break-after: avoid` 确保标题后至少跟随一段正文，不出现"标题挂在页尾"的情况。
-- **代码块/表格完整性**：`break-inside: avoid` 防止代码块和表格在中间被分页打断。
-- **`@media print`**：浏览器原生打印时自动隐藏编辑器 UI，仅输出页面内容，`print-color-adjust: exact` 保证主题背景色正确打印。
-
-### 4. 🔧 word-break 关键修复
-
-修复了原版中错误的 `word-break: break-all` 设置（该值会将英文单词在任意字符处强制折断）：
-
-| | 修改前 | 修改后 |
-|---|---|---|
-| `word-break` | `break-all` ❌ | `normal` ✅ |
-| 溢出处理 | — | `overflow-wrap: break-word` ✅ |
-| CJK 禁则 | — | `line-break: strict` ✅ |
-| 行末标点悬挂 | `first last` | `first last` ✅ |
-
----
-
-## 🚀 1.4 核心功能（继承）
-
-### 🎞️ 高精度 Canvas 导出
-直接采用 **3× 超采样**，输出 600DPI 级别超清 PNG，字体嵌入完美，所见即所得。
-
-### 🖱️ 块级点击浮动微调
-点击任何段落，立即激活浮动工具栏，支持 Shift 点击与拖拽框选多块同步调整字号、行高、字间距。
-
-### 🎨 11 套专业主题
-覆盖从东方金石到北欧极简的全系列风格，主题色自动传递至打印预览和导出。
-
-### 📄 智能分页控制
-手动/自动分页、单页独立样式、50%～150% 自由缩放预览。
-
----
-
-## ✨ 完整特性列表
-
-| 特性 | 说明 |
-|---|---|
-| Han.css CJK 排印 | 字间距、标点压缩、引号悬挂 |
-| Paged.js 打印预览 | @page 规则、页码、装订边距 |
-| Vivliostyle CSS 分页 | 孤行/寡行控制、标题防分页 |
-| word-break 修正 | 正确处理中英文混排换行 |
-| 3× PNG 导出 | 全页/当页高精度导出 |
-| 11 套主题 | 一键切换，打印预览同步 |
-| 块级浮动微调 | 点击/框选块，独立调整排版 |
-| 手动分页 | `---` 作为精确分页符 |
-| 小红书格式 | 1080×1440 竖版原尺寸 |
-| A4 / 移动 / 桌面 | 多格式自适应排版 |
-| 🖼 智能图片面板 | 拖拽/URL/AI 生成/占位图，自动判断意图 |
-| 🎨 封面生成面板 | 4 套模板 + AI 生成 + 10 档比例 + 拖拽定位文字 |
-
-### 🖼 智能图片插入面板
-
-全新 v2.0 智能图片面板——一个窗口完成所有图片操作，自动判断意图：
-
-- **拖拽 / 粘贴图片** → 直接上传预览
-- **输入 URL** → 按 Enter 自动加载
-- **输入描述文字** → AI 生成（Gemini / OpenAI）
-- **留空** → 插入指定比例的占位图
-
-支持 10 种比例选择（9:16 ~ 21:9）、4 种裁切适配模式、图文混排布局和宽度调节。
-
-![智能图片面板](screenshots/image-panel-smart.png)
-
----
-
-## 🔑 API Key 配置
-
-MagMark 支持通过 `.env` 文件预设 AI 生成图片 / 封面所需的 API Key，省去每次手动填写。
-
-```bash
-# 复制示例文件
-cp .env.example .env
-
-# 用编辑器打开 .env，填写您的 Key
-VITE_GEMINI_API_KEY=your_gemini_key_here
-VITE_OPENAI_API_KEY=your_openai_key_here
-```
-
-| 变量 | 用途 | 申请地址 |
-|---|---|---|
-| `VITE_GEMINI_API_KEY` | AI 生成图片（Imagen 3）、AI 生成封面（Gemini Flash） | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
-| `VITE_OPENAI_API_KEY` | AI 生成图片（DALL-E 3） | [platform.openai.com](https://platform.openai.com/api-keys) |
-
-> **安全提示**：`.env` 已加入 `.gitignore`，不会被提交到版本库。Key 仅在浏览器端使用，不经过任何中间服务器。
-> 也可以不配置 `.env`，直接在编辑器界面的图片/封面面板中填写，Key 会保存在浏览器 `localStorage`。
-
----
-
-## 🚀 快速开始
-
-```bash
-npm install
-npm run dev
-```
-
-访问 `http://localhost:5173/` 开启排版之旅。
-
-### 使用打印预览
-
-1. 在编辑器中输入 Markdown 内容
-2. 点击右上角 **🖨 打印预览** 按钮
-3. 新窗口中 Paged.js 自动分页，Han.css 完成 CJK 排印
-4. 使用浏览器 `Ctrl+P` / `Cmd+P` 打印或另存为 PDF
-
----
-
-## 📁 项目结构
-
-```bash
-magmark/
-├── .env.example       # API Key 配置示例（复制为 .env 填写实际 Key）
-├── .env               # 本地 API Key（已加入 .gitignore，不提交）
-├── editor.ts          # 核心逻辑：分页引擎、Han.js 初始化、打印预览生成
-├── editor.css         # 样式系统：Han.css 集成、@page 规则、@media print
-├── index.html         # UI 框架：引入 Han.css CDN、打印预览按钮
-├── src/
-│   ├── core/          # 状态管理
-│   ├── engine/        # 分页引擎
-│   ├── image/         # 图片插入面板（v2 智能单窗口）
-│   └── cover/         # 封面生成面板（v2 比例+拖拽）
-└── README.md
-```
-
----
-
-## 🔗 技术栈
-
-- [Han.css](https://hanzi.pro/) — CJK 汉字排版框架
-- [Paged.js](https://pagedjs.org/) — CSS Paged Media polyfill
-- [Vivliostyle](https://vivliostyle.org/) — CSS 分页排版标准
-- [html-to-image](https://github.com/bubkoo/html-to-image) — 高精度 PNG 导出
-- [Vite](https://vitejs.dev/) + TypeScript
-
----
-
-## 📄 许可证
-
-基于 MIT 协议发布。详见 [LICENSE](LICENSE)。
-
----
-
-**为追求极致排版美学的创作者而生 ❤️**
-
-*最近更新：2026-03-12 · v1.6.0*
