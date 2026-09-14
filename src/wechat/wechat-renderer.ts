@@ -6,6 +6,9 @@
  */
 
 import { WechatTheme, WechatThemeStyles } from './wechat-themes';
+import { sanitizeWechatPasteHtml } from './wechat-sanitize';
+
+export { sanitizeWechatPasteHtml } from './wechat-sanitize';
 
 /** 将 CSS 字符串注入到元素的 style 属性前，合并字体设置 */
 function applyStyle(cssStr: string, fontFamily: string, fontSizeMultiplier = 1): string {
@@ -167,12 +170,12 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         };
         const headBg = s.thead ? `style="${s.thead}"` : '';
         const thead = `<thead ${headBg}><tr>${headerCells.map((c, j) =>
-            `<th style="${alignAttr(j)}${applyStyle(s.th, font, mult)}">${inlineMd(c, s, font, mult)}</th>`
+            `<th style="${applyStyle(s.th, font, mult)}${alignAttr(j)}">${inlineMd(c, s, font, mult)}</th>`
         ).join('')}</tr></thead>`;
         const tbody = dataRows.length
             ? `<tbody style="${s.tbody || ''}">${dataRows.map(row =>
                 `<tr>${parseCells(row).map((c, j) =>
-                    `<td style="${alignAttr(j)}${applyStyle(s.td, font, mult)}">${inlineMd(c, s, font, mult)}</td>`
+                    `<td style="${applyStyle(s.td, font, mult)}${alignAttr(j)}">${inlineMd(c, s, font, mult)}</td>`
                 ).join('')}</tr>`
             ).join('')}</tbody>`
             : '';
@@ -232,8 +235,11 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         const resolvedSrc = resolve(src);
         const titleAttr = title ? ` title="${escAttr(title)}"` : '';
         const altText = alt && !alt.startsWith('mm-img://') ? alt : '';
-        const caption = altText ? `<p style="text-align:center;font-size:13px;color:#888;margin:8px 0 0;">${escHtml(altText)}</p>` : '';
-        return `<figure style="margin:20px 0;text-align:center;"><img src="${escAttr(resolvedSrc)}" alt="${escAttr(alt)}"${titleAttr} style="${applyStyle(s.img, font, mult)}" referrerpolicy="no-referrer">${caption}</figure>`;
+        // WeChat #1.4: one centering method — parent text-align:center — no <figure> / margin:auto.
+        const caption = altText
+            ? `<p style="text-align:center;font-size:13px;color:#888;margin:8px 0 0;">${escHtml(altText)}</p>`
+            : '';
+        return `<p style="text-align:center;margin:20px 0;"><img src="${escAttr(resolvedSrc)}" alt="${escAttr(alt)}"${titleAttr} style="${applyStyle(s.img, font, mult)}" referrerpolicy="no-referrer"></p>${caption}`;
     }
 
     // ── 段落 ────────────────────────────────────────
@@ -276,9 +282,9 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         if (para) blocks.push(para);
     }
 
-    // 包裹容器
-    const containerStyle = applyStyle(s.container || 'background-color:#ffffff;color:#333;padding:20px;', font, mult);
-    return `<section style="${containerStyle}">${blocks.join('\n')}</section>`;
+    // 包裹容器（不设固定 width，避免 WeChat #1.4 溢出 / 居中不一致）
+    const containerStyle = applyStyle(s.container || 'background-color:#ffffff;color:#333;', font, mult);
+    return sanitizeWechatPasteHtml(`<section style="${containerStyle}">${blocks.join('\n')}</section>`);
 }
 
 /**
@@ -286,13 +292,14 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
  * 可直接粘贴到微信公众号后台，保留所有内联样式。
  */
 export async function copyWechatHtml(html: string): Promise<boolean> {
+    const safeHtml = sanitizeWechatPasteHtml(html);
     // 现代 API
     try {
         if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
             await navigator.clipboard.write([
                 new ClipboardItem({
-                    'text/html': new Blob([html], { type: 'text/html' }),
-                    'text/plain': new Blob([html.replace(/<[^>]+>/g, '').trim()], { type: 'text/plain' }),
+                    'text/html': new Blob([safeHtml], { type: 'text/html' }),
+                    'text/plain': new Blob([safeHtml.replace(/<[^>]+>/g, '').trim()], { type: 'text/plain' }),
                 }),
             ]);
             return true;
@@ -306,7 +313,7 @@ export async function copyWechatHtml(html: string): Promise<boolean> {
         position: 'fixed', left: '-9999px', top: '0',
         whiteSpace: 'pre-wrap', userSelect: 'text',
     });
-    holder.innerHTML = html;
+    holder.innerHTML = safeHtml;
     document.body.appendChild(holder);
     holder.focus();
     const range = document.createRange();
@@ -318,8 +325,8 @@ export async function copyWechatHtml(html: string): Promise<boolean> {
     let ok = false;
     const onCopy = (e: ClipboardEvent) => {
         e.preventDefault();
-        e.clipboardData?.setData('text/html', html);
-        e.clipboardData?.setData('text/plain', html.replace(/<[^>]+>/g, '').trim());
+        e.clipboardData?.setData('text/html', safeHtml);
+        e.clipboardData?.setData('text/plain', safeHtml.replace(/<[^>]+>/g, '').trim());
         ok = true;
     };
     document.addEventListener('copy', onCopy, { once: true });
