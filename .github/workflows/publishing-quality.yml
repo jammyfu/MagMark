@@ -59,6 +59,7 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.browser.outcome == 'success' }}
         env:
           WORKSPACE_BUILD: '1'
+          WORKSPACE_NETWORK: '1'
         run: npm run test:workspace
       - name: Deep repository verification
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

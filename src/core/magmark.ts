@@ -1,3 +1,4 @@
+import { sanitizeArticleHtml } from '../security/article-html';
 /**
  * MagMark 1.6.0 - Core Class
  * Main API for magazine-quality markdown conversion
@@ -94,7 +95,7 @@ export class MagMark {
       .use(rehypeStringify, { allowDangerousHtml: true });
 
     const result = await processor.process(markdown);
-    const html = String(result);
+    const html = sanitizeArticleHtml(String(result));
 
     // Calculate metadata
     const wordCount = markdown.split(/\s+/).filter(Boolean).length;

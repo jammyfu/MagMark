@@ -10,6 +10,7 @@ const ts = require('typescript');
 const root = path.resolve(__dirname, '..');
 const cache = new Map();
 const external = new Set([
+  '../security/article-html', // Must not run when an export backend is unavailable.
   'unified', 'remark-parse', 'remark-rehype', 'rehype-stringify', '../plugins',
   '../schemas/input-schema', '../export/typst-converter',
   '../export/princexml-converter', '../export/image-renderer',

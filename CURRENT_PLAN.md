@@ -18,16 +18,28 @@ This is the only current execution entry. Earlier status and complete execution 
 - [x] Local: 88 Vitest, 59 text, 6 SDK guard, 7 verification-gate, 17 pagination-DOM and 14 production-asset workspace checks passed in separate scopes. Strict typecheck, build and deep checks passed.
 - [x] Remote integration run 34877645243 passed fresh npm ci, strict typecheck, all configured tests, actual web build, deep checks, Chromium pagination and production-asset workspace checks before pushing e2262712d00b3260127b2f9b28ece9356c588616.
 - [x] Existing locked dependency versions/integrities retained; add only the five required CodeMirror direct dependencies and their transitive dependencies.
-- [ ] Confirm the subsequent ordinary read-only Publishing quality run after integration-helper cleanup; do not infer success from the workflow file.
+- [x] Confirmed ordinary read-only Publishing quality run 34878022617, job 104090496815: all configured steps succeeded after helper cleanup.
 
 Evidence and reproduction: [QUIET_WORKSPACE.md](docs/project-governance/QUIET_WORKSPACE.md), [remote verification](docs/project-governance/REMOTE_WORKSPACE_VERIFICATION.md).
 
+### Continuation: trust, stable previews and quieter auxiliary tools (2026-09-15)
+
+- [x] Shared parse5/rehype-sanitize boundary on magazine, SDK, WeChat, clipboard and cover paths. Image-source inspection uses inert AST positions rather than live DOM parsing. Source text is not automatically rewritten.
+- [x] Native labelled image/cover dialogs, explicit focus wrap/return, Escape and composition-safe Enter. Quiet light surfaces, collapsed ratio/AI options, no unimplemented crop buttons.
+- [x] Preserve an existing image when changing ratio preferences; clearing an image can still produce a placeholder without an extra gesture.
+- [x] Revision-checked preview frames, immediate blank-source invalidation and pending-export guards. Zoom only updates transforms and retains article DOM.
+- [x] Local strict typecheck, web build, deep verification: pass. Separate scopes: 104 Vitest, 59 text, 6 SDK guards, 7 gate tests, 17 pagination, 21 production-asset/offline Chromium UI checks.
+- [ ] Fresh remote installation/integration and subsequent ordinary read-only CI for this continuation. Do not equate local checks or configuration with a successful remote run.
+
+Details and reproduction: [CONTINUATION_2026-09-15.md](docs/project-governance/CONTINUATION_2026-09-15.md).
+
 ### Remaining ordered work
 
-- [ ] Mature shared HTML trust enforcement before executable DOM insertion, including image-source helpers.
+- [x] Shared mature HTML trust boundary on current primary entry/output paths, including inert image-source helpers. Continue auditing newly introduced renderers separately.
 - [ ] Unified source-aware Markdown semantics for magazine and WeChat; preserve existing image syntax and legacy line breaks.
 - [ ] Non-destructive cross-inline typography profiles with one spacing engine and explicit normalization preview.
-- [ ] Resource readiness and stale-render cancellation with full source/image mapping regression.
+- [x] Cancel stale preview commits; block pending output and preserve source/image identity on zoom.
+- [ ] Bounded font/image readiness for final pagination/export and full slow-resource mapping regression.
 - [ ] Real OS Chinese IME, Firefox/WebKit/mobile WebView, live WeChat paste-save-reload and network-navigation validation.
 - [ ] Reproducible Paged.js/Vivliostyle comparison, dependency advisory triage and SDK distribution packaging. Keep the current print backend until measured evidence supports changing it.
 

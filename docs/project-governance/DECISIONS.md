@@ -1,5 +1,15 @@
 # DECISIONS.md
 
+## 2026-09-15 — Shared trust and quiet interaction boundaries
+
+- Parse raw HTML with parse5 through rehype-raw; sanitize with rehype-sanitize before current primary DOM/output paths. Formatting is not sanitization. Preserve semantic tables and passive image resources; remove executable tags/events/URLs, unapproved CSS and clobbering names. Namespace local IDs and references idempotently.
+- Source inspection/editing must never instantiate executable HTML. Inert AST ranges retain exact repeated-image source coordinates; normalization of raw HTML is limited to a user-requested image edit.
+- Auxiliary controls use native dialogs in supporting browsers, with explicit Tab wrapping and focus return. Legacy DOM-only hosts have an explicitly non-modal fallback; do not call that fallback equivalent to native accessibility support.
+- Aspect ratio applies to placeholder/generation preferences, not destructive replacement or fictitious cropping of an existing image. Remove nonfunctional crop buttons rather than advertise a feature that does not work.
+- UI style is independent from article style. Advanced ratio and optional AI configuration stay collapsed. No new permanent toolbar controls or automatic source normalization.
+- Preview commits are source/layout-version checked at asynchronous boundaries. Keep visible content while updating, clear empty source immediately, and disable output actions until the matching preview finishes. Font/image load readiness is a separate, still-open acceptance gate.
+- Build/test integration uses a deterministic, hashed file manifest and exact parent, then full fresh checks before a non-force push to the approved feature branch. Temporary integration/snapshot helpers are removed; ordinary CI remains read-only.
+
 ## 2026-09-15 — less-is-more workspace
 
 Simplify discovery rather than delete capability. The shell owns independent colors, workspace views and inspector state. Existing renderers and control IDs remain authoritative; source, image-directory, image-edit and target-specific export contracts are preserved.

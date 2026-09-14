@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## 2026-09-15 — Continuation (feature branch; not released)
+
+- Add shared HTML trust processing for current magazine, SDK, WeChat, clipboard and cover paths; keep source inspection inert and preserve anchors/table references.
+- Refine image/cover tools to quiet native dialogs with keyboard containment and return focus. Collapse infrequent ratio/AI settings and remove nonfunctional crop controls.
+- Preserve the selected image through ratio preference changes; restore placeholder insertion after clearing an image.
+- Prevent old queued previews from reappearing after source changes/clearing; guard output while layout is pending. Zoom retains article nodes and edit identity.
+- Extend trust, image-state and production workspace regressions. Local results and remaining remote/OS-IME/WeChat/slow-resource gates are recorded separately.
+
 ## 2026-09-15 — quiet workspace, branch only
 
 - Add a neutral light workspace with write/compare/preview, mobile single-pane presentation, an optional typography inspector, a file disclosure and one export dialog.

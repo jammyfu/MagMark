@@ -87,16 +87,22 @@ export function mountWorkspace() {
     const name = required<HTMLSelectElement>('ctrl-theme').selectedOptions[0]?.textContent || '当前风格';
     required('export-context').textContent = `${scope} · ${name}。复制和单页导出使用当前预览。`;
     const pages = s.pageHtmls as Array<{ diagnostics?: PaginationDiagnostic[] }>;
-    const pageBlocked = !!pages[s.currentPage - 1]?.diagnostics?.length;
-    const anyBlocked = pages.some(page => page.diagnostics?.length);
-    required<HTMLButtonElement>('btn-export').disabled = pageBlocked || !input.value.trim();
-    required<HTMLButtonElement>('btn-export-all').disabled = anyBlocked || !input.value.trim();
+    const paginated = body.dataset.output !== 'wechat' && s.viewMode === 'multi';
+    const pageBlocked = paginated && !!pages[s.currentPage - 1]?.diagnostics?.length;
+    const anyBlocked = paginated && pages.some(page => page.diagnostics?.length);
+    const unavailable = !input.value.trim() || s.isProcessing;
+    exportButton.disabled = !input.value.trim();
+    for (const id of ['btn-copy-page-wechat','btn-wc-copy','btn-copy-page-rich','btn-print-preview']) {
+      required<HTMLButtonElement>(id).disabled = unavailable;
+    }
+    required<HTMLButtonElement>('btn-export').disabled = pageBlocked || unavailable;
+    required<HTMLButtonElement>('btn-export-all').disabled = anyBlocked || unavailable;
     const warning = document.getElementById('export-warning');
     if (warning) {
       warning.hidden = !anyBlocked || body.dataset.output === 'wechat';
       warning.textContent = anyBlocked ? '部分内容超出页面高度，PNG 导出已暂停。请调整字号、图片尺寸，或切换长文视图后导出。' : '';
       // Long view has no fixed-page clipping; stale pagination diagnostics do not apply.
-      if (s.viewMode === 'scroll') { warning.hidden = true; required<HTMLButtonElement>('btn-export').disabled = !input.value.trim(); }
+      if (s.viewMode === 'scroll') { warning.hidden = true; required<HTMLButtonElement>('btn-export').disabled = unavailable; }
     }
   }
   function applyWechatZoom(scale: number) {
@@ -144,7 +150,6 @@ export function mountWorkspace() {
       const message = document.getElementById(id); if (message) message.textContent = '';
     }
     if (currentView === 'write') setView(media.matches ? 'preview' : 'compare');
-    required('ctrl-theme').dispatchEvent(new Event('change', { bubbles: true }));
     updateExportContext();
     if (typeof dialog.showModal === 'function') dialog.showModal();
     else { report('当前浏览器不支持导出面板，请使用新版浏览器。'); setView(previousExportView); }
@@ -167,6 +172,9 @@ export function mountWorkspace() {
   listen(document, 'pointerdown', event => { if (!fileMenu.contains(event.target as Node)) fileMenu.open = false; });
   listen(document, 'keydown', event => {
     const key = event as KeyboardEvent;
+    // Auxiliary native dialogs own their input, Escape, Tab and shortcuts.
+    if (key.target instanceof Element && key.target.closest('dialog.mm-panel-dialog[open]')) return;
+    if (key.isComposing) return;
     if (key.key === 'Escape') {
       if (dialog.open) return;
       if (fileMenu.open) { fileMenu.open = false; fileMenu.querySelector('summary')?.focus(); key.preventDefault(); key.stopImmediatePropagation(); }
