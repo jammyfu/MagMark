@@ -37,11 +37,13 @@ export interface WechatTheme {
   styles: WechatThemeStyles;
 }
 
-const BASE_P = 'font-size: 16px; line-height: 1.85; margin: 20px 0; text-align: justify; text-justify: inter-ideograph; letter-spacing: 0.02em;';
+// WeChat #2.6 / spec #1.6: only text-align left|right|center (or omit). Never justify / text-justify.
+const BASE_P = 'font-size: 16px; line-height: 1.85; margin: 20px 0; letter-spacing: 0.02em;';
 const BASE_CODE = 'padding: 3px 6px; border-radius: 4px; font-family: "Fira Code", "Courier New", monospace; font-size: 14px;';
 const BASE_PRE = 'padding: 16px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-family: "Fira Code", "Courier New", monospace; font-size: 14px; line-height: 1.6;';
-const BASE_IMG = 'max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block;';
-const BASE_TABLE = 'width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;';
+// WeChat #1.4: constrain with max-width:100% only — no display:block + margin:auto (nested centering).
+const BASE_IMG = 'max-width: 100%; height: auto; border-radius: 8px;';
+const BASE_TABLE = 'max-width: 100%; width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;';
 const BASE_TH = 'padding: 10px 14px; text-align: left; font-weight: 600;';
 const BASE_TD = 'padding: 9px 14px; border-bottom: 1px solid rgba(0,0,0,0.08);;';
 
