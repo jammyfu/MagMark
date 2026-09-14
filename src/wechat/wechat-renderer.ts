@@ -11,17 +11,17 @@ import { sanitizeWechatPasteHtml } from './wechat-sanitize';
 export { sanitizeWechatPasteHtml } from './wechat-sanitize';
 
 /** 将 CSS 字符串注入到元素的 style 属性前，合并字体设置 */
-function applyStyle(cssStr: string, fontFamily: string, fontSizeMultiplier = 1): string {
-    if (!cssStr) return `font-family: ${fontFamily};`;
-    // 应用字号倍率
+function applyStyle(cssStr: string, _fontFamily: string, fontSizeMultiplier = 1): string {
+    if (!cssStr) return '';
+    // style="..." 不能再嵌套双引号；公众号规范也不建议自定义 font-family。
+    cssStr = cssStr.replace(/"/g, "'").replace(/font-family\s*:\s*[^;]+;?/gi, '').replace(/\s{2,}/g, ' ').trim();
     if (fontSizeMultiplier !== 1) {
         cssStr = cssStr.replace(/font-size:\s*([\d.]+)px/g, (_, n) => {
             return `font-size: ${Math.round(parseFloat(n) * fontSizeMultiplier)}px`;
         });
-    }
-    // 注入字体（如果 cssStr 没有 font-family，或者用户选择了非默认字体）
-    if (!cssStr.includes('font-family')) {
-        return `font-family: ${fontFamily}; ${cssStr}`;
+        cssStr = cssStr.replace(/line-height:\s*([\d.]+)px/g, (_, n) => {
+            return `line-height: ${Math.round(parseFloat(n) * fontSizeMultiplier)}px`;
+        });
     }
     return cssStr;
 }
@@ -139,7 +139,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             i++;
         }
         // 递归处理内部内容
-        const inner = quoteLines.map(l => inlineMd(l, s, font, mult)).join('<br>');
+        const inner = quoteLines.map(l => inlineMd(l, s, font, mult)).filter(Boolean).join('');
         return `<blockquote style="${applyStyle(s.blockquote, font, mult)}"><p style="${applyStyle(s.p, font, mult)}">${inner}</p></blockquote>`;
     }
 
@@ -151,35 +151,21 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             i++;
         }
         if (tableLines.length < 2) {
-            return `<p style="${applyStyle(s.p, font, mult)}">${tableLines.map(l => inlineMd(l, s, font, mult)).join('<br>')}</p>`;
+            return tableLines.map(l => `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(l, s, font, mult)}</p>`).join('');
         }
         const parseCells = (row: string) =>
             row.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
         const headerCells = parseCells(tableLines[0]);
-        const sepCells = parseCells(tableLines[1]);
-        const aligns = sepCells.map(sep => {
-            const t = sep.trim();
-            if (t.startsWith(':') && t.endsWith(':')) return 'center';
-            if (t.endsWith(':')) return 'right';
-            return 'left';
-        });
         const dataRows = tableLines.slice(2);
-        const alignAttr = (idx: number) => {
-            const a = aligns[idx];
-            return a && a !== 'left' ? `text-align:${a};` : '';
+        // Do not emit <table>/<th>: official #1.4 treats every th as a width
+        // candidate (居中不一致 across 375/585/677), and #2.3.2 measures the
+        // whole table as one paragraph (one Range, many cell rects → fake overlap).
+        const rowToPara = (cells: string[], heading: boolean) => {
+            const inner = cells.map(c => inlineMd(c, s, font, mult)).join('　');
+            const style = heading ? applyStyle(s.th, font, mult) : applyStyle(s.p, font, mult);
+            return `<p style="${style}">${inner}</p>`;
         };
-        const headBg = s.thead ? `style="${s.thead}"` : '';
-        const thead = `<thead ${headBg}><tr>${headerCells.map((c, j) =>
-            `<th style="${applyStyle(s.th, font, mult)}${alignAttr(j)}">${inlineMd(c, s, font, mult)}</th>`
-        ).join('')}</tr></thead>`;
-        const tbody = dataRows.length
-            ? `<tbody style="${s.tbody || ''}">${dataRows.map(row =>
-                `<tr>${parseCells(row).map((c, j) =>
-                    `<td style="${applyStyle(s.td, font, mult)}${alignAttr(j)}">${inlineMd(c, s, font, mult)}</td>`
-                ).join('')}</tr>`
-            ).join('')}</tbody>`
-            : '';
-        return `<table style="${applyStyle(s.table, font, mult)}">${thead}${tbody}</table>`;
+        return [rowToPara(headerCells, true), ...dataRows.map(row => rowToPara(parseCells(row), false))].join('');
     }
 
     // ── 列表 ────────────────────────────────────────
@@ -237,9 +223,9 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         const altText = alt && !alt.startsWith('mm-img://') ? alt : '';
         // WeChat #1.4: one centering method — parent text-align:center — no <figure> / margin:auto.
         const caption = altText
-            ? `<p style="text-align:center;font-size:13px;color:#888;margin:8px 0 0;">${escHtml(altText)}</p>`
+            ? `<p style="text-align:center;font-size:13px;line-height:26px;color:#888;margin:8px 0 0;">${escHtml(altText)}</p>`
             : '';
-        return `<p style="text-align:center;margin:20px 0;"><img src="${escAttr(resolvedSrc)}" alt="${escAttr(alt)}"${titleAttr} style="${applyStyle(s.img, font, mult)}" referrerpolicy="no-referrer"></p>${caption}`;
+        return `<p data-ignore-width="" style="text-align:center;margin:20px 0;"><img data-ignore-width="" src="${escAttr(resolvedSrc)}" alt="${escAttr(alt)}"${titleAttr} style="${applyStyle(s.img, font, mult)}" referrerpolicy="no-referrer"></p>${caption}`;
     }
 
     // ── 段落 ────────────────────────────────────────
@@ -250,7 +236,9 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             i++;
         }
         if (!paraLines.length) return '';
-        return `<p style="${applyStyle(s.p, font, mult)}">${paraLines.join('<br>')}</p>`;
+        // Separate <p> per source line — a <br> inflates Range.getClientRects()
+        // and trips WeChat #2.3.2 on otherwise safe line-heights.
+        return paraLines.map(l => `<p style="${applyStyle(s.p, font, mult)}">${l}</p>`).join('');
     }
 
     // ── 主循环 ───────────────────────────────────────

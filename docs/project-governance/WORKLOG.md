@@ -2,6 +2,9 @@
 
 ## 2026-09-14
 
+- Tightened the WeChat paste path against the editor dump: line-height ≥ 2× font-size (Range.getClientRects fragments inlines), text-align:left on every text tag, no font-family, no container padding, images/tables marked `data-ignore-width`, GFM tables flattened to paragraphs, no `<br>` inside `<p>`.
+- Converted unitless line-heights to explicit px/em, defaulted body `text-align` to `left`, flattened theme/export gradients, and set image `width:100%` with captions that carry a safe line-height.
+- Extended `tests/wechat-paste-html.test.ts` so every built-in theme is checked with a long text-only article and an image-rich article.
 - Captured real editor screenshots from `npm run dev` (Playwright) and committed `screenshots/magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`. Added `!screenshots/*.png` so the global `*.png` gitignore no longer drops them.
 - Split the public README into four languages (`README.md` 简体 default, `README.zh-Hant.md`, `README.ja.md`, `README.en.md`) with a centered language switcher.
 - Cited the live editor https://bubufu.com/tools/magmark/ in all four READMEs, `llms.txt`, and `llms-full.txt`. Kept magazine vs WeChat path honesty and MIT.

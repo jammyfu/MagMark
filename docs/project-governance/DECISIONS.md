@@ -2,6 +2,11 @@
 
 ## 2026-09-14
 
+- WeChat paste line-height is at least 2× font-size, in explicit px. Official #2.3.2 divides contentHeight by Range.getClientRects().length; nested strong/em/a/code splits one visual line into several rects, so 1.6–1.85 unitless (or the same ratio in px) still fails on 2-line paragraphs.
+- Body text blocks that omit `text-align` get `left`. 公众号 paste serializes the CSS initial `start`, which the editor flags as #2.6.
+- CSS gradients are flattened to the first solid color on the paste path (and removed from built-in themes). Spec #4.1.2 flags gradient behind text; decorative `hr` gradients are also removed so every theme is export-safe.
+- GFM tables are flattened to paragraphs on the WeChat path. A real `<table>` is one detector paragraph: every `th` is a #1.4 width candidate, and the table Range looks like overlapping line-height.
+- Do not inject `font-family` on WeChat paste HTML (spec §3). WeChat paste also omits container padding so `width:100%` images keep widthRatio ≈ 1 across 375/585/677.
 - Default public README is Simplified Chinese. Traditional Chinese, Japanese, and English live beside it with a language switcher; English keeps the GEO narrative and the same facts.
 - The live product URL is https://bubufu.com/tools/magmark/. Cite it as the online editor. Do not invent GitHub Pages or a `github.io` `/llms.txt`.
 - README screenshots must be real captures from the running editor, committed as PNGs under `screenshots/`. Do not keep broken image links.
