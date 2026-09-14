@@ -2,7 +2,8 @@
 
 ## 2026-09-14
 
-- WeChat paste line-height is at least 2× font-size, in explicit px. Official #2.3.2 divides contentHeight by Range.getClientRects().length; nested strong/em/a/code splits one visual line into several rects, so 1.6–1.85 unitless (or the same ratio in px) still fails on 2-line paragraphs.
+- Han.css v3 paints `em:lang(zh|ja)` with `text-emphasis: filled circle` (着重号). MagMark Markdown `*...*` must not use that look. Magazine/print keep italic via a CSS override and by skipping `Han.normalize.renderEm`. WeChat paste does not emit `<em>` or `font-style:italic` (Han.css is global on `index.html`; the Official Account editor also remaps italic/em).
+- WeChat paste line-height is at least 2× font-size, in explicit px. Official #2.3.2 divides contentHeight by Range.getClientRects().length; nested strong/span/a/code splits one visual line into several rects, so 1.6–1.85 unitless (or the same ratio in px) still fails on 2-line paragraphs.
 - Body text blocks that omit `text-align` get `left`. 公众号 paste serializes the CSS initial `start`, which the editor flags as #2.6.
 - CSS gradients are flattened to the first solid color on the paste path (and removed from built-in themes). Spec #4.1.2 flags gradient behind text; decorative `hr` gradients are also removed so every theme is export-safe.
 - GFM tables are flattened to paragraphs on the WeChat path. A real `<table>` is one detector paragraph: every `th` is a #1.4 width candidate, and the table Range looks like overlapping line-height.

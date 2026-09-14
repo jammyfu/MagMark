@@ -13,6 +13,9 @@
  *                 justify / start / end / inherit / text-justify are rejected
  *   #4.1.2 darkmode-no-gradient — no CSS gradient behind text
  *
+ * Also: Markdown *emphasis* must not carry Han.css / theme text-emphasis
+ * (CJK 着重号 sesame/circle dots). Strip those props and remap <em>/<i>.
+ *
  * Applied on the WeChat export path only (renderWechatHtml / copyWechatHtml).
  */
 
@@ -49,6 +52,22 @@ const FIXED_WIDTH_RE = /^(-?[\d.]+)(px|pt|cm|mm|in|pc|q)$/i;
 const GRADIENT_FN_RE = /(?:-webkit-)?(?:repeating-)?(?:linear|radial|conic)-gradient\(|-webkit-gradient\(/i;
 
 const NAMED_TRANSPARENT = /^(transparent|currentcolor)$/i;
+
+/** Han.css + WeChat both treat these as 着重号. Never keep them on paste HTML. */
+const TEXT_EMPHASIS_PROPS = new Set([
+    'text-emphasis',
+    'text-emphasis-style',
+    'text-emphasis-color',
+    'text-emphasis-position',
+    '-webkit-text-emphasis',
+    '-webkit-text-emphasis-style',
+    '-webkit-text-emphasis-color',
+    '-webkit-text-emphasis-position',
+    '-moz-text-emphasis',
+    '-moz-text-emphasis-style',
+    '-moz-text-emphasis-color',
+    '-moz-text-emphasis-position',
+]);
 
 function cssPx(value: number, unit: string): number {
     const n = parseFloat(String(value));
@@ -318,6 +337,16 @@ export function rewriteWechatStyle(
             continue;
         }
 
+        if (TEXT_EMPHASIS_PROPS.has(prop)) {
+            map.delete(prop);
+            continue;
+        }
+
+        if ((tag === 'em' || tag === 'i' || tag === 'span') && prop === 'font-style' && /^italic$/i.test(value)) {
+            map.delete(prop);
+            continue;
+        }
+
         if (prop === 'text-align') {
             const align = value.toLowerCase().split(/\s+/)[0];
             if (SAFE_TEXT_ALIGN.has(align)) map.set('text-align', align);
@@ -408,7 +437,55 @@ export function rewriteWechatStyle(
         map.set('text-align', 'left');
     }
 
+    if (tag === 'em' || tag === 'i' || tag === 'span') {
+        map.set('font-style', 'normal');
+        map.set('text-emphasis', 'none');
+        map.set('-webkit-text-emphasis', 'none');
+    }
+
     return [...map.entries()].map(([prop, value]) => `${prop}:${value}`).join(';');
+}
+
+/**
+ * Markdown *emphasis* look for WeChat: color / underline, never italic or 着重号.
+ * Han.css `em:lang(zh)` and the Official Account editor both remap italic/em to dots.
+ */
+export function normalizeWechatEmphasisStyle(style: string, fallbackColor?: string): string {
+    const decls = style.split(';').map((s) => s.trim()).filter(Boolean);
+    const map = new Map<string, string>();
+    for (const decl of decls) {
+        const colon = decl.indexOf(':');
+        if (colon < 0) continue;
+        const prop = decl.slice(0, colon).trim().toLowerCase();
+        const value = stripImportant(decl.slice(colon + 1).trim()).replace(/"/g, "'");
+        if (!prop || !value) continue;
+        if (TEXT_EMPHASIS_PROPS.has(prop)) continue;
+        if (prop === 'font-style' && /^italic$/i.test(value)) continue;
+        map.set(prop, value);
+    }
+    if (!map.has('color') && fallbackColor) map.set('color', fallbackColor);
+    map.set('font-style', 'normal');
+    map.set('text-emphasis', 'none');
+    map.set('-webkit-text-emphasis', 'none');
+    return [...map.entries()].map(([prop, value]) => `${prop}:${value}`).join(';');
+}
+
+/** Remap <em>/<i> to <span> so Han.css `em:lang(zh)` and WeChat em-semantics cannot add 着重号. */
+function rewriteEmphasisTags(html: string): string {
+    return html
+        .replace(/<(em|i)\b([^>]*)>/gi, (_full, _tag: string, attrs: string) => {
+            let next = attrs;
+            if (/\sstyle\s*=/i.test(next)) {
+                next = next.replace(/\sstyle\s*=\s*"([^"]*)"/gi, (_m: string, style: string) => {
+                    const rewritten = normalizeWechatEmphasisStyle(style);
+                    return rewritten ? ` style="${rewritten}"` : '';
+                });
+            } else {
+                next += ` style="${normalizeWechatEmphasisStyle('')}"`;
+            }
+            return `<span${next}>`;
+        })
+        .replace(/<\/(em|i)>/gi, '</span>');
 }
 
 function rewriteStyleAttrs(html: string): string {
@@ -558,9 +635,11 @@ export function collectUnsafeLineHeights(html: string): UnsafeLineHeightHit[] {
 export function sanitizeWechatPasteHtml(html: string): string {
     let out = html;
     out = rewriteFigures(out);
+    out = rewriteEmphasisTags(out);
     out = rewriteStyleAttrs(out);
     out = stripOversizedImgDimensions(out);
     out = out.replace(/text-justify\s*:\s*[^;"]+;?/gi, '');
+    out = out.replace(/(?:-webkit-|-moz-)?text-emphasis(?:-style|-color|-position)?\s*:\s*(?!none\b)[^;"]+;?/gi, '');
     out = out.replace(/\sstyle="\s*"/g, '');
     return out;
 }

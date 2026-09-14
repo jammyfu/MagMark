@@ -15,6 +15,7 @@ export interface WechatThemeStyles {
   code: string;
   pre: string;
   strong: string;
+  /** Color / underline only. Paste path strips italic and never emits <em> (Han.css 着重号). */
   em: string;
   ul: string;
   ol: string;

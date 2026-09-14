@@ -6,7 +6,7 @@
  */
 
 import { WechatTheme, WechatThemeStyles } from './wechat-themes';
-import { sanitizeWechatPasteHtml } from './wechat-sanitize';
+import { normalizeWechatEmphasisStyle, sanitizeWechatPasteHtml } from './wechat-sanitize';
 
 export { sanitizeWechatPasteHtml } from './wechat-sanitize';
 
@@ -36,8 +36,13 @@ function escAttr(s: string): string {
     return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function emphasisSpan(text: string, styles: WechatThemeStyles, font: string, mult: number, accent: string): string {
+    const style = applyStyle(normalizeWechatEmphasisStyle(styles.em, accent), font, mult);
+    return `<span style="${style}">${text}</span>`;
+}
+
 /** 内联 Markdown 转 HTML（粗体、斜体、代码、链接、图片、删除线） */
-function inlineMd(text: string, styles: WechatThemeStyles, font: string, mult: number): string {
+function inlineMd(text: string, styles: WechatThemeStyles, font: string, mult: number, accent: string): string {
     if (!text) return '';
     return text
         // 图片
@@ -51,17 +56,17 @@ function inlineMd(text: string, styles: WechatThemeStyles, font: string, mult: n
             (_, code) => `<code style="${applyStyle(styles.code, font, mult)}">${escHtml(code)}</code>`)
         // 粗体+斜体
         .replace(/\*{3}(.+?)\*{3}/g,
-            (_, t) => `<strong style="${applyStyle(styles.strong, font, mult)}"><em style="${applyStyle(styles.em, font, mult)}">${t}</em></strong>`)
+            (_, t) => `<strong style="${applyStyle(styles.strong, font, mult)}">${emphasisSpan(t, styles, font, mult, accent)}</strong>`)
         // 粗体
         .replace(/\*\*(.+?)\*\*/g,
             (_, t) => `<strong style="${applyStyle(styles.strong, font, mult)}">${t}</strong>`)
         .replace(/__(.+?)__/g,
             (_, t) => `<strong style="${applyStyle(styles.strong, font, mult)}">${t}</strong>`)
-        // 斜体
+        // 斜体：不用 <em> / font-style:italic，避免 Han.css 与公众号编辑器改成着重号
         .replace(/\*(.+?)\*/g,
-            (_, t) => `<em style="${applyStyle(styles.em, font, mult)}">${t}</em>`)
+            (_, t) => emphasisSpan(t, styles, font, mult, accent))
         .replace(/_([^_]+)_/g,
-            (_, t) => `<em style="${applyStyle(styles.em, font, mult)}">${t}</em>`)
+            (_, t) => emphasisSpan(t, styles, font, mult, accent))
         // 删除线
         .replace(/~~(.+?)~~/g, '<del>$1</del>');
 }
@@ -93,6 +98,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
     const s = theme.styles;
     const font = fontFamily;
     const mult = fontSizeMultiplier;
+    const accent = theme.accent;
     const resolve = resolveImageSrc || ((src: string) => src);
 
     // 预处理：去掉 YAML frontmatter
@@ -139,7 +145,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             i++;
         }
         // 递归处理内部内容
-        const inner = quoteLines.map(l => inlineMd(l, s, font, mult)).filter(Boolean).join('');
+        const inner = quoteLines.map(l => inlineMd(l, s, font, mult, accent)).filter(Boolean).join('');
         return `<blockquote style="${applyStyle(s.blockquote, font, mult)}"><p style="${applyStyle(s.p, font, mult)}">${inner}</p></blockquote>`;
     }
 
@@ -151,7 +157,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             i++;
         }
         if (tableLines.length < 2) {
-            return tableLines.map(l => `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(l, s, font, mult)}</p>`).join('');
+            return tableLines.map(l => `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(l, s, font, mult, accent)}</p>`).join('');
         }
         const parseCells = (row: string) =>
             row.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
@@ -161,7 +167,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         // candidate (居中不一致 across 375/585/677), and #2.3.2 measures the
         // whole table as one paragraph (one Range, many cell rects → fake overlap).
         const rowToPara = (cells: string[], heading: boolean) => {
-            const inner = cells.map(c => inlineMd(c, s, font, mult)).join('　');
+            const inner = cells.map(c => inlineMd(c, s, font, mult, accent)).join('　');
             const style = heading ? applyStyle(s.th, font, mult) : applyStyle(s.p, font, mult);
             return `<p style="${style}">${inner}</p>`;
         };
@@ -185,9 +191,9 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
                 let content = ulMatch ? ulMatch[2] : olMatch![1];
                 if (ulMatch && ulMatch[1]) {
                     const checked = ulMatch[1].includes('x');
-                    content = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> ${inlineMd(content, s, font, mult)}`;
+                    content = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> ${inlineMd(content, s, font, mult, accent)}`;
                 } else {
-                    content = inlineMd(content, s, font, mult);
+                    content = inlineMd(content, s, font, mult, accent);
                 }
                 i++;
                 let nested = '';
@@ -216,7 +222,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         const line = lines[i].trim();
         i++;
         const match = line.match(/^!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/);
-        if (!match) return `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(line, s, font, mult)}</p>`;
+        if (!match) return `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(line, s, font, mult, accent)}</p>`;
         const [, alt, src, title] = match;
         const resolvedSrc = resolve(src);
         const titleAttr = title ? ` title="${escAttr(title)}"` : '';
@@ -232,7 +238,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
     function parseParagraph(): string {
         const paraLines: string[] = [];
         while (i < lines.length && !isBlockStop(lines[i])) {
-            paraLines.push(inlineMd(lines[i], s, font, mult));
+            paraLines.push(inlineMd(lines[i], s, font, mult, accent));
             i++;
         }
         if (!paraLines.length) return '';
@@ -257,7 +263,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             const level = hm[1].length as 1 | 2 | 3;
             const tagLevel = Math.min(level, 3) as 1 | 2 | 3;
             const hStyle = level === 1 ? s.h1 : level === 2 ? s.h2 : s.h3;
-            blocks.push(`<h${tagLevel} style="${applyStyle(hStyle, font, mult)}">${inlineMd(hm[2], s, font, mult)}</h${tagLevel}>`);
+            blocks.push(`<h${tagLevel} style="${applyStyle(hStyle, font, mult)}">${inlineMd(hm[2], s, font, mult, accent)}</h${tagLevel}>`);
             i++;
             continue;
         }

@@ -10,6 +10,7 @@ import {
     collectTextAlignValues,
     collectUnsafeLineHeights,
     isLineHeightSafeForFontSize,
+    normalizeWechatEmphasisStyle,
     rewriteWechatStyle,
     sanitizeWechatPasteHtml,
     WECHAT_CONTENT_MAX_WIDTH_PX,
@@ -43,6 +44,8 @@ function assertSafePasteHtml(html: string, label: string): void {
     expect(html, label).not.toMatch(/text-justify/i);
     expect(html, label).not.toMatch(/(?:^|;|\s)text-align\s*:\s*(start|end|justify|inherit|initial|unset|match-parent)/i);
     expect(html, label).not.toMatch(/font-family\s*:/i);
+    expect(html, label).not.toMatch(/<(em|i)\b/i);
+    expect(html, label).not.toMatch(/(?:-webkit-|-moz-)?text-emphasis(?:-style|-color|-position)?\s*:\s*(?!none\b)/i);
 }
 
 const TEXT_ONLY_ARTICLE = `# 作为一枚铁粉，任凭
@@ -273,5 +276,77 @@ describe('rewriteWechatStyle helpers', () => {
         expect(next).toMatch(/text-align:left/);
         expect(next).toMatch(/line-height:30px/);
         expect(isLineHeightSafeForFontSize('15px', '30px')).toBe(true);
+    });
+});
+
+describe('WeChat paste HTML — Markdown emphasis without 着重号', () => {
+    const ITALIC_MD = '*视频里的标题画面：The Legend of Trump。*';
+    const UNDERSCORE_MD = '_Hey! Listen!_';
+    const BOLD_ITALIC_MD = '***懂王***';
+
+    it('renders *...*_/_..._ as span color emphasis, never em + italic + text-emphasis', () => {
+        for (const theme of Object.values(WECHAT_THEMES)) {
+            const html = render(ITALIC_MD, theme);
+            expect(html, theme.nameEn).toContain('The Legend of Trump');
+            expect(html, theme.nameEn).toContain('视频里的标题画面');
+            expect(html, theme.nameEn).not.toMatch(/<(em|i)\b/i);
+            expect(html, theme.nameEn).not.toMatch(/font-style\s*:\s*italic/i);
+            expect(html, theme.nameEn).not.toMatch(
+                /(?:-webkit-|-moz-)?text-emphasis(?:-style|-color|-position)?\s*:\s*(?!none\b)/i,
+            );
+            expect(html, theme.nameEn).toMatch(/<span style="[^"]*text-emphasis:none/);
+            expect(html, theme.nameEn).toMatch(/<span style="[^"]*font-style:normal/);
+            expect(html, theme.nameEn).toMatch(/<span style="[^"]*color:/);
+            assertSafePasteHtml(html, `emphasis ${theme.nameEn}`);
+        }
+    });
+
+    it('keeps Elegant Teal color on emphasis without Han.css sesame dots', () => {
+        const html = render(ITALIC_MD, WECHAT_THEMES.elegant);
+        expect(html).toMatch(/color:#00a7a7/);
+        expect(html).not.toMatch(/filled (circle|sesame)/i);
+    });
+
+    it('maps underscore and ***bold+italic*** the same way', () => {
+        const under = render(UNDERSCORE_MD);
+        expect(under).toContain('Hey! Listen!');
+        expect(under).not.toMatch(/<(em|i)\b/i);
+        expect(under).not.toMatch(/font-style\s*:\s*italic/i);
+
+        const both = render(BOLD_ITALIC_MD);
+        expect(both).toMatch(/<strong[^>]*>[\s\S]*<span style="/);
+        expect(both).toContain('懂王');
+        expect(both).not.toMatch(/<(em|i)\b/i);
+    });
+
+    it('normalizeWechatEmphasisStyle drops italic and 着重号, keeps color', () => {
+        const next = normalizeWechatEmphasisStyle(
+            'font-style: italic; color: #00a7a7; -webkit-text-emphasis: filled circle; text-emphasis: filled circle;',
+            '#333',
+        );
+        expect(next).toMatch(/color:#00a7a7/);
+        expect(next).toMatch(/font-style:normal/);
+        expect(next).toMatch(/text-emphasis:none/);
+        expect(next).not.toMatch(/italic/);
+        expect(next).not.toMatch(/filled circle/);
+        expect(normalizeWechatEmphasisStyle('font-style: italic;', '#07c160')).toMatch(/color:#07c160/);
+    });
+});
+
+describe('sanitizeWechatPasteHtml — emphasis / text-emphasis', () => {
+    it('strips Han.css text-emphasis and remaps <em font-style:italic> to span', () => {
+        const dirty = `<p style="font-size:16px;line-height:32px;">
+<em style="font-style:italic;color:#00a7a7;-webkit-text-emphasis:filled circle;text-emphasis:filled circle;text-emphasis-position:under;">视频里的标题画面：The Legend of Trump。</em>
+</p>`;
+        const clean = sanitizeWechatPasteHtml(dirty);
+        expect(clean).not.toMatch(/<(em|i)\b/i);
+        expect(clean).not.toMatch(/font-style\s*:\s*italic/i);
+        expect(clean).not.toMatch(
+            /(?:-webkit-|-moz-)?text-emphasis(?:-style|-color|-position)?\s*:\s*(?!none\b)/i,
+        );
+        expect(clean).toMatch(/<span[^>]*>视频里的标题画面：The Legend of Trump。<\/span>/);
+        expect(clean).toMatch(/color:#00a7a7/);
+        expect(clean).toMatch(/text-emphasis:none/);
+        assertSafePasteHtml(clean, 'han emphasis sanitize');
     });
 });

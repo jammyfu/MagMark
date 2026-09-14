@@ -77,6 +77,7 @@ MagMark は Markdown を**インライン CSS HTML** に変え、微信公式ア
 - `text-align: justify` も `text-justify`（`inter-ideograph` を含む）も出さない
 - `text-align` は `left` / `right` / `center` のみ、または省略
 - 単独画像は中央揃えの `<p>` + `img { max-width: 100% }`。`<figure>` なし、入れ子の `display:block` + `margin:auto` なし、公式アカウント本文幅（約 677px）を超える固定幅なし
+- Markdown の `*斜体*` / `_斜体_` は色付き `<span>`。`<em>`、`font-style:italic`、`text-emphasis` の圏点は出さない
 
 公式アカウント貼り付けを雑誌の Han / Paged 出力と**書かないでください**。雑誌プレビュー、印刷プレビュー、3× PNG は別経路です。
 
