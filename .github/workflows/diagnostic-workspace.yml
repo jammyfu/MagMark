@@ -1,16 +1,13 @@
 name: Branch diagnostic workspace
 
-# Temporary reproduction aid for the approved publishing branch. No deployment,
-# credentials, environment variables, .git directory or home directory is archived.
+# Temporary read-only reproduction aid; no credentials, environment, .git or home archive.
 on:
   push:
     branches: [feat/cjk-publishing-upgrade-20260914]
     paths: [.github/workflows/diagnostic-workspace.yml]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   workspace:
     if: github.ref == 'refs/heads/feat/cjk-publishing-upgrade-20260914'
@@ -25,17 +22,21 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Package only tracked public source and installed dependencies
+      - name: Resolve proposed direct dependencies with an inspectable lockfile
+        run: npm install --ignore-scripts --save-exact remark-gfm@4 remark-frontmatter@5 remark-breaks@4 rehype-raw@7 rehype-sanitize@6 codemirror@6 @codemirror/lang-markdown@6 @codemirror/state@6 @codemirror/view@6 @codemirror/commands@6 @codemirror/language@6
+      - name: Package tracked source plus explicitly separate proposed dependency manifests
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/magmark-diagnostic"
           git archive --format=tar HEAD | gzip > "$RUNNER_TEMP/magmark-diagnostic/source.tar.gz"
-          tar -czf "$RUNNER_TEMP/magmark-diagnostic/dependencies.tar.gz" node_modules
+          tar --exclude='*.ttf' --exclude='*.otf' --exclude='*.woff' --exclude='*.woff2' -czf "$RUNNER_TEMP/magmark-diagnostic/dependencies.tar.gz" node_modules
+          cp package.json "$RUNNER_TEMP/magmark-diagnostic/proposed-package.json"
+          cp package-lock.json "$RUNNER_TEMP/magmark-diagnostic/proposed-package-lock.json"
           git rev-parse HEAD > "$RUNNER_TEMP/magmark-diagnostic/source-commit.txt"
           node --version > "$RUNNER_TEMP/magmark-diagnostic/node-version.txt"
           cd "$RUNNER_TEMP/magmark-diagnostic"
-          sha256sum source.tar.gz dependencies.tar.gz > checksums.txt
+          sha256sum source.tar.gz dependencies.tar.gz proposed-package.json proposed-package-lock.json > checksums.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: magmark-diagnostic-${{ github.sha }}
