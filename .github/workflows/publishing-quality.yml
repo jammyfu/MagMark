@@ -52,8 +52,14 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm test
       - name: Production build
+        id: build
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run build
+      - name: Production workspace interactions
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.browser.outcome == 'success' }}
+        env:
+          WORKSPACE_BUILD: '1'
+        run: npm run test:workspace
       - name: Deep repository verification
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: python3 tools/verify.py --deep
