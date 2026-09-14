@@ -1,0 +1,70 @@
+name: One-time DOM test dependency repair
+
+on:
+  push:
+    branches: [feat/cjk-publishing-upgrade-20260914]
+    paths: [.github/workflows/repair-dom-test-environment.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    if: ${{ github.repository == 'jammyfu/MagMark' && github.actor == 'jammyfu' && github.ref == 'refs/heads/feat/cjk-publishing-upgrade-20260914' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Generate a locked test-only dependency
+        run: |
+          cp package.json "$RUNNER_TEMP/package-before-dom-repair.json"
+          npm install --save-dev --save-exact --package-lock-only --ignore-scripts jsdom@26.1.0
+          node <<'JS'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const before = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/package-before-dom-repair.json', 'utf8'));
+          before.devDependencies = { ...before.devDependencies, jsdom: '26.1.0' };
+          const after = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          assert.deepEqual(after, before, 'Unexpected manifest change');
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          assert.equal(lock.packages[''].devDependencies.jsdom, '26.1.0');
+          assert.equal(lock.packages['node_modules/jsdom'].version, '26.1.0');
+          JS
+      - name: Verify locked install and all current unit tests
+        run: |
+          npm ci
+          npm test
+          npm run test:verify
+          git diff --check
+      - name: Commit only the dependency manifest and lockfile
+        run: |
+          node <<'JS'
+          const { execFileSync } = require('node:child_process');
+          const allowed = new Set(['package.json', 'package-lock.json']);
+          const changed = execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+          if (changed.some(path => !allowed.has(path))) throw new Error('Unexpected tracked file changed');
+          JS
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- package.json package-lock.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'test: lock jsdom for existing DOM regression suites'
+      - name: Push only to the authorized feature branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          GIT_CONFIG_COUNT=1 \
+          GIT_CONFIG_KEY_0='http.https://github.com/.extraheader' \
+          GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+            git push origin 'HEAD:refs/heads/feat/cjk-publishing-upgrade-20260914'
+          echo "LOCK_REPAIR_COMMIT=$(git rev-parse HEAD)"
