@@ -60,12 +60,18 @@ module.exports = async function run(inline, cjk) {
       ['decomposed Latin', '用e\u0301测试', '用 e\u0301 测试'],
       ['Han variation selector', '漢\u{E0100}API', '漢\u{E0100} API'],
       ['bare URL unchanged', '见https://example.test/中文API?q=词3', '见https://example.test/中文API?q=词3'],
+      ['protocol-relative URL unchanged', '//example.test/中文API', '//example.test/中文API'],
+      ['at-sign run preserved conservatively', '作者@中文API', '作者@中文API'],
       ['email unchanged', '联系中文API@example.com', '联系中文API@example.com'],
       ['custom-scheme URL unchanged', '引用mm-img://中文API', '引用mm-img://中文API'],
       ['emoji untouched', '中文👩🏽‍💻API', '中文👩🏽‍💻API'],
       ['spaces untouched', '中文  API\n换行\t3', '中文  API\n换行\t3'],
       ['fullwidth Latin untouched', '中文ＡＢＣ１２３', '中文ＡＢＣ１２３'],
     ]) await check(name, () => assert.equal(cjk.addCJKSpacing(input), expected));
+    await check('large reference-free prose stays intact', () => {
+      const latin = 'A'.repeat(250000);
+      assert.equal(cjk.addCJKSpacing(latin + '中文'), latin + ' 中文');
+    });
     await check('custom spacing character', () => assert.equal(cjk.addCJKSpacing('中文API', '\u2009'), '中文\u2009API'));
     await check('spacing idempotent', () => {
       const once = cjk.addCJKSpacing('中文API与𠀀3'); assert.equal(cjk.addCJKSpacing(once), once);

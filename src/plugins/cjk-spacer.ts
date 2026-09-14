@@ -9,7 +9,9 @@ const MARK = /\p{Mark}/u;
 const FULLWIDTH_LATIN = /[Ａ-Ｚａ-ｚ]/u;
 // Without GFM, a bare URL/email can still be an ordinary text node. Preserve
 // the entire such run rather than guessing where its editable prose ends.
-const LITERAL_REFERENCE = /(?:[a-z][a-z0-9+.-]*:\/\/|www\.|mailto:|[^\s@]+@[^\s@]+\.[^\s@]+)/iu;
+// Fixed-width signals avoid quadratic backtracking on long reference-free prose.
+// Treat any @ or // conservatively; a false positive preserves text, not corrupts it.
+const LITERAL_REFERENCE = /\/\/|www\.|mailto:|@/iu;
 
 type CharacterKind = 'han' | 'latin-number' | 'other';
 function characterKind(character: string): CharacterKind {
