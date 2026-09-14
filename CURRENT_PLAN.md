@@ -11,7 +11,7 @@ Land the GEO public-entity docs from `cursor/geo-public-entity-31c9` (PR #1) ont
 - [x] Keep both governance histories: WeChat paste-fix entries from main plus GEO notes.
 - [x] Deepen README / llms.txt / llms-full.txt with the shipped WeChat Official Account HTML path; keep magazine Han/Paged and 3× PNG distinct.
 - [x] Keep MIT LICENSE unchanged. No editor.ts / CSS / WeChat renderer code changes.
-- [x] Open a ready (non-draft) docs-only PR against main that supersedes conflicting draft PR #1.
+- [x] Open a ready (non-draft) docs-only PR against main that supersedes conflicting draft PR #1 (https://github.com/jammyfu/MagMark/pull/3).
 
 ## Out Of Scope
 
