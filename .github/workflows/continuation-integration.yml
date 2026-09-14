@@ -1,0 +1,62 @@
+name: Validate reviewed continuation
+# One-time integration of the maintainer-approved, checksummed source patch.
+# No main updates, force push, deployment, account access or persisted credentials.
+on:
+  push:
+    branches: [feat/cjk-publishing-upgrade-20260914]
+    paths: [.github/workflows/continuation-integration.yml]
+permissions:
+  contents: read
+jobs:
+  integrate:
+    if: github.repository == 'jammyfu/MagMark' && github.ref == 'refs/heads/feat/cjk-publishing-upgrade-20260914' && github.actor == 'jammyfu'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Apply exact reviewed patch and verify every resulting file
+        run: python3 tools/continuation-20260915/integrate.py --apply
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fresh locked dependency installation
+        run: npm ci
+      - name: Strict TypeScript
+        run: npm run typecheck
+      - name: All unit and text checks
+        run: npm test
+      - name: Verification gate tests
+        run: npm run test:verify
+      - name: Production web build
+        run: npm run build
+      - name: Install real Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Pagination geometry regressions
+        run: npm run test:pagination
+      - name: Production HTML and assets over HTTP
+        env:
+          WORKSPACE_BUILD: '1'
+          WORKSPACE_NETWORK: '1'
+        run: npm run test:workspace
+      - name: Deep repository verification
+        run: python3 tools/verify.py --deep
+      - name: Remove temporary helpers and commit only verified changes
+        run: python3 tools/continuation-20260915/integrate.py --commit
+      - name: Non-force push to unchanged approved feature branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='refs/heads/feat/cjk-publishing-upgrade-20260914'
+          remote=$(git ls-remote origin "$branch" | cut -f1)
+          test "$remote" = "$GITHUB_SHA"
+          git -c credential.helper= -c 'credential.helper=!f() { echo username=x-access-token; echo password=$GH_TOKEN; }; f' push origin "HEAD:$branch"
+          echo "Verified continuation committed: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,286 @@
+diff --git a/editor.ts b/editor.ts
+index 65bd9c3..76e676c 100644
+--- a/editor.ts
++++ b/editor.ts
+@@ -1,3 +1,4 @@
++import { sanitizeArticleHtml } from './src/security/article-html';
+ import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
+ import { paginate, getPageDimensions } from './src/engine/layout';
+ import * as htmlToImage from 'html-to-image';
+@@ -141,6 +142,44 @@ function debounce(fn: Function, delay: number) {
+ /**
+  * MAIN RENDER PIPELINE
+  */
++let previewRevision = 0;
++let committedPreview: (() => boolean) | null = null;
++
++/** Source and layout identity, not a timer: stale frames must never replace newer output. */
++function beginPreviewUpdate(): () => boolean {
++    const revision = ++previewRevision;
++    const md = markdownInput.value;
++    const snapshot = store.getState();
++    const wechat = wcMode, multiplier = wcFontMultiplier, device = wcDevice;
++    const cover = coverHtml;
++    previewArea.style.opacity = '1';
++    previewArea.setAttribute('aria-busy', 'true');
++    store.setState({ isProcessing: true });
++    return () => {
++        const state = store.getState();
++        return revision === previewRevision && markdownInput.value === md && wcMode === wechat &&
++            multiplier === wcFontMultiplier && device === wcDevice && cover === coverHtml &&
++            state.theme === snapshot.theme && state.format === snapshot.format && state.viewMode === snapshot.viewMode &&
++            state.fontFamily === snapshot.fontFamily && state.fontSize === snapshot.fontSize &&
++            state.lineHeight === snapshot.lineHeight && state.letterSpacing === snapshot.letterSpacing &&
++            state.manualPagination === snapshot.manualPagination && state.showParagraphDividers === snapshot.showParagraphDividers &&
++            state.pageOverrides === snapshot.pageOverrides && state.blockOverrides === snapshot.blockOverrides;
++    };
++}
++function finishPreviewUpdate(current: () => boolean) {
++    if (!current()) return;
++    committedPreview = current;
++    previewArea.style.opacity = '1';
++    previewArea.setAttribute('aria-busy', 'false');
++    store.setState({ isProcessing: false });
++}
++function canUseCurrentPreview(): boolean {
++    if (markdownInput.value.trim() && !store.getState().isProcessing && committedPreview?.()) return true;
++    const status = document.getElementById('copy-page-status');
++    if (status) status.textContent = '排版尚未就绪，请在预览更新后再导出。';
++    return false;
++}
++
+ async function render(stabilized = false) {
+     // WeChat mode: delegate to WeChat preview renderer instead of the paginator
+     if (wcMode) {
+@@ -153,24 +192,39 @@ async function render(stabilized = false) {
+     store.setState({ md });
+ 
+     if (!md.trim()) {
++        ++previewRevision;
++        committedPreview = null;
++        previewArea.style.opacity = '1';
++        previewArea.setAttribute('aria-busy', 'false');
++        store.setState({ isProcessing: false, pageHtmls: [], totalPages: 0, currentPage: 1 });
+         previewArea.innerHTML = '<div class="placeholder"><div class="placeholder-icon">✦</div><p>开始创作您的杂志大作...</p></div>';
+         paginationBar.style.display = 'none';
+         return;
+     }
+ 
+     if (state.viewMode === 'multi') {
+-        // Convert MD to raw HTML blocks
+-        // Using a simplified block splitter for refactor
++        const current = beginPreviewUpdate();
++        try {
++        // Convert source to trusted HTML before DOM-based block measurement.
+         const rawHtml = convertMarkdown(md);
+         const temp = document.createElement('div');
+         temp.innerHTML = rawHtml;
+         const blocks = Array.from(temp.children).map(c => c.outerHTML);
+ 
+         const pages = await paginate(blocks, state, state.manualPagination);
++        if (!current()) return;
+         const nextCurrentPage = Math.min(store.getState().currentPage, Math.max(1, pages.length));
+         store.setState({ pageHtmls: pages, totalPages: pages.length, currentPage: nextCurrentPage });
+ 
+-        renderPages(stabilized);
++        renderPages(stabilized, current);
++        } catch (error) {
++            if (!current()) return;
++            committedPreview = null;
++            previewArea.textContent = '本次排版未完成。请检查内容后重试，原文仍完整保留。';
++            previewArea.setAttribute('aria-busy', 'false');
++            store.setState({ pageHtmls: [], totalPages: 0, isProcessing: false });
++            console.error('MagMark layout failed', error);
++        }
+     } else {
+         renderScroll(md);
+     }
+@@ -190,22 +244,17 @@ function finalizePaginationUpdate() {
+  */
+ /**
+  * Multi-Page Display Logic
+- * Uses opacity fade to prevent flash-of-blank during re-render
++ * Commit only current frames; keep the previous view visible until replacement.
+  */
+-function renderPages(stabilized = false) {
+-    const state = store.getState();
+-    const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
+-    const shouldFade = !stabilized;
+-
+-    if (shouldFade) {
+-        // Only hide the preview on the first pass. The stabilized pass should
+-        // swap in quietly so format/theme switches do not visibly double-flash.
+-        previewArea.style.opacity = '0';
+-        previewArea.style.transition = 'opacity 0.12s ease';
+-    }
+-
+-    // Use requestAnimationFrame to allow paint before rebuilding
++function renderPages(stabilized = false, existingTask?: () => boolean) {
++    // Navigation/zoom should not paint an old document while a new layout is pending.
++    if (!existingTask && store.getState().isProcessing) return;
++    if (wcMode || store.getState().viewMode !== 'multi') return;
++    const current = existingTask || beginPreviewUpdate();
+     requestAnimationFrame(() => {
++        if (!current()) return;
++        const state = store.getState();
++        const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
+         previewArea.innerHTML = '';
+ 
+         // ── Render cover page first if one is set ──────────────────────
+@@ -219,7 +268,7 @@ function renderPages(stabilized = false) {
+             coverPage.style.display = isCurrent ? 'block' : 'none';
+             coverPage.style.setProperty('--page-scale', String(state.scale));
+             coverPage.style.marginBottom = `${Math.max(0, getPageDimensions(state.format).h * state.scale - getPageDimensions(state.format).h) + 32}px`;
+-            coverPage.innerHTML = `<div class="mm-cover-wrap" style="width:100%;height:100%;overflow:hidden;">${coverHtml}</div>
++            coverPage.innerHTML = `<div class="mm-cover-wrap" style="width:100%;height:100%;overflow:hidden;">${sanitizeArticleHtml(coverHtml, 'cover')}</div>
+                 <button class="mm-cover-remove-btn" title="移除封面">✕</button>`;
+             coverPage.querySelector('.mm-cover-remove-btn')!.addEventListener('click', (e) => {
+                 e.stopPropagation();
+@@ -268,22 +317,25 @@ function renderPages(stabilized = false) {
+         updatePaginationUI();
+         renderPageStrip();
+ 
+-        // Run Han.css after DOM is attached. If we need a stabilization pass,
+-        // keep this first paint hidden and reveal only after the final pass.
++        // Run Han.css only for the current document, retaining a visible preview throughout.
+         requestAnimationFrame(() => {
++            if (!current()) return;
+             initHanTypography();
+             // Han.css 会插入额外排印节点，初始化后高度可能变化。
+             // 对分页视图补做一次稳定化分页，避免“初始化能塞下，缩放后却换页”。
+             if (!stabilized && store.getState().viewMode === 'multi') {
+-                requestAnimationFrame(() => render(true));
++                requestAnimationFrame(() => { if (current()) void render(true); });
+                 return;
+             }
+-            previewArea.style.opacity = '1';
++            finishPreviewUpdate(current);
+         });
+     });
+ }
+ 
+ function renderScroll(md: string) {
++    if (wcMode) { renderWechatPreview(); return; }
++    const current = beginPreviewUpdate();
++    store.setState({ md });
+     const html = convertMarkdown(md);
+     const state = store.getState();
+     const formatClass = 'page-' + state.format;
+@@ -306,7 +358,7 @@ function renderScroll(md: string) {
+     attachBlockListeners();
+     attachFigureListeners();
+     // Han.css 排印处理
+-    requestAnimationFrame(initHanTypography);
++    requestAnimationFrame(() => { if (current()) { initHanTypography(); finishPreviewUpdate(current); } });
+ }
+ 
+ /**
+@@ -841,7 +893,7 @@ function convertMarkdown(md: string): string {
+         if (para) blocks.push(para);
+     }
+ 
+-    return blocks.join('\n');
++    return sanitizeArticleHtml(blocks.join('\n'));
+ }
+ 
+ /**
+@@ -1068,6 +1120,7 @@ function getClipboardSourceElement(): HTMLElement | null {
+ }
+ 
+ async function copyCurrentPageRichContent(target: ClipboardTarget = 'document') {
++    if (!canUseCurrentPreview()) return false;
+     const source = getClipboardSourceElement();
+     if (!source) {
+         alert('当前没有可复制的排版页。');
+@@ -1097,6 +1150,7 @@ async function copyCurrentPageRichContent(target: ClipboardTarget = 'document')
+  * 规则（页边距、页眉页脚、页码），并通过 Han.css 进行 CJK 排印处理。
+  */
+ function openPrintPreview() {
++    if (!canUseCurrentPreview()) return;
+     const state = store.getState();
+     if (!state.pageHtmls || state.pageHtmls.length === 0) {
+         alert('请先输入内容再使用打印预览');
+@@ -1649,12 +1703,12 @@ function applyZoom(scale: number) {
+     const clamped = Math.min(3, Math.max(0.25, Math.round(scale * 100) / 100));
+     store.setState({ scale: clamped });
+     syncZoomUI(clamped);
+-    const state = store.getState();
+-    if (state.viewMode === 'multi') {
+-        renderPages(true);
+-    } else {
+-        renderScroll(markdownInput.value);
+-    }
++    const height = getPageDimensions(store.getState().format).h;
++    // Zoom is presentation only: retain selection, image handles and typography DOM.
++    previewArea.querySelectorAll<HTMLElement>('.page').forEach(page => {
++        page.style.setProperty('--page-scale', String(clamped));
++        page.style.marginBottom = `${Math.max(0, height * clamped - height) + 32}px`;
++    });
+ }
+ 
+ function computeFitScale(): number {
+@@ -1671,8 +1725,12 @@ function computeFitScale(): number {
+ function init() {
+     // Listen for data changes
+     markdownInput.addEventListener('input', () => {
++        ++previewRevision;
++        previewArea.setAttribute('aria-busy', 'true');
++        store.setState({ isProcessing: true });
+         $('#char-count').textContent = markdownInput.value.length + ' 字符';
+-        debouncedRender();
++        if (!markdownInput.value.trim()) { debouncedRender.cancel(); void render(); }
++        else debouncedRender();
+     });
+ 
+     // Global Controls
+@@ -1834,7 +1892,8 @@ function init() {
+         btnWcCopy.addEventListener('click', async () => {
+             const md = markdownInput.value;
+             if (!md.trim()) { alert('请先输入内容'); return; }
+-            const themeKey = store.getState().theme.replace('wc-', '');
++            store.setState({ md });
++    const themeKey = store.getState().theme.replace('wc-', '');
+             const theme = WECHAT_THEMES[themeKey] || WECHAT_THEMES.minimalist;
+             const html = renderWechatHtml(md, {
+                 theme,
+@@ -1906,6 +1965,7 @@ function init() {
+ 
+     // Keyboard navigation: ← → to turn pages, Cmd/Ctrl+S to save
+     document.addEventListener('keydown', (e) => {
++        if (e.isComposing || (e.target instanceof Element && e.target.closest('dialog[open]'))) return;
+         if (e.key === 'Escape') { clearSelection(); return; }
+ 
+         // Don't intercept arrow keys while the textarea is focused
+@@ -2272,6 +2332,8 @@ const debounceWcRender = debounce(renderWechatPreview, 150);
+  * 并在预览区域以手机 mock 框架展示。
+  */
+ function renderWechatPreview() {
++    if (!wcMode) return;
++    const current = beginPreviewUpdate();
+     const md = markdownInput.value;
+     const themeKey = store.getState().theme.replace('wc-', '');
+     const theme = WECHAT_THEMES[themeKey] || WECHAT_THEMES.minimalist;
+@@ -2333,6 +2395,7 @@ function renderWechatPreview() {
+ 
+     // 隐藏分页栏（微信模式下是单页滚动）
+     paginationBar.style.display = 'none';
++    finishPreviewUpdate(current);
+ }
+ 
+ function navigate(dir: number) {
+@@ -2472,6 +2535,7 @@ function updateBlockStyle(prop: keyof PageSetting, val: number) {
+ }
+ 
+ async function exportPng() {
++    if (!canUseCurrentPreview()) return;
+     const state = store.getState();
+ 
+     // In multi-page mode, find the current page by data-page attribute.
+@@ -2512,6 +2576,7 @@ async function exportPng() {
+  * Export ALL pages as separate PNG files (zipped in-browser)
+  */
+ async function exportAllPng() {
++    if (!canUseCurrentPreview()) return;
+     const state = store.getState();
+     if (state.viewMode !== 'multi' || state.totalPages === 0) {
+         alert('请先切换到分页模式并输入内容');

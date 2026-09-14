@@ -1,0 +1,211 @@
+diff --git a/src/core/magmark.ts b/src/core/magmark.ts
+index c10b6bd..ad9f44b 100644
+--- a/src/core/magmark.ts
++++ b/src/core/magmark.ts
+@@ -1,3 +1,4 @@
++import { sanitizeArticleHtml } from '../security/article-html';
+ /**
+  * MagMark 1.6.0 - Core Class
+  * Main API for magazine-quality markdown conversion
+@@ -94,7 +95,7 @@ export class MagMark {
+       .use(rehypeStringify, { allowDangerousHtml: true });
+ 
+     const result = await processor.process(markdown);
+-    const html = String(result);
++    const html = sanitizeArticleHtml(String(result));
+ 
+     // Calculate metadata
+     const wordCount = markdown.split(/\s+/).filter(Boolean).length;
+diff --git a/src/core/rich-clipboard.ts b/src/core/rich-clipboard.ts
+index 17a4d63..217d25c 100644
+--- a/src/core/rich-clipboard.ts
++++ b/src/core/rich-clipboard.ts
+@@ -1,3 +1,4 @@
++import { sanitizeArticleHtml } from '../security/article-html';
+ import { sanitizeWechatPasteHtml } from '../wechat/wechat-sanitize';
+ 
+ export type ClipboardTarget = 'document' | 'wechat';
+@@ -88,7 +89,7 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
+     const section = document.createElement('section');
+     section.style.cssText = clone.style.cssText;
+     section.append(...clone.childNodes);
+-    const html = target === 'wechat' ? sanitizeWechatPasteHtml(section.outerHTML) : section.outerHTML;
++    const html = target === 'wechat' ? sanitizeWechatPasteHtml(section.outerHTML) : sanitizeArticleHtml(section.outerHTML);
+     // Use block boundaries in the plain-text flavour as well.
+     const plain = document.createElement('div');
+     plain.innerHTML = html.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<\/(p|div|section|h[1-6]|li|tr|blockquote|pre)>/gi, '\n</$1>');
+@@ -96,6 +97,7 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
+ }
+ 
+ export async function writeRichClipboard(payload: Pick<RichClipboardPayload, 'html' | 'text'>): Promise<boolean> {
++    payload = { ...payload, html: sanitizeArticleHtml(payload.html) };
+     try {
+         if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+             await navigator.clipboard.write([new ClipboardItem({
+diff --git a/src/cover/cover-panel.ts b/src/cover/cover-panel.ts
+index 4e476de..0f8537a 100644
+--- a/src/cover/cover-panel.ts
++++ b/src/cover/cover-panel.ts
+@@ -1,3 +1,5 @@
++import { createPanelDialog } from '../workspace/panel-dialog';
++import { sanitizeArticleHtml } from '../security/article-html';
+ /**
+  * CoverPanel — 封面生成面板 v2.0
+  *
+@@ -170,7 +172,8 @@ ${prompt}
+ // ─── Panel Class ──────────────────────────────────────────────────────────────
+ 
+ export class CoverPanel {
+-    private overlay!: HTMLElement;
++    private overlay!: HTMLDialogElement;
++    private dialog = createPanelDialog('mm-cp-dialog-title');
+     private onInsert: OnInsert;
+     private selectedTemplate = 0;
+     private currentTitle = '';
+@@ -184,15 +187,17 @@ export class CoverPanel {
+         this.injectStyles();
+     }
+ 
++    destroy() { this.dialog.destroy(); }
++
+     // ─── DOM Construction ────────────────────────────────────────────────────
+ 
+     private buildDom() {
+-        this.overlay = document.createElement('div');
+-        this.overlay.className = 'mm-cp-overlay';
++        this.overlay = this.dialog.element;
++        this.overlay.classList.add('mm-cp-overlay');
+         this.overlay.innerHTML = `
+ <div class="mm-cp-panel">
+   <div class="mm-cp-header">
+-    <span class="mm-cp-title">
++    <span class="mm-cp-title" id="mm-cp-dialog-title">
+       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style="vertical-align:-2px;margin-right:6px">
+         <rect x="1" y="1" width="13" height="13" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+         <line x1="1" y1="5.5" x2="14" y2="5.5" stroke="currentColor" stroke-width="1"/>
+@@ -201,7 +206,7 @@ export class CoverPanel {
+       </svg>
+       封面生成
+     </span>
+-    <button class="mm-cp-close">✕</button>
++    <button type="button" class="mm-cp-close" aria-label="关闭封面面板">✕</button>
+   </div>
+ 
+   <div class="mm-cp-body">
+@@ -214,7 +219,7 @@ export class CoverPanel {
+       <div class="mm-cp-section-label" style="margin-top:16px">选择模板</div>
+       <div class="mm-cp-template-grid" id="mm-cp-template-grid"></div>
+ 
+-      <div class="mm-cp-section-label" style="margin-top:16px">AI 生成封面</div>
++      <details class="mm-cp-ai-options"><summary>AI 生成（可选）</summary>
+       <div class="mm-cp-ai-row">
+         <input class="mm-cp-input" id="mm-cp-apikey" placeholder="Gemini API Key" type="password" autocomplete="off">
+       </div>
+@@ -228,6 +233,7 @@ export class CoverPanel {
+         AI 生成
+       </button>
+       <div class="mm-cp-ai-status" id="mm-cp-ai-status"></div>
++      </details>
+     </div>
+ 
+     <!-- Right: preview + ratio selector -->
+@@ -724,7 +730,7 @@ export class CoverPanel {
+ 
+     private injectTextIntoHtml(html: string): string {
+         const tmp = document.createElement('div');
+-        tmp.innerHTML = html;
++        tmp.innerHTML = sanitizeArticleHtml(html, 'cover');
+         const titleEl = tmp.querySelector('.mm-cover-title');
+         const subtitleEl = tmp.querySelector('.mm-cover-subtitle');
+         const dateEl = tmp.querySelector('.mm-cover-date');
+@@ -843,13 +849,13 @@ export class CoverPanel {
+         const subtitleInput = this.overlay.querySelector('#mm-cp-subtitle-input') as HTMLInputElement;
+         titleInput.value = title;
+         subtitleInput.value = subtitle;
+-        this.overlay.style.display = 'flex';
++        this.dialog.open();
+         // 初始比例（4:5）
+         this.selectAspectRatio(this.currentRatioIdx);
+         this.fullRebuildPreview(COVER_TEMPLATES[this.selectedTemplate].html);
+     }
+ 
+     close() {
+-        this.overlay.style.display = 'none';
++        this.dialog.close();
+     }
+ }
+diff --git a/src/image/image-context-menu.ts b/src/image/image-context-menu.ts
+index b31be54..4fd7cb2 100644
+--- a/src/image/image-context-menu.ts
++++ b/src/image/image-context-menu.ts
+@@ -1,3 +1,5 @@
++import { inertImageElements, sanitizeInlineStyle } from '../security/article-html';
++import { serializeInertHtml } from '../security/inert-html';
+ import { unified } from 'unified';
+ import remarkParse from 'remark-parse';
+ import { ImagePanel, buildImageMarkdown, type ImageInsertOptions } from './image-panel';
+@@ -35,14 +37,13 @@ export function findImageReferences(markdown: string): ImageReference[] {
+             refs.push({start, end: end + attrs.length, src: node.url || '', alt: node.alt || '', title: node.title || '',
+                 raw: markdown.slice(start, end + attrs.length), kind: 'markdown'});
+         } else if (start !== undefined && node.type === 'html') {
+-            for (const match of (node.value || '').matchAll(/<img\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi)) {
+-                const holder = document.createElement('div');
+-                holder.innerHTML = match[0];
+-                const img = holder.querySelector('img');
+-                if (!img) continue;
+-                const from = start + match.index!;
+-                refs.push({start: from, end: from + match[0].length, src: img.getAttribute('src') || '',
+-                    alt: img.alt, raw: match[0], kind: 'html'});
++            for (const image of inertImageElements(node.value || '')) {
++                const localStart = image.position?.start.offset;
++                const localEnd = image.position?.end.offset;
++                if (localStart === undefined || localEnd === undefined) continue;
++                const from = start + localStart, to = start + localEnd;
++                refs.push({start: from, end: to, src: String(image.properties.src || ''),
++                    alt: String(image.properties.alt || ''), raw: markdown.slice(from, to), kind: 'html'});
+             }
+         }
+         node.children?.forEach(visit);
+@@ -58,24 +59,24 @@ export function replaceImageReference(markdown: string, ref: ImageReference, rep
+ 
+ export function formatEditedImage(ref: ImageReference, opts: ImageInsertOptions): string {
+     if (ref.kind === 'markdown') return buildImageMarkdown(opts).trim();
+-    const holder = document.createElement('div');
+-    holder.innerHTML = ref.raw;
+-    const img = holder.querySelector('img')!;
+-    img.setAttribute('src', opts.src);
+-    img.alt = opts.alt;
+-    img.removeAttribute('width');
+-    img.removeAttribute('height');
+-    img.style.width = `${opts.width ?? 100}%`;
+-    img.style.maxWidth = '100%';
+-    img.style.height = 'auto';
+-    img.style.float = 'none';
+-    img.style.display = opts.layout === 'inline' ? 'inline' : 'block';
+-    img.style.marginLeft = opts.layout === 'float-left' ? '0' : 'auto';
+-    img.style.marginRight = opts.layout === 'float-right' ? '0' : 'auto';
+-    if (opts.layout === 'full') img.style.width = '100%';
+-    if (opts.caption) img.title = opts.caption;
+-    else img.removeAttribute('title');
+-    return img.outerHTML;
++    const image = inertImageElements(ref.raw)[0];
++    if (!image) throw new Error('图片源码无效，请重新选择图片。');
++    image.properties.src = opts.src;
++    image.properties.alt = opts.alt;
++    delete image.properties.width;
++    delete image.properties.height;
++    // CSS is edited as data too: parsing raw source must never create a native img.
++    const styles = new Map(sanitizeInlineStyle(String(image.properties.style || '')).split(';').filter(Boolean).map(part => {
++        const colon = part.indexOf(':'); return [part.slice(0, colon).trim(), part.slice(colon + 1).trim()];
++    }));
++    styles.set('width', `${opts.layout === 'full' ? 100 : opts.width ?? 100}%`);
++    styles.set('max-width', '100%'); styles.set('height', 'auto'); styles.set('float', 'none');
++    styles.set('display', opts.layout === 'inline' ? 'inline' : 'block');
++    styles.set('margin-left', opts.layout === 'float-left' ? '0px' : 'auto');
++    styles.set('margin-right', opts.layout === 'float-right' ? '0px' : 'auto');
++    image.properties.style = [...styles].map(([property, value]) => `${property}: ${value};`).join(' ');
++    if (opts.caption) image.properties.title = opts.caption; else delete image.properties.title;
++    return serializeInertHtml(image);
+ }
+ 
+ interface ContextOptions {
