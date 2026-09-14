@@ -1,5 +1,51 @@
 # CURRENT_PLAN.md
 
+## Completed: Long-Article Image Resize And Batch Mapping (2026-09-14)
+
+- [x] Universal image-bounds resize overlay for Markdown and raw HTML images; write sizes back to source and account for preview zoom.
+- [x] Missing-image click opens a menu with batch directory association first; header exposes batch image import.
+- [x] Browser verified both image forms, batch file chooser, and resizing at 50% zoom. 43 unit tests and targeted strict TypeScript pass.
+
+## Completed: Long-Article Selection And Missing Images (2026-09-14)
+
+- [x] Generate long-view block IDs, restore style overrides and attach block-selection listeners.
+- [x] Display missing-image placeholders that retain their original source and support direct replacement.
+- [x] Parse Markdown image destinations with the AST, preserving parentheses, angle-wrapped spaces and title attributes; resolve separately selected image directories without ambiguous matches.
+- [x] Long-view browser checks: three valid image path variants load, one missing image is editable, replacement stays in place, and selected paragraph styling persists. 41 unit tests and targeted TypeScript checks pass.
+- Single Markdown-file selection still requires image-directory permission; the UI now explains this rather than implying adjacent files were imported.
+
+## Active: Local Image Workflow (2026-09-14)
+
+- [x] Add article-directory import and article-relative image mapping, including duplicate filenames.
+- [x] Add in-place image context actions for Markdown and HTML images without duplicating edited images.
+- [x] Verify real article editing and repeated-image targeting in the browser.
+- Browser-extension-based bulk WeChat uploading is not implemented in this change. Await the user's choice on installing an unpacked Chrome extension; do not present local mapping as uploading.
+
+## Completed: WeChat Tables And Mobile Headings (2026-09-14)
+
+- [x] Replace lossy table-to-paragraph export with native responsive table cells on both WeChat paths.
+- [x] Normalize heading and descendant wrapping instead of inheriting magazine keep-all rules.
+- [x] Add regression coverage: 32 tests and changed-module typecheck pass.
+- [x] Preserve the user's updated draft text and images, repair its two tables, then increase article font sizes by 2px at the user's request. Save/reload verifies exact text, two tables, 13 images, 16px body and normal heading breaks. No publication or deployment.
+
+## Completed: WeChat Paper Insets (2026-09-14)
+
+- [x] Restore 24px vertical / 20px horizontal padding inside the copied article background; preserve Word spacing.
+- [x] Verify 320/375/677px widths, image sizing and sanitizer round trips. All three widths pass the live platform structure checker.
+- [x] With explicit user approval, restore the empty draft, save and reload through native Chrome. All 4200 non-whitespace characters and 13 hosted images retained; padding and background survive saving. No publication.
+- [x] 31 tests, changed-module typecheck and repository verification pass.
+
+## Completed: Magazine To WeChat Copy (2026-09-14)
+
+- [x] Reproduce Garden long-article clipboard output with the reported Markdown.
+- [x] Add WeChat-compatible copying of the current magazine appearance.
+- [x] Preserve colors/backgrounds/image proportions, remove browser layout internals, protect image URLs.
+- [x] Verify native Chrome paste, save and reload: all 4200 non-whitespace characters and 13 uploaded images retained; platform structure checker passes.
+- [x] Run 30 unit tests, targeted strict TypeScript checks and repository verification. Full-project typecheck remains blocked by existing unrelated errors.
+- Public-site deployment is not part of this change; the new copy button is available in the local editor.
+
+## Previous Completed Plan
+
 ## Goal
 
 Stop Han.css CJK 着重号 (sesame/circle dots under every glyph) on Markdown `*italic*` / `_italic_`. Magazine preview keeps readable italic. WeChat paste never emits `<em>` / `font-style:italic` / `text-emphasis` marks.

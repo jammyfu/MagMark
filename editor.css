@@ -2650,3 +2650,17 @@ i:lang(ja) {
 }
 .mm-cp-insert-btn:hover { opacity: 0.88; }
 .mm-cp-insert-btn:active { transform: scale(0.98); }
+.mm-image-active {
+    outline: 3px solid #b89d55;
+    outline-offset: 4px;
+}
+
+.scroll-container figure.mm-figure .mm-fig-actions {
+    pointer-events: none;
+}
+.scroll-container figure.mm-figure .mm-fig-actions button {
+    pointer-events: auto;
+}
+.scroll-container figure.mm-figure .mm-fig-handles {
+    display: none !important;
+}

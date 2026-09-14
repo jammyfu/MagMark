@@ -2,10 +2,15 @@ import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/cor
 import { paginate, getPageDimensions } from './src/engine/layout';
 import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
+import { installImageContextMenu, findImageReferences } from './src/image/image-context-menu';
+import { installMissingImagePlaceholders } from './src/image/missing-images';
+import { chooseDirectoryArticle, resolveDirectoryImage } from './src/image/local-image-directory';
 import { CoverPanel } from './src/cover/cover-panel';
 import { version } from './package.json';
 import { WECHAT_THEMES, WECHAT_DEVICE_OPTIONS } from './src/wechat/wechat-themes';
 import { renderWechatHtml, copyWechatHtml } from './src/wechat/wechat-renderer';
+import { protectInlineContent } from './src/core/inline-tokens';
+import { buildRichClipboardPayload, writeRichClipboard, ClipboardTarget } from './src/core/rich-clipboard';
 
 // Module-level cover HTML (null = no cover)
 let coverHtml: string | null = null;
@@ -25,6 +30,8 @@ let wcFontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
  * 避免 textarea 中出现数百KB 的 base64 字符串
  */
 const imageStore = new Map<string, string>(); // uuid → data URL
+const localImageFiles = new Map<string, string>();
+let articleRelativePath = '';
 
 function storeImage(dataUrl: string): string {
     const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
@@ -36,7 +43,7 @@ function resolveImageSrc(src: string): string {
     if (src.startsWith('mm-img://')) {
         return imageStore.get(src.slice(9)) || src;
     }
-    return src;
+    return resolveDirectoryImage(src, articleRelativePath, localImageFiles);
 }
 
 /**
@@ -260,7 +267,6 @@ function renderPages(stabilized = false) {
         attachFigureListeners();
         updatePaginationUI();
         renderPageStrip();
-        fixRenderedPageImages();
 
         // Run Han.css after DOM is attached. If we need a stabilization pass,
         // keep this first paint hidden and reveal only after the final pass.
@@ -277,47 +283,6 @@ function renderPages(stabilized = false) {
     });
 }
 
-/**
- * After rendering pages into the DOM, ensure images that fail to load (404 or
- * cross-origin block) don't silently collapse to 0-height and break the layout.
- * For each <img> in the preview area:
- *   • If already broken  → apply fallback size immediately
- *   • If still loading   → attach an onerror handler
- * The fallback size matches what fixImageDimensions() uses for the measurer,
- * so the pagination reservations and visual output stay consistent.
- */
-function fixRenderedPageImages(): void {
-    previewArea.querySelectorAll<HTMLImageElement>('img').forEach(img => {
-        const containerW = () => img.closest('.page-content')?.clientWidth || 400;
-
-        const applyFallback = () => {
-            if (img.naturalWidth > 0) return; // already decoded successfully
-            img.style.width      = '100%';
-            img.style.height     = Math.round(containerW() * 9 / 16) + 'px';
-            img.style.background = 'rgba(128,128,128,0.06)';
-            img.style.borderRadius = '8px';
-        };
-
-        const clearFallback = () => {
-            img.style.width      = '';
-            img.style.height     = '';
-            img.style.background = '';
-            img.style.borderRadius = '';
-        };
-
-        if (img.complete) {
-            // Already decoded (success or error)
-            if (img.naturalWidth === 0) applyFallback();
-        } else {
-            // Not yet decoded — apply placeholder immediately so the page doesn't
-            // collapse the image to 0-height while loading
-            applyFallback();
-            img.addEventListener('load',  clearFallback, { once: true });
-            img.addEventListener('error', applyFallback, { once: true });
-        }
-    });
-}
-
 function renderScroll(md: string) {
     const html = convertMarkdown(md);
     const state = store.getState();
@@ -328,6 +293,18 @@ function renderScroll(md: string) {
             <div class="scroll-container ${magmarkClass}" lang="zh">${html}</div>
         </div>`;
     paginationBar.style.display = 'none';
+    previewArea.querySelectorAll<HTMLElement>('.scroll-container > *').forEach((block, index) => {
+        const id = `scroll-b${index}`;
+        block.dataset.blockId = id;
+        const override = state.blockOverrides[id];
+        if (override) {
+            block.style.fontSize = `${override.fontSize}px`;
+            block.style.lineHeight = String(override.lineHeight);
+            block.style.letterSpacing = `${override.letterSpacing}em`;
+        }
+    });
+    attachBlockListeners();
+    attachFigureListeners();
     // Han.css 排印处理
     requestAnimationFrame(initHanTypography);
 }
@@ -642,8 +619,12 @@ function convertMarkdown(md: string): string {
     const isOlItem = (l: string) => /^(\s*)\d+\. /.test(l);
     const isListItem = (l: string) => isUlItem(l) || isOlItem(l);
     // 独立图片行：整行内容只有一个图片标记（可带 {attrs}），作为块级 <figure>
-    const isFigureLine = (l: string) =>
-        /^\s*!\[[^\]]*\]\([^)]+\)(\{[^}]*\})?\s*$/.test(l);
+    const isFigureLine = (l: string) => {
+        const line = l.trim();
+        if (!line.startsWith('![')) return false;
+        const ref = findImageReferences(line)[0];
+        return !!ref && ref.kind === 'markdown' && ref.start === 0 && ref.end === line.length;
+    };
     const isBlockStop = (l: string) =>
         isBlank(l) || isHeading(l) || isFence(l) || isQuote(l) ||
         isTable(l) || isListItem(l) || isHrLine(l) || isFigureLine(l);
@@ -783,6 +764,10 @@ function convertMarkdown(md: string): string {
     function parseFigureLine(): string {
         const line = lines[i].trim();
         i++;
+        const reference = findImageReferences(line).find(ref => ref.kind === 'markdown' && ref.start === 0);
+        if (reference && reference.end === line.length) {
+            return buildFigureHtml(reference.src, reference.alt, reference.title || '', line.match(/\{([^}]*)\}$/)?.[1] || '');
+        }
         // Extended: ![alt](src "title"){.layout width=N%}
         const ext = line.match(/^!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)\{([^}]*)\}/);
         if (ext) return buildFigureHtml(ext[2], ext[1], ext[3] || '', ext[4]);
@@ -921,10 +906,17 @@ function buildFigureHtml(src: string, alt: string, title: string, attrStr: strin
  */
 function inlineMarkdown(text: string): string {
     if (!text) return '';
-    // Guard against extremely long lines
-    if (text.length > 5000) return escapeHtml(text);
-
-    return text
+    // Parse image destinations before regex formatting (parentheses, spaces and escapes).
+    const references = text.includes('![') ? findImageReferences(text).filter(ref => ref.kind === 'markdown') : [];
+    for (const ref of references.reverse()) {
+        const width = ref.raw.match(/\{[^}]*\bwidth=(\d+%?)/)?.[1];
+        const html = `<img src="${escapeAttr(resolveImageSrc(ref.src))}" alt="${escapeAttr(ref.alt)}"${ref.title ? ` title="${escapeAttr(ref.title)}"` : ''}${width ? ` style="width:${escapeAttr(width)}"` : ''}>`;
+        text = text.slice(0, ref.start) + html + text.slice(ref.end);
+    }
+    const tokens = protectInlineContent(text, code => `<code>${escapeHtml(code)}</code>`, resolveImageSrc);
+    // Large embedded images are one protected token, not an oversized text line.
+    if (tokens.text.length > 5000) return tokens.restore(escapeHtml(tokens.text));
+    return tokens.restore(tokens.text
         // Extended image with layout attrs in inline context (e.g. inside a paragraph)
         // Only apply width; layout attrs are for block-level figures handled by parseFigureLine
         .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)\{([^}]*)\}/g,
@@ -932,17 +924,17 @@ function inlineMarkdown(text: string): string {
                 const widthMatch = attrs.match(/width=(\d+%?)/);
                 const style = widthMatch ? ` style="width:${widthMatch[1]}"` : '';
                 const resolvedSrc = resolveImageSrc(src);
-                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${style}>`;
+                return tokens.protect(`<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${style}>`);
             })
         // Plain image — resolve mm-img:// if needed
         .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/g,
             (_, alt, src, title) => {
                 const t = title ? ` title="${escapeAttr(title)}"` : '';
                 const resolvedSrc = resolveImageSrc(src);
-                return `<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${t}>`;
+                return tokens.protect(`<img src="${escapeAttr(resolvedSrc)}" alt="${escapeAttr(alt)}"${t}>`);
             })
         // Links
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => tokens.protect(`<a href="${escapeAttr(href)}">${escapeHtml(label)}</a>`))
         // Inline code (before bold/italic to protect content)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         // Bold + italic
@@ -955,7 +947,7 @@ function inlineMarkdown(text: string): string {
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/_([^_]+)_/g, '<em>$1</em>')
         // Strikethrough
-        .replace(/~~(.+?)~~/g, '<del>$1</del>');
+        .replace(/~~(.+?)~~/g, '<del>$1</del>'));
 }
 
 /** Escape HTML special chars (for code block content) */
@@ -1067,62 +1059,8 @@ function flashButtonLabel(btn: HTMLElement, temporaryText: string) {
     }, 1200);
 }
 
-function copyComputedStyles(source: HTMLElement, clone: HTMLElement) {
-    const computed = getComputedStyle(source);
-    for (const prop of computed) {
-        clone.style.setProperty(
-            prop,
-            computed.getPropertyValue(prop),
-            computed.getPropertyPriority(prop),
-        );
-    }
-}
-
-function sanitizeCopiedPage(root: HTMLElement) {
-    root.querySelectorAll('.mm-fig-actions, .mm-fig-handles, .page-setting-indicator, .page-footer').forEach(el => el.remove());
-    root.querySelectorAll('.mm-fig-selected, .mm-fig-resizing, .block-editing').forEach(el => {
-        el.classList.remove('mm-fig-selected', 'mm-fig-resizing', 'block-editing');
-    });
-}
-
-function inlinePageForClipboard(source: HTMLElement): HTMLElement {
-    const clone = source.cloneNode(true) as HTMLElement;
-    const sourceNodes = [source, ...Array.from(source.querySelectorAll<HTMLElement>('*'))];
-    const cloneNodes = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))];
-
-    sourceNodes.forEach((sourceNode, index) => {
-        const cloneNode = cloneNodes[index];
-        if (!cloneNode) return;
-        copyComputedStyles(sourceNode, cloneNode);
-        cloneNode.removeAttribute('id');
-        cloneNode.removeAttribute('data-block-id');
-        cloneNode.removeAttribute('data-mm-src');
-
-        if (sourceNode instanceof HTMLImageElement && cloneNode instanceof HTMLImageElement) {
-            cloneNode.src = sourceNode.currentSrc || sourceNode.src;
-        }
-        if (sourceNode instanceof HTMLAnchorElement && cloneNode instanceof HTMLAnchorElement) {
-            cloneNode.href = sourceNode.href;
-        }
-    });
-
-    sanitizeCopiedPage(clone);
-    const rootComputed = getComputedStyle(source);
-    clone.style.transform = 'none';
-    clone.style.margin = '0';
-    clone.style.boxShadow = 'none';
-    clone.style.opacity = '1';
-    clone.style.display = 'block';
-    clone.style.color = rootComputed.color;
-    clone.style.backgroundColor = rootComputed.backgroundColor;
-    clone.style.fontFamily = rootComputed.fontFamily;
-    clone.style.lineHeight = rootComputed.lineHeight;
-    clone.style.letterSpacing = rootComputed.letterSpacing;
-
-    return clone;
-}
-
 function getClipboardSourceElement(): HTMLElement | null {
+    if (wcMode) return previewArea.querySelector<HTMLElement>('.wc-content > section');
     const state = store.getState();
     if (state.viewMode === 'scroll') {
         return previewArea.querySelector<HTMLElement>('.scroll-container');
@@ -1131,69 +1069,27 @@ function getClipboardSourceElement(): HTMLElement | null {
     return currentPage?.querySelector<HTMLElement>('.page-content') || null;
 }
 
-function buildClipboardHtmlFromCurrentPage(): { html: string; text: string } | null {
+async function copyCurrentPageRichContent(target: ClipboardTarget = 'document') {
     const source = getClipboardSourceElement();
-    if (!source) return null;
-
-    const clonedPage = inlinePageForClipboard(source);
-    const html = clonedPage.outerHTML;
-    const text = source.textContent?.trim() || '';
-
-    return { html, text };
-}
-
-async function copyCurrentPageRichContent() {
-    const payload = buildClipboardHtmlFromCurrentPage();
-    if (!payload) {
+    if (!source) {
         alert('当前没有可复制的排版页。');
         return false;
     }
-
-    let modernCopied = false;
     try {
-        if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
-            await navigator.clipboard.write([
-                new ClipboardItem({
-                    'text/html': new Blob([payload.html], { type: 'text/html' }),
-                    'text/plain': new Blob([payload.text], { type: 'text/plain' }),
-                }),
-            ]);
-            modernCopied = true;
-        }
+        const payload = buildRichClipboardPayload(source, target);
+        const ok = await writeRichClipboard(payload);
+        const status = document.getElementById('copy-page-status');
+        if (status) status.textContent = !ok
+            ? '复制失败，请允许浏览器访问剪贴板后重试。'
+            : target === 'wechat' && payload.localImages
+                ? `已复制正文和样式；${payload.localImages} 张本地或未加载图片已保留位置，请在公众号后台上传替换。`
+                : target === 'wechat' ? '已复制公众号兼容排版，保留当前主题颜色。' : '已复制排版，可粘贴到 Word 或网页编辑器。';
+        return ok;
     } catch {
-        // Continue to legacy copy path for broader compatibility.
+        const status = document.getElementById('copy-page-status');
+        if (status) status.textContent = '复制失败，请重试。';
+        return false;
     }
-
-    const holder = document.createElement('div');
-    holder.contentEditable = 'true';
-    holder.style.position = 'fixed';
-    holder.style.left = '-9999px';
-    holder.style.top = '0';
-    holder.style.whiteSpace = 'pre-wrap';
-    holder.style.userSelect = 'text';
-    holder.innerHTML = payload.html;
-    document.body.appendChild(holder);
-    holder.focus();
-
-    const range = document.createRange();
-    range.selectNodeContents(holder);
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-    let legacyCopied = false;
-    const onCopy = (event: ClipboardEvent) => {
-        if (!event.clipboardData) return;
-        event.preventDefault();
-        event.clipboardData.setData('text/html', payload.html);
-        event.clipboardData.setData('text/plain', payload.text);
-        legacyCopied = true;
-    };
-    document.addEventListener('copy', onCopy, { once: true });
-    const ok = document.execCommand('copy');
-    document.removeEventListener('copy', onCopy);
-    selection?.removeAllRanges();
-    holder.remove();
-    return modernCopied || (ok && legacyCopied);
 }
 
 /**
@@ -1911,6 +1807,11 @@ function init() {
             flashButtonLabel(btnCopyPageRich, ok ? '已复制' : '复制失败');
         });
     }
+    const btnCopyPageWechat = document.getElementById('btn-copy-page-wechat');
+    btnCopyPageWechat?.addEventListener('click', async () => {
+        const ok = await copyCurrentPageRichContent('wechat');
+        flashButtonLabel(btnCopyPageWechat, ok ? '已复制' : '复制失败');
+    });
 
     // ── WeChat Controls ───────────────────────────────────────────────────
     const wcFontsizeSlider = document.getElementById('ctrl-wc-fontsize') as HTMLInputElement | null;
@@ -2079,6 +1980,15 @@ function init() {
     });
     const btnImage = document.getElementById('btn-image');
     if (btnImage) btnImage.addEventListener('click', () => imagePanel.open());
+    const imageContext = installImageContextMenu({
+        preview: previewArea, input: markdownInput, resolve: resolveImageSrc, storeImage,
+        onChange: () => debouncedRender(),
+        report: message => {
+            const status = document.getElementById('copy-page-status');
+            if (status) status.textContent = message;
+        },
+    });
+    installMissingImagePlaceholders(previewArea);
 
     // Floating toolbar image insert buttons
     const toolbarInsertAbove = document.getElementById('toolbar-insert-above');
@@ -2147,13 +2057,8 @@ function init() {
             if (figEl) {
                 const imgEl = figEl.querySelector('img') as HTMLImageElement | null;
                 if (imgEl) {
-                    const layout = (['float-left', 'float-right', 'full', 'center'] as const)
-                        .find(cls => figEl.classList.contains('mm-' + cls)) || 'center';
-                    const widthStr = figEl.style.width || imgEl.style.width || '60%';
-                    const width = parseInt(widthStr) || 60;
-                    const caption = figEl.querySelector('figcaption')?.textContent || '';
                     figEl.classList.remove('mm-fig-selected');
-                    imagePanel.openWithSrc(imgEl.src, { layout, width, alt: imgEl.alt, caption });
+                    imageContext.edit(imgEl);
                 }
             }
             e.stopPropagation();
@@ -2262,9 +2167,51 @@ function init() {
     });
 
     // File open
+    document.getElementById('article-directory-input')?.addEventListener('change', async event => {
+        const input = event.target as HTMLInputElement;
+        const files = [...(input.files || [])];
+        input.value = '';
+        if (!files.some(file => /\.(md|markdown)$/i.test(file.name))) {
+            const status = document.getElementById('copy-page-status');
+            if (status) status.textContent = '这个目录中没有 Markdown 文件。只关联图片请使用“关联图片目录”。';
+            return;
+        }
+        const article = await chooseDirectoryArticle(files);
+        if (!article) return;
+        try {
+            const text = await article.text();
+            for (const url of localImageFiles.values()) URL.revokeObjectURL(url);
+            localImageFiles.clear();
+            for (const file of files.filter(file => /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(file.name))) {
+                localImageFiles.set(file.webkitRelativePath, URL.createObjectURL(file));
+            }
+            articleRelativePath = article.webkitRelativePath;
+            markdownInput.value = text;
+            markdownInput.dispatchEvent(new Event('input', {bubbles: true}));
+            render();
+            const status = document.getElementById('copy-page-status');
+            if (status) status.textContent = `已打开 ${article.name}，关联 ${localImageFiles.size} 张图片。右键图片可原地编辑。`;
+        } catch {
+            const status = document.getElementById('copy-page-status');
+            if (status) status.textContent = '读取文章失败，请重新选择目录。';
+        }
+    });
+    document.getElementById('asset-directory-input')?.addEventListener('change', (event) => {
+        const input = event.target as HTMLInputElement;
+        const files = [...(input.files || [])].filter(file => /\.(png|jpe?g|gif|webp|avif|svg|bmp)$/i.test(file.name));
+        if (!files.length) return;
+        for (const url of localImageFiles.values()) URL.revokeObjectURL(url);
+        localImageFiles.clear();
+        for (const file of files) localImageFiles.set(file.webkitRelativePath, URL.createObjectURL(file));
+        render();
+        const status = document.getElementById('copy-page-status');
+        if (status) status.textContent = `已关联 ${files.length} 张本地图片。复制到公众号时会保留图片位置，请在公众号后台上传。`;
+        input.value = '';
+    });
     $<HTMLInputElement>('#file-input').addEventListener('change', (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
         if (!file) return;
+        articleRelativePath = '';
         const reader = new FileReader();
         reader.onload = (ev) => {
             const text = ev.target?.result as string;
@@ -2272,6 +2219,9 @@ function init() {
                 markdownInput.value = text;
                 $('#char-count').textContent = text.length + ' 字符';
                 render();
+                const local = findImageReferences(text).filter(ref => !/^(https?:|data:|blob:)/i.test(ref.src));
+                const status = document.getElementById('copy-page-status');
+                if (status && local.length) status.textContent = `文章引用了 ${local.length} 张本地图片。单独打开 Markdown 不会授权读取旁边的图片；请选择“关联图片目录”，或使用“导入文章目录”。`;
             }
         };
         reader.readAsText(file, 'utf-8');

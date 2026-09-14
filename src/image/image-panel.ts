@@ -53,6 +53,7 @@ export class ImagePanel {
     private currentImageSrc = '';
     private currentRatioIdx = 4;
     private mode: InputMode = 'empty';
+    private editAlt: string | null = null;
 
     constructor(onInsert: ImageInsertCallback) {
         this.onInsert = onInsert;
@@ -68,6 +69,9 @@ export class ImagePanel {
         this.createPanel();
         this.setPreviewImage(src, preset.alt || '图片');
         this.applyPreset(preset);
+        this.editAlt = preset.alt;
+        this.overlay!.querySelector('.mm-ip-title')!.textContent = '编辑图片';
+        this.overlay!.querySelector('#mm-ip-insert-btn')!.textContent = '应用修改';
     }
 
     close() { if (this.overlay) this.overlay.style.display = 'none'; }
@@ -77,6 +81,7 @@ export class ImagePanel {
         this.overlay = null;
         this.currentImageSrc = '';
         this.mode = 'empty';
+        this.editAlt = null;
     }
 
     // ─── DOM ─────────────────────────────────────────────────────────────────
@@ -850,7 +855,7 @@ input#mm-ip-file-hidden{display:none}
             const urlVal = q<HTMLTextAreaElement>('#mm-ip-smart-input').value.trim();
             if (urlVal) src = urlVal;
         }
-        return { src, alt: caption || '图片', caption, layout, width };
+        return { src, alt: this.editAlt ?? (caption || '图片'), caption, layout, width };
     }
 
     private handleInsert() {
@@ -873,12 +878,13 @@ input#mm-ip-file-hidden{display:none}
  * 根据 ImageInsertOptions 生成 Markdown 片段
  */
 export function buildImageMarkdown(opts: ImageInsertOptions): string {
-    const alt = opts.alt || '图片';
+    const alt = (opts.alt || '图片').replace(/([\\\[\]])/g, '\\$1');
     const attrs: string[] = [];
     if (opts.layout !== 'center') attrs.push(`.${opts.layout}`);
     if (opts.layout !== 'full' && opts.layout !== 'inline') attrs.push(`width=${opts.width ?? 60}%`);
     const attrStr = attrs.length ? `{${attrs.join(' ')}}` : '';
-    const imgLine = `![${alt}](${opts.src})${attrStr}`;
-    if (opts.caption && opts.caption !== alt) return imgLine + '\n*' + opts.caption + '*';
+    const src = opts.src.replace(/[\s()<>]/g, char => char === '(' ? '%28' : char === ')' ? '%29' : encodeURIComponent(char));
+    const imgLine = `![${alt}](${src})${attrStr}`;
+    if (opts.caption && opts.caption !== (opts.alt || '图片')) return imgLine + '\n*' + opts.caption + '*';
     return imgLine;
 }

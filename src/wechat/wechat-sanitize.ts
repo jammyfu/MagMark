@@ -23,10 +23,9 @@
 export const WECHAT_CONTENT_MAX_WIDTH_PX = 677;
 
 /**
- * Layout detector (#2.3.2) uses Range.getClientRects(). Nested inlines
- * (strong/em/a/code) split one visual line into several rects, so
- * avg = contentHeight / rectCount can fall below 0.95×font-size on
- * 2-line paragraphs unless line-height is ≥ ~2× font-size.
+ * Keep readable spacing. Inline fragments must also be grouped into native
+ * span[leaf] runs: increasing line-height alone cannot fix fragment counting
+ * on single-line paragraphs containing bold text or links.
  */
 export const WECHAT_MIN_LINE_HEIGHT_RATIO = 2;
 
@@ -420,6 +419,28 @@ export function rewriteWechatStyle(
     if (isImg && !map.has('max-width')) map.set('max-width', '100%');
     if (isImg && !map.has('width')) map.set('width', '100%');
 
+    if (tag === 'table') {
+        map.set('width', '100%');
+        map.set('max-width', '100%');
+        map.set('table-layout', 'fixed');
+        map.set('border-collapse', 'collapse');
+        map.set('box-sizing', 'border-box');
+    }
+    if (tag === 'td' || tag === 'th') {
+        map.set('white-space', 'normal');
+        map.set('word-break', 'normal');
+        map.set('overflow-wrap', 'anywhere');
+        map.set('padding', '8px');
+        map.set('vertical-align', 'top');
+        map.set('box-sizing', 'border-box');
+    }
+    if (/^h[1-6]$/.test(tag)) {
+        map.set('white-space', 'normal');
+        map.set('word-break', 'normal');
+        map.set('overflow-wrap', 'break-word');
+        map.set('line-break', 'strict');
+    }
+
     if (isTextBlock && !map.has('font-size') && !isImg) {
         map.set('font-size', '16px');
     }
@@ -641,5 +662,20 @@ export function sanitizeWechatPasteHtml(html: string): string {
     out = out.replace(/text-justify\s*:\s*[^;"]+;?/gi, '');
     out = out.replace(/(?:-webkit-|-moz-)?text-emphasis(?:-style|-color|-position)?\s*:\s*(?!none\b)[^;"]+;?/gi, '');
     out = out.replace(/\sstyle="\s*"/g, '');
+    out = wrapWechatTextBlocks(out);
     return out;
+}
+
+/** Native text runs keep inline marks together when WeChat parses and saves HTML. */
+function wrapWechatTextBlocks(html: string): string {
+    return html.replace(/<(p|h[1-6]|td|th)\b([^>]*)>([\s\S]*?)<\/\1>/gi,
+        (full, tag: string, attrs: string, inner: string) => {
+            if (!inner.replace(/<[^>]*>/g, '').trim()) return full;
+            if (/<(?:p|div|section|blockquote|pre|table|ul|ol|li|h[1-6])\b/i.test(inner)) return full;
+            if (/^\s*<span\b[^>]*\sleaf\s*=/.test(inner) && /<\/span>\s*$/.test(inner)) return full;
+            const style = attrs.match(/\sstyle="([^"]*)"/i)?.[1] || '';
+            const textProps = new Set(['color', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-decoration']);
+            const textStyle = style.split(';').filter(decl => textProps.has(decl.split(':')[0].trim())).join(';');
+            return `<${tag}${attrs}><span leaf="" style="${textStyle}">${inner}</span></${tag}>`;
+        });
 }

@@ -20,6 +20,16 @@ import { WECHAT_THEMES, WechatTheme } from '../src/wechat/wechat-themes';
 
 const FONT = '-apple-system, BlinkMacSystemFont, sans-serif';
 
+describe('WeChat native text runs', () => {
+    it('groups mixed inline marks and preserves text styles across save parsing', () => {
+        const clean = sanitizeWechatPasteHtml('<p style="font-size:14px;color:#4a7c59;line-height:28px">截至 <strong>2026 年</strong>，统计如下。</p>');
+        expect(clean).toMatch(/<p[^>]*><span leaf="" style="[^"]*color:#4a7c59/);
+        expect(clean).toContain('<strong');
+        expect(clean).toContain('2026 年');
+        expect(sanitizeWechatPasteHtml(clean).match(/leaf=""/g)).toHaveLength(1);
+    });
+});
+
 function render(
     md: string,
     theme: WechatTheme = WECHAT_THEMES.minimalist,
@@ -126,7 +136,7 @@ describe('WeChat paste HTML — content structure', () => {
             /<p[^>]*style="[^"]*text-align:\s*center[^"]*"><img[^>]*src="https:\/\/example.com\/legend-of-trump\.jpg"/,
         );
         expect(html).toMatch(
-            /<p style="[^"]*text-align:\s*center[^"]*">The Legend of Trump<\/p>/,
+            /<p style="[^"]*text-align:\s*center[^"]*"><span leaf=""[^>]*>The Legend of Trump<\/span><\/p>/,
         );
         expect(html).not.toMatch(/margin:[^;"']*auto/i);
         expect(html).not.toMatch(/display\s*:\s*block/i);
@@ -149,15 +159,17 @@ describe('WeChat paste HTML — content structure', () => {
         expect(html).toContain('White House');
     });
 
-    it('flattens GFM tables into paragraphs instead of table/th (avoids #1.4 / #2.3.2)', () => {
+    it('preserves GFM table columns with responsive layout and native cell text runs', () => {
         const md = `
 | Left | Mid | Right |
 |:-----|:---:|------:|
 | a | b | c |
 `;
         const html = render(md);
-        expect(html).not.toMatch(/<table\b/i);
-        expect(html).not.toMatch(/<th\b/i);
+        expect(html).toMatch(/<table\b/i);
+        expect(html).toMatch(/<th\b/i);
+        expect(html).toContain('table-layout:fixed');
+        expect(html).toMatch(/<td[^>]*><span leaf=""/);
         expect(html).toContain('Left');
         expect(html).toContain('a');
         const aligns = collectTextAlignValues(html);

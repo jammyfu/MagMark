@@ -7,6 +7,7 @@
 
 import { WechatTheme, WechatThemeStyles } from './wechat-themes';
 import { normalizeWechatEmphasisStyle, sanitizeWechatPasteHtml } from './wechat-sanitize';
+import { protectInlineContent } from '../core/inline-tokens';
 
 export { sanitizeWechatPasteHtml } from './wechat-sanitize';
 
@@ -42,15 +43,16 @@ function emphasisSpan(text: string, styles: WechatThemeStyles, font: string, mul
 }
 
 /** 内联 Markdown 转 HTML（粗体、斜体、代码、链接、图片、删除线） */
-function inlineMd(text: string, styles: WechatThemeStyles, font: string, mult: number, accent: string): string {
+function inlineMd(text: string, styles: WechatThemeStyles, font: string, mult: number, accent: string, resolve: (src: string) => string): string {
     if (!text) return '';
-    return text
+    const tokens = protectInlineContent(text, code => `<code style="${applyStyle(styles.code, font, mult)}">${escHtml(code)}</code>`, resolve);
+    return tokens.restore(tokens.text
         // 图片
         .replace(/!\[([^\]]*)\]\(([^)"]+)(?:\s+"[^"]*")?\)/g,
-            (_, alt, src) => `<img src="${escAttr(src)}" alt="${escAttr(alt)}" style="${applyStyle(styles.img, font, mult)}" referrerpolicy="no-referrer">`)
+            (_, alt, src) => tokens.protect(`<img src="${escAttr(resolve(src))}" alt="${escAttr(alt)}" style="${applyStyle(styles.img, font, mult)}" referrerpolicy="no-referrer">`))
         // 链接
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-            (_, label, href) => `<a href="${escAttr(href)}" style="${applyStyle(styles.a, font, mult)}">${escHtml(label)}</a>`)
+            (_, label, href) => tokens.protect(`<a href="${escAttr(href)}" style="${applyStyle(styles.a, font, mult)}">${escHtml(label)}</a>`))
         // 行内代码
         .replace(/`([^`]+)`/g,
             (_, code) => `<code style="${applyStyle(styles.code, font, mult)}">${escHtml(code)}</code>`)
@@ -68,7 +70,7 @@ function inlineMd(text: string, styles: WechatThemeStyles, font: string, mult: n
         .replace(/_([^_]+)_/g,
             (_, t) => emphasisSpan(t, styles, font, mult, accent))
         // 删除线
-        .replace(/~~(.+?)~~/g, '<del>$1</del>');
+        .replace(/~~(.+?)~~/g, '<del>$1</del>'));
 }
 
 export interface WechatRenderOptions {
@@ -145,7 +147,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             i++;
         }
         // 递归处理内部内容
-        const inner = quoteLines.map(l => inlineMd(l, s, font, mult, accent)).filter(Boolean).join('');
+        const inner = quoteLines.map(l => inlineMd(l, s, font, mult, accent, resolve)).filter(Boolean).join('');
         return `<blockquote style="${applyStyle(s.blockquote, font, mult)}"><p style="${applyStyle(s.p, font, mult)}">${inner}</p></blockquote>`;
     }
 
@@ -157,21 +159,18 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             i++;
         }
         if (tableLines.length < 2) {
-            return tableLines.map(l => `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(l, s, font, mult, accent)}</p>`).join('');
+            return tableLines.map(l => `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(l, s, font, mult, accent, resolve)}</p>`).join('');
         }
         const parseCells = (row: string) =>
             row.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
         const headerCells = parseCells(tableLines[0]);
         const dataRows = tableLines.slice(2);
-        // Do not emit <table>/<th>: official #1.4 treats every th as a width
-        // candidate (居中不一致 across 375/585/677), and #2.3.2 measures the
-        // whole table as one paragraph (one Range, many cell rects → fake overlap).
-        const rowToPara = (cells: string[], heading: boolean) => {
-            const inner = cells.map(c => inlineMd(c, s, font, mult, accent)).join('　');
-            const style = heading ? applyStyle(s.th, font, mult) : applyStyle(s.p, font, mult);
-            return `<p style="${style}">${inner}</p>`;
+        const rowHtml = (cells: string[], heading: boolean) => {
+            const tag = heading ? 'th' : 'td';
+            const style = applyStyle(heading ? s.th : s.td, font, mult);
+            return `<tr>${cells.map(c => `<${tag} style="${style}">${inlineMd(c, s, font, mult, accent, resolve)}</${tag}>`).join('')}</tr>`;
         };
-        return [rowToPara(headerCells, true), ...dataRows.map(row => rowToPara(parseCells(row), false))].join('');
+        return `<table style="${applyStyle(s.table, font, mult)}"><thead>${rowHtml(headerCells, true)}</thead><tbody>${dataRows.map(row => rowHtml(parseCells(row), false)).join('')}</tbody></table>`;
     }
 
     // ── 列表 ────────────────────────────────────────
@@ -191,9 +190,9 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
                 let content = ulMatch ? ulMatch[2] : olMatch![1];
                 if (ulMatch && ulMatch[1]) {
                     const checked = ulMatch[1].includes('x');
-                    content = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> ${inlineMd(content, s, font, mult, accent)}`;
+                    content = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> ${inlineMd(content, s, font, mult, accent, resolve)}`;
                 } else {
-                    content = inlineMd(content, s, font, mult, accent);
+                    content = inlineMd(content, s, font, mult, accent, resolve);
                 }
                 i++;
                 let nested = '';
@@ -222,7 +221,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         const line = lines[i].trim();
         i++;
         const match = line.match(/^!\[([^\]]*)\]\(([^)"]+)(?:\s+"([^"]*)")?\)/);
-        if (!match) return `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(line, s, font, mult, accent)}</p>`;
+        if (!match) return `<p style="${applyStyle(s.p, font, mult)}">${inlineMd(line, s, font, mult, accent, resolve)}</p>`;
         const [, alt, src, title] = match;
         const resolvedSrc = resolve(src);
         const titleAttr = title ? ` title="${escAttr(title)}"` : '';
@@ -238,7 +237,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
     function parseParagraph(): string {
         const paraLines: string[] = [];
         while (i < lines.length && !isBlockStop(lines[i])) {
-            paraLines.push(inlineMd(lines[i], s, font, mult, accent));
+            paraLines.push(inlineMd(lines[i], s, font, mult, accent, resolve));
             i++;
         }
         if (!paraLines.length) return '';
@@ -263,7 +262,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
             const level = hm[1].length as 1 | 2 | 3;
             const tagLevel = Math.min(level, 3) as 1 | 2 | 3;
             const hStyle = level === 1 ? s.h1 : level === 2 ? s.h2 : s.h3;
-            blocks.push(`<h${tagLevel} style="${applyStyle(hStyle, font, mult)}">${inlineMd(hm[2], s, font, mult, accent)}</h${tagLevel}>`);
+            blocks.push(`<h${tagLevel} style="${applyStyle(hStyle, font, mult)}">${inlineMd(hm[2], s, font, mult, accent, resolve)}</h${tagLevel}>`);
             i++;
             continue;
         }

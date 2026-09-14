@@ -2,6 +2,20 @@
 
 ## 2026-09-14
 
+- Long-article Markdown and HTML images now have direct drag-resize handles that persist to source. Missing-image menus expose batch directory mapping, and the header labels this action explicitly.
+
+- Fixed long-article block selection and style retention, added editable missing-image placeholders, and fixed Markdown image paths containing parentheses or spaces. Single-file imports now explain when an image directory must be associated.
+
+- Added article-folder import and accurate relative image mapping, plus in-place right-click image actions. Fixed figure editing inserting duplicate images and enabled figure controls in long-article mode.
+
+- Restored proper WeChat table columns, headers and cell borders instead of flattened labeled paragraphs. Fixed mobile subheadings inheriting desktop keep-all/nowrap wrapping rules.
+
+- Fixed WeChat article text touching the background edges: copied magazine layouts now include 24px top/bottom and 20px left/right paper insets, preserved after saving. Images remain proportional without overflow; general Word spacing is unchanged.
+
+- Added current-layout "复制到公众号" alongside general rich-text copy, including visible error/local-image status and local image-directory association.
+- Fixed underscore-containing image URLs being rewritten as Markdown emphasis, lost clipboard colors, and redundant legacy clipboard writes.
+- Added save-stable native WeChat text runs, portable styles, paper background preservation and proportional images. Verified an actual 13-image draft by native paste, save and reload without publishing.
+
 - Markdown `*italic*` no longer gets Han.css 着重号 dots. Magazine/print override `text-emphasis` on `em`; WeChat paste uses a colored `<span>` and the sanitizer strips leftover `text-emphasis*` / `<em>`.
 - WeChat paste HTML now flattens CSS gradients, forces line-height ≥ 2× font-size (Range-rect safe), writes `text-align: left` on every text tag, strips `font-family`, flattens GFM tables, and marks images `data-ignore-width`.
 - Added image-free and image-rich paste fixtures that must stay clean on every built-in WeChat theme.

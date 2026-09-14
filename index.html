@@ -22,9 +22,17 @@
             <span class="logo-text">MagMark <span class="logo-version">1.6.0</span></span>
         </div>
         <div class="header-actions">
+            <label class="file-upload-btn" title="同时导入 Markdown 和相对路径图片；目录含多篇文章时可选择">
+                <span>导入文章目录</span>
+                <input type="file" id="article-directory-input" webkitdirectory multiple hidden>
+            </label>
             <label class="file-upload-btn" id="file-upload-label">
                 <span>📂 打开文件</span>
                 <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden>
+            </label>
+            <label class="file-upload-btn" title="文章包含 assets/... 等相对图片路径时，选择文章所在目录或 assets 目录">
+                <span>批量关联图片</span>
+                <input type="file" id="asset-directory-input" webkitdirectory multiple hidden>
             </label>
             <button class="btn btn-secondary" id="btn-save" title="保存 Markdown (Ctrl+S)">💾 保存</button>
             <button class="btn btn-secondary" id="btn-image" title="插入图片 / AI 生图 / 图文混排">🖼 图片</button>
@@ -171,9 +179,11 @@
                     </label>
                 </div>
                 <div class="control-group">
-                    <button id="btn-copy-page-rich" class="ctrl-style-btn" title="复制当前页的排版结果，可直接粘贴到 Word 或网页编辑器">
+                    <button id="btn-copy-page-rich" class="ctrl-style-btn" title="复制当前页（长文视图复制全文），适合 Word；微信公众号请使用旁边的「复制到公众号」">
                         复制排版页
                     </button>
+                    <button id="btn-copy-page-wechat" class="ctrl-style-btn" title="保留当前主题颜色，适配公众号的宽度、对齐和行高；长文视图复制全文。本地图片保留上传位置。">复制到公众号</button>
+                    <span id="copy-page-status" role="status" aria-live="polite" style="max-width:320px;font-size:12px;line-height:1.6"></span>
                 </div>
                 <!-- 微信富文本复制按钮（选中微信主题时显示） -->
                 <div class="control-group" id="wc-copy-group" style="display:none;">
