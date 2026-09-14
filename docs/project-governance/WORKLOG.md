@@ -2,6 +2,9 @@
 
 ## 2026-09-14
 
+- Extended the WeChat paste sanitizer for remaining 内容结构检测 hits on both image-free and image-rich articles: #2.3.2 line-height-overlapping, #4.1.2 darkmode-no-gradient, residual #2.6 text-align, residual #1.4 width.
+- Converted unitless line-heights to explicit px/em, defaulted body `text-align` to `left`, flattened theme/export gradients, and set image `width:100%` with captions that carry a safe line-height.
+- Extended `tests/wechat-paste-html.test.ts` so every built-in theme is checked with a long text-only article and an image-rich article.
 - Captured real editor screenshots from `npm run dev` (Playwright) and committed `screenshots/magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`. Added `!screenshots/*.png` so the global `*.png` gitignore no longer drops them.
 - Split the public README into four languages (`README.md` 简体 default, `README.zh-Hant.md`, `README.ja.md`, `README.en.md`) with a centered language switcher.
 - Cited the live editor https://bubufu.com/tools/magmark/ in all four READMEs, `llms.txt`, and `llms-full.txt`. Kept magazine vs WeChat path honesty and MIT.

@@ -12,16 +12,22 @@ export { sanitizeWechatPasteHtml } from './wechat-sanitize';
 
 /** 将 CSS 字符串注入到元素的 style 属性前，合并字体设置 */
 function applyStyle(cssStr: string, fontFamily: string, fontSizeMultiplier = 1): string {
-    if (!cssStr) return `font-family: ${fontFamily};`;
-    // 应用字号倍率
+    const family = fontFamily.replace(/"/g, "'");
+    if (!cssStr) return `font-family: ${family};`;
+    // style="..." 不能再嵌套双引号，主题里的 "Fira Code" 会截断属性。
+    cssStr = cssStr.replace(/"/g, "'");
+    // 应用字号倍率（px line-height 一起缩放，避免 #2.3.2 行高 < 字号）
     if (fontSizeMultiplier !== 1) {
         cssStr = cssStr.replace(/font-size:\s*([\d.]+)px/g, (_, n) => {
             return `font-size: ${Math.round(parseFloat(n) * fontSizeMultiplier)}px`;
         });
+        cssStr = cssStr.replace(/line-height:\s*([\d.]+)px/g, (_, n) => {
+            return `line-height: ${Math.round(parseFloat(n) * fontSizeMultiplier)}px`;
+        });
     }
     // 注入字体（如果 cssStr 没有 font-family，或者用户选择了非默认字体）
     if (!cssStr.includes('font-family')) {
-        return `font-family: ${fontFamily}; ${cssStr}`;
+        return `font-family: ${family}; ${cssStr}`;
     }
     return cssStr;
 }
@@ -237,7 +243,7 @@ export function renderWechatHtml(md: string, opts: WechatRenderOptions): string 
         const altText = alt && !alt.startsWith('mm-img://') ? alt : '';
         // WeChat #1.4: one centering method — parent text-align:center — no <figure> / margin:auto.
         const caption = altText
-            ? `<p style="text-align:center;font-size:13px;color:#888;margin:8px 0 0;">${escHtml(altText)}</p>`
+            ? `<p style="text-align:center;font-size:13px;line-height:21px;color:#888;margin:8px 0 0;">${escHtml(altText)}</p>`
             : '';
         return `<p style="text-align:center;margin:20px 0;"><img src="${escAttr(resolvedSrc)}" alt="${escAttr(alt)}"${titleAttr} style="${applyStyle(s.img, font, mult)}" referrerpolicy="no-referrer"></p>${caption}`;
     }

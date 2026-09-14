@@ -2,6 +2,8 @@
 
 ## 2026-09-14
 
+- WeChat paste HTML now flattens CSS gradients, forces line-height ≥ font-size on text nodes, and writes `text-align: left` instead of omitting align (which became `start` after paste).
+- Added image-free and image-rich paste fixtures that must stay clean on every built-in WeChat theme.
 - Added four-language READMEs (简体 default), real editor screenshots under `screenshots/`, and the live editor URL https://bubufu.com/tools/magmark/ in human and machine docs.
 - Landed GEO public-entity docs from `cursor/geo-public-entity-31c9` (PR #1) onto main after the WeChat paste HTML fix, and deepened README / `llms.txt` / `llms-full.txt` so magazine PDF/PNG and WeChat Official Account paste HTML are cited as separate shipped paths.
 - WeChat paste HTML no longer emits `text-justify` or non-standard `text-align` values.

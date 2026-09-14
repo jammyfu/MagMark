@@ -37,12 +37,12 @@ export interface WechatTheme {
   styles: WechatThemeStyles;
 }
 
-// WeChat #2.6 / spec #1.6: only text-align left|right|center (or omit). Never justify / text-justify.
-const BASE_P = 'font-size: 16px; line-height: 1.85; margin: 20px 0; letter-spacing: 0.02em;';
-const BASE_CODE = 'padding: 3px 6px; border-radius: 4px; font-family: "Fira Code", "Courier New", monospace; font-size: 14px;';
-const BASE_PRE = 'padding: 16px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-family: "Fira Code", "Courier New", monospace; font-size: 14px; line-height: 1.6;';
-// WeChat #1.4: constrain with max-width:100% only — no display:block + margin:auto (nested centering).
-const BASE_IMG = 'max-width: 100%; height: auto; border-radius: 8px;';
+// WeChat #2.6 / spec #1.6: only text-align left|right|center. Omit becomes start after paste.
+const BASE_P = 'font-size: 16px; line-height: 1.85; margin: 20px 0; letter-spacing: 0.02em; text-align: left;';
+const BASE_CODE = "padding: 3px 6px; border-radius: 4px; font-family: 'Fira Code', 'Courier New', monospace; font-size: 14px;";
+const BASE_PRE = "padding: 16px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-family: 'Fira Code', 'Courier New', monospace; font-size: 14px; line-height: 1.6;";
+// WeChat #1.4: width/max-width 100% only — no display:block + margin:auto (nested centering).
+const BASE_IMG = 'max-width: 100%; width: 100%; height: auto; border-radius: 8px;';
 const BASE_TABLE = 'max-width: 100%; width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;';
 const BASE_TH = 'padding: 10px 14px; text-align: left; font-weight: 600;';
 const BASE_TD = 'padding: 9px 14px; border-bottom: 1px solid rgba(0,0,0,0.08);;';
@@ -122,7 +122,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
       ul: 'margin: 20px 0; padding-left: 25px; list-style-type: square;',
       ol: 'margin: 20px 0; padding-left: 25px; list-style-type: decimal-leading-zero;',
       li: 'margin: 12px 0; line-height: 1.8; font-size: 16px; color: #2c3e50;',
-      hr: 'height: 4px; background: linear-gradient(to right, #ff5722, transparent); border: none; margin: 50px 0;',
+      hr: 'height: 4px; background: #ff5722; border: none; margin: 50px 0;',
       img: BASE_IMG,
       table: BASE_TABLE,
       thead: 'background: #ff5722;',
@@ -338,7 +338,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #3e2723; border-bottom: 2px solid #d7ccc8; padding-bottom: 10px; line-height: 1.4;',
       h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #6d4c41; padding: 8px 15px; border-radius: 4px; display: block; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #5d4037; border-left: 4px solid #d7ccc8; padding-left: 10px; line-height: 1.4;',
-      p: BASE_P + ' color: #4e342e; font-family: "PingFang SC", "Microsoft YaHei", sans-serif;',
+      p: BASE_P + " color: #4e342e; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;",
       blockquote: 'margin: 25px 0; padding: 20px; background: #efebe9; border-radius: 8px; color: #5d4037;',
       code: BASE_CODE + ' background: #d7ccc8; color: #3e2723;',
       pre: BASE_PRE + ' background: #efebe9; color: #4e342e;',
@@ -367,7 +367,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
       h1: 'font-size: 28px; font-weight: 900; margin: 40px 0 30px; text-align: center; color: #fff; text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; border: 2px solid #ff00ff; padding: 15px; line-height: 1.3;',
       h2: 'font-size: 24px; font-weight: bold; margin: 35px 0 25px; color: #00ffff; text-shadow: 0 0 5px #00ffff; border-left: 8px solid #ff00ff; padding-left: 15px; line-height: 1.3;',
       h3: 'font-size: 20px; font-weight: bold; margin: 30px 0 20px; color: #ffff00; text-shadow: 0 0 5px #ffff00; line-height: 1.3;',
-      p: BASE_P + ' color: #00ff00; font-family: "Courier New", monospace; letter-spacing: 0.05em;',
+      p: BASE_P + " color: #00ff00; font-family: 'Courier New', monospace; letter-spacing: 0.05em;",
       blockquote: 'margin: 30px 0; padding: 25px; background: rgba(255, 0, 255, 0.05); border: 2px solid #ff00ff; color: #ffffff;',
       code: BASE_CODE + ' background: #0a0a0a; border: 1px solid #00ffff; color: #00ffff;',
       pre: BASE_PRE + ' background: #0a0a0a; color: #00ff00; border: 1px solid #00ffff;',
@@ -376,7 +376,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
       ul: 'margin: 20px 0; padding-left: 25px; color: #00ff00;',
       ol: 'margin: 20px 0; padding-left: 25px; list-style-type: decimal; color: #00ff00;',
       li: 'margin: 12px 0; line-height: 1.8; font-size: 16px; color: #00ff00;',
-      hr: 'height: 2px; background: linear-gradient(to right, #ff00ff, #00ffff, #ffff00); border: none; margin: 50px 0;',
+      hr: 'height: 2px; background: #ff00ff; border: none; margin: 50px 0;',
       img: BASE_IMG + ' border: 2px solid #ff00ff; filter: saturate(1.5);',
       table: BASE_TABLE,
       thead: 'background: #ff00ff;',
@@ -404,7 +404,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
       ul: 'margin: 20px 0; padding-left: 25px;',
       ol: 'margin: 20px 0; padding-left: 25px; list-style-type: decimal;',
       li: 'margin: 12px 0; line-height: 1.8; font-size: 16px; color: #333;',
-      hr: 'border: none; height: 1px; background: linear-gradient(to right, transparent, #bf953f, transparent); margin: 50px 0;',
+      hr: 'border: none; height: 1px; background: #bf953f; margin: 50px 0;',
       img: BASE_IMG + ' border: 2px solid #bf953f;',
       table: BASE_TABLE,
       thead: 'background: #bf953f;',
@@ -449,7 +449,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     styles: {
       container: 'background-color: #fff3e0; color: #4e342e; padding: 20px;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #e65100; text-shadow: 1px 1px 2px #ffe0b2; line-height: 1.4;',
-      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: linear-gradient(45deg, #f4511e, #ffb300); padding: 8px 20px; border-radius: 5px; display: block; line-height: 1.4;',
+      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #f4511e; padding: 8px 20px; border-radius: 5px; display: block; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #ef6c00; line-height: 1.4;',
       p: BASE_P + ' color: #4e342e;',
       blockquote: 'margin: 25px 0; padding: 20px; background: #fff3e0; border-left: 5px solid #ff9800; color: #e65100;',
