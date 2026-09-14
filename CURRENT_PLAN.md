@@ -29,9 +29,10 @@ Evidence and reproduction: [QUIET_WORKSPACE.md](docs/project-governance/QUIET_WO
 - [x] Preserve an existing image when changing ratio preferences; clearing an image can still produce a placeholder without an extra gesture.
 - [x] Revision-checked preview frames, immediate blank-source invalidation and pending-export guards. Zoom only updates transforms and retains article DOM.
 - [x] Local strict typecheck, web build, deep verification: pass. Separate scopes: 104 Vitest, 59 text, 6 SDK guards, 7 gate tests, 17 pagination, 21 production-asset/offline Chromium UI checks.
-- [ ] Fresh remote installation/integration and subsequent ordinary read-only CI for this continuation. Do not equate local checks or configuration with a successful remote run.
+- [x] Remote run 34886333340 passed fresh npm ci, strict typecheck, 104 unit tests, 59 text checks, 6 SDK guards, 7 gate tests, 17 pagination fixtures, 22 real-HTTP workspace checks, build and deep verification. Its final bot push alone failed workflow permission; the authorized GitHub connector then fast-forwarded the exact tested tree as d1e3846. No permissions were expanded.
+- [x] Subsequent ordinary read-only Publishing quality run 34886672517, job 104118927125, succeeded for implementation d1e3846 after temporary helper cleanup, including real-HTTP workspace interactions.
 
-Details and reproduction: [CONTINUATION_2026-09-15.md](docs/project-governance/CONTINUATION_2026-09-15.md).
+Details and reproduction: [CONTINUATION_2026-09-15.md](docs/project-governance/CONTINUATION_2026-09-15.md). Remote evidence: [REMOTE_CONTINUATION_VERIFICATION.md](docs/project-governance/REMOTE_CONTINUATION_VERIFICATION.md).
 
 ### Remaining ordered work
 
@@ -40,7 +41,7 @@ Details and reproduction: [CONTINUATION_2026-09-15.md](docs/project-governance/C
 - [ ] Non-destructive cross-inline typography profiles with one spacing engine and explicit normalization preview.
 - [x] Cancel stale preview commits; block pending output and preserve source/image identity on zoom.
 - [ ] Bounded font/image readiness for final pagination/export and full slow-resource mapping regression.
-- [ ] Real OS Chinese IME, Firefox/WebKit/mobile WebView, live WeChat paste-save-reload and network-navigation validation.
+- [ ] Real OS Chinese IME, Firefox/WebKit/mobile WebView, live WeChat paste-save-reload and external-resource acceptance. Local-HTTP production navigation is now verified on the remote Chromium runner.
 - [ ] Reproducible Paged.js/Vivliostyle comparison, dependency advisory triage and SDK distribution packaging. Keep the current print backend until measured evidence supports changing it.
 
 The UI milestone does not complete the publishing upgrade. Keep PR #7 draft and the live site unchanged.
