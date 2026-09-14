@@ -27,10 +27,7 @@ export interface ScreenshotOptions {
   quality?: number;
 }
 
-const defaultMetaTags: Record<string, string> = {
-  'og:type': 'article',
-  'og:site_name': 'MagMark Document',
-};
+
 
 /**
  * Generate Open Graph meta tags for social sharing
@@ -67,15 +64,15 @@ export function generateOpenGraphTags(
     
     // Article specific
     { property: 'article:published_time', content: article.publishedTime },
-    ...(article.modifiedTime && {
+    ...(article.modifiedTime ? [{
       property: 'article:modified_time',
       content: article.modifiedTime,
-    }),
+    }] : []),
     { property: 'article:author', content: article.author },
-    ...(article.tags.length > 0 && {
+    ...(article.tags.length > 0 ? [{
       property: 'article:tag',
       content: article.tags.join(','),
-    }),
+    }] : []),
     { property: 'article:section', content: article.category },
   ];
 
@@ -95,14 +92,14 @@ export function generateTwitterTags(
     { name: 'twitter:description', content: article.description },
     { name: 'twitter:creator', content: article.author },
     { name: 'twitter:site', content: '@magmark' },
-    ...(article.images[0] && {
+    ...(article.images[0] ? [{
       name: 'twitter:image',
       content: `${baseUrl}${article.images[0]}`,
-    }),
-    ...(article.images[1] && {
+    }] : []),
+    ...(article.images[1] ? [{
       name: 'twitter:image:alt',
       content: 'Document cover image',
-    }),
+    }] : []),
   ];
 
   return tags.map(generateMetaTagHTML);
@@ -139,7 +136,6 @@ export function generateStructuredData(article: ArticleData): string {
       '@type': 'WebPage',
       '@id': window.location.href,
     },
-    headline: article.headline,
     image: article.images.map((url) => ({
       '@type': 'ImageObject',
       url: `${window.location.origin}${url}`,
@@ -226,7 +222,6 @@ export function generateCompleteHead(
     canonicalUrl = window.location.href,
     index = true,
     follow = true,
-    lang = 'zh-CN',
   } = options;
 
   // Update article data with provided values

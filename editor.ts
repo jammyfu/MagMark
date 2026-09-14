@@ -707,7 +707,7 @@ function convertMarkdown(md: string): string {
         function getIndent(l: string): number {
             return l.match(/^(\s*)/)?.[1].length ?? 0;
         }
-        function buildItems(minIndent: number, ordered: boolean): string {
+        function buildItems(minIndent: number, _ordered: boolean): string {
             let html = '';
             while (i < lines.length) {
                 const line = lines[i];
@@ -723,12 +723,10 @@ function convertMarkdown(md: string): string {
                 if (!ulMatch && !olMatch) break;
 
                 let content = ulMatch ? ulMatch[2] : olMatch![1];
-                let isTask = false;
                 let checked = false;
 
                 // Task list item
                 if (ulMatch && ulMatch[1]) {
-                    isTask = true;
                     checked = ulMatch[1].includes('x');
                     const checkbox = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> `;
                     content = checkbox + inlineMarkdown(content);
@@ -1107,7 +1105,6 @@ function openPrintPreview() {
 
     // 读取当前生效的 CSS 变量
     const rootStyle = getComputedStyle(document.documentElement);
-    const bodyStyle = getComputedStyle(document.body);
     const mmFontSize = rootStyle.getPropertyValue('--mm-font-size').trim() || '14px';
     const mmLineHeight = rootStyle.getPropertyValue('--mm-line-height').trim() || '1.75';
     const mmLetterSpacing = rootStyle.getPropertyValue('--mm-letter-spacing').trim() || '0.01em';
@@ -2549,7 +2546,7 @@ async function exportAllPng() {
     }
 
     // Restore visibility
-    allPages.forEach((p, i) => {
+    allPages.forEach(p => {
         const pNum = parseInt(p.dataset.page || '0');
         p.style.display = pNum === state.currentPage ? 'block' : 'none';
     });

@@ -2,7 +2,7 @@
  * MagMark 2.0 - Baseline Grid Hook
  * React hook for baseline grid visualization
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 export interface BaselineGridOptions {
   /** Baseline step in pixels (default: 8) */

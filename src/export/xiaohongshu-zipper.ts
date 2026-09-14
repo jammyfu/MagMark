@@ -4,7 +4,6 @@
  */
 
 import archiver from 'archiver';
-import { Readable } from 'stream';
 
 export interface XiaohongshuOptions {
   /** Image format */
@@ -83,7 +82,6 @@ export async function createCarouselZip(
 ): Promise<Buffer> {
   const {
     format = 'jpg',
-    addPageNumbers = false,
     sizeVariant = 'primary',
     resolution = 'standard',
   } = options;
