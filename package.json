@@ -23,7 +23,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist node_modules/.vite",
-    "version": "node scripts/sync-version.js && git add ."
+    "version": "node scripts/sync-version.js && git add .",
+    "test:workspace": "node scripts/check-workspace.cjs",
+    "build:lib": "tsc && vite build --mode library"
   },
   "keywords": [
     "markdown",
@@ -40,16 +42,21 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/magmark/magmark-2.0.git"
+    "url": "https://github.com/jammyfu/MagMark.git"
   },
   "bugs": {
-    "url": "https://github.com/magmark/magmark-2.0/issues"
+    "url": "https://github.com/jammyfu/MagMark/issues"
   },
-  "homepage": "https://github.com/magmark/magmark-2.0#readme",
+  "homepage": "https://bubufu.com/tools/magmark/",
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@codemirror/commands": "6.11.0",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/state": "6.7.4",
+    "@codemirror/view": "6.43.11",
     "@tiptap/core": "^2.1.0",
     "@tiptap/extension-image": "^2.1.0",
     "@tiptap/extension-link": "^2.1.0",
