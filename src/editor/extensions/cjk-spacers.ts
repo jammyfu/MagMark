@@ -1,186 +1,105 @@
-/**
- * MagMark 2.0 - CJK Spacer Extension for Tiptap
- * Automatic spacing between CJK and Latin characters in the editor
- */
+/** Visual spacing by default; source normalization is an explicit undoable command. */
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
+import type { Node as ProseMirrorNode } from 'prosemirror-model';
+import { closeHistory } from 'prosemirror-history';
+import { addCJKSpacing as spaceProse } from '../../plugins/cjk-spacer';
 
-// CJK Unicode ranges
-const CJK_REGEX = /[\u4e00-\u9fff\u3400-\u4dbf\u{20000}-\u{2a6df}\u{2a700}-\u{2b73f}\u{2b740}-\u{2b81f}\u{2b820}-\u{2ceaf}\uf900-\ufaff]/u;
-const LATIN_REGEX = /[a-zA-Z0-9]/;
-
-/**
- * Check if character is CJK
- */
-function isCJK(char: string): boolean {
-  return CJK_REGEX.test(char);
-}
-
-/**
- * Check if character is Latin or number
- */
-function isLatinOrNumber(char: string): boolean {
-  return LATIN_REGEX.test(char);
-}
-
-/**
- * Check if spacing is needed between two characters
- */
-function needsSpacing(left: string, right: string): boolean {
-  if (!left || !right) return false;
-  
-  const leftIsCJK = isCJK(left);
-  const rightIsCJK = isCJK(right);
-  const leftIsLatin = isLatinOrNumber(left);
-  const rightIsLatin = isLatinOrNumber(right);
-  
-  // CJK <-> Latin/Number: add space
-  return (leftIsCJK && rightIsLatin) || (leftIsLatin && rightIsCJK);
-}
-
-/**
- * Add spacing to text
- */
-function addSpacing(text: string): string {
-  if (!text || typeof text !== 'string') return text;
-  
-  let result = '';
-  for (let i = 0; i < text.length; i++) {
-    const current = text[i];
-    const next = text[i + 1];
-    
-    result += current;
-    
-    if (next && needsSpacing(current, next)) {
-      if (current !== ' ' && next !== ' ') {
-        result += ' ';
-      }
-    }
+export interface CJKSpacerOptions { enabled: boolean; showSpacingIndicator: boolean }
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    cjkSpacers: {
+      toggleCJKSpacing: () => ReturnType;
+      addCJKSpacing: () => ReturnType;
+    };
   }
-  
+}
+const opaque = new Set(['codeBlock', 'code', 'inlineCode', 'math', 'inlineMath', 'mathInline']);
+
+/** Join adjacent prose marks, retaining the PM coordinate of each UTF-16 unit. */
+function spacingPositions(doc: ProseMirrorNode): number[] {
+  const result: number[] = [];
+  doc.descendants((block, blockPos) => {
+    if (opaque.has(block.type.name)) return false;
+    if (!block.isTextblock) return true;
+    let text = ''; let positions: number[] = [];
+    const flush = () => {
+      const spaced = spaceProse(text);
+      let sourceIndex = 0;
+      for (let outputIndex = 0; outputIndex < spaced.length; outputIndex++) {
+        if (spaced[outputIndex] === text[sourceIndex]) sourceIndex++;
+        else if (spaced[outputIndex] === ' ' && positions[sourceIndex] !== undefined) result.push(positions[sourceIndex]);
+      }
+      text = ''; positions = [];
+    };
+    block.forEach((child, offset) => {
+      if (!child.isText || child.marks.some(mark => opaque.has(mark.type.name) || mark.type.name === 'link')) {
+        flush(); return;
+      }
+      const value = child.text ?? '';
+      text += value;
+      for (let i = 0; i < value.length; i++) positions.push(blockPos + 1 + offset + i);
+    });
+    flush(); return false;
+  });
   return result;
 }
-
-export interface CJKSpacerOptions {
-  enabled: boolean;
-  showSpacingIndicator: boolean;
-}
+interface SpacingState { enabled: boolean; decorations: DecorationSet }
+const key = new PluginKey<SpacingState>('cjkSpacing');
 
 export const CJKSpacers = Extension.create<CJKSpacerOptions>({
   name: 'cjkSpacers',
-  
-  addOptions() {
-    return {
-      enabled: true,
-      showSpacingIndicator: false,
-    };
-  },
-  
+  addOptions() { return { enabled: true, showSpacingIndicator: false }; },
   addProseMirrorPlugins() {
-    const plugins: Plugin[] = [];
-    
-    if (!this.options.enabled) return plugins;
-    
-    // Plugin to add spacing indicators
-    const spacingIndicatorPlugin = new Plugin({
-      key: new PluginKey('cjkSpacingIndicator'),
+    const options = this.options;
+    const build = (doc: ProseMirrorNode, enabled: boolean): SpacingState => ({
+      enabled,
+      decorations: enabled && options.showSpacingIndicator
+        ? DecorationSet.create(doc, spacingPositions(doc).map(pos => Decoration.widget(pos, () => {
+          const span = document.createElement('span');
+          span.className = 'mm-cjk-space-indicator';
+          span.setAttribute('aria-hidden', 'true');
+          span.style.cssText = 'display:inline-block;width:0;border-left:1px dotted currentColor;';
+          return span;
+        }, { key: `cjk-${pos}`, side: -1 }))) : DecorationSet.empty,
+    });
+    return [new Plugin<SpacingState>({
+      key,
       state: {
-        init() {
-          return DecorationSet.empty;
-        },
-        apply(tr, set) {
-          set = set.map(tr.mapping, tr.doc);
-          
-          if (!this.getMeta(tr)?.showIndicators) return set;
-          
-          const decorations: Decoration[] = [];
-          
-          tr.doc.descendants((node, pos) => {
-            if (node.isText) {
-              const text = node.text || '';
-              for (let i = 0; i < text.length - 1; i++) {
-                if (needsSpacing(text[i], text[i + 1])) {
-                  decorations.push(
-                    Decoration.inline(pos + i + 1, pos + i + 1, {
-                      class: 'mm-cjk-space-indicator',
-                    })
-                  );
-                }
-              }
-            }
-          });
-          
-          return DecorationSet.create(tr.doc, decorations);
+        init: (_config, state) => build(state.doc, options.enabled),
+        apply(tr, previous) {
+          const change = tr.getMeta(key) as { enabled?: boolean } | undefined;
+          if (!tr.docChanged && change?.enabled === undefined) return previous;
+          return build(tr.doc, change?.enabled ?? previous.enabled);
         },
       },
       props: {
-        decorations(state) {
-          return this.getState(state);
-        },
+        decorations: state => key.getState(state)?.decorations,
+        attributes: state => ({
+          class: key.getState(state)?.enabled ? 'mm-cjk-spacing' : '',
+          style: `text-autospace:${key.getState(state)?.enabled ? 'normal' : 'no-autospace'}`,
+        }),
       },
-    });
-    
-    plugins.push(spacingIndicatorPlugin);
-    
-    // Input rule plugin for auto-spacing on type
-    const autoSpacingPlugin = new Plugin({
-      key: new PluginKey('cjkAutoSpacing'),
-      appendTransaction(transactions, oldState, newState) {
-        if (!transactions.some(tr => tr.docChanged)) return null;
-        
-        const tr = newState.tr;
-        let modified = false;
-        
-        newState.doc.descendants((node, pos) => {
-          if (node.isText) {
-            const text = node.text || '';
-            const spacedText = addSpacing(text);
-            
-            if (spacedText !== text) {
-              tr.replaceWith(pos, pos + node.nodeSize, newState.schema.text(spacedText, node.marks));
-              modified = true;
-            }
-          }
-        });
-        
-        return modified ? tr : null;
-      },
-    });
-    
-    plugins.push(autoSpacingPlugin);
-    
-    return plugins;
+    })];
   },
-  
   addCommands() {
     return {
-      toggleCJKSpacing: () => ({ editor }) => {
-        this.options.enabled = !this.options.enabled;
+      toggleCJKSpacing: () => ({ state, tr, dispatch }) => {
+        if (dispatch) tr.setMeta(key, { enabled: !key.getState(state)?.enabled });
         return true;
       },
-      
-      addCJKSpacing: () => ({ tr, dispatch, state }) => {
-        if (!dispatch) return true;
-        
-        let modified = false;
-        
-        state.doc.descendants((node, pos) => {
-          if (node.isText) {
-            const text = node.text || '';
-            const spacedText = addSpacing(text);
-            
-            if (spacedText !== text) {
-              tr.replaceWith(pos, pos + node.nodeSize, state.schema.text(spacedText, node.marks));
-              modified = true;
-            }
-          }
-        });
-        
-        return modified;
+      addCJKSpacing: () => ({ editor, tr, dispatch }) => {
+        if (editor.view.composing) return false;
+        const positions = spacingPositions(tr.doc);
+        if (!positions.length) return false;
+        if (dispatch) {
+          closeHistory(tr);
+          for (const pos of positions.reverse()) tr.insertText(' ', pos, pos);
+        }
+        return true;
       },
     };
   },
 });
-
 export default CJKSpacers;
