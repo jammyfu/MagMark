@@ -1,5 +1,15 @@
 # WORKLOG.md
 
+## 2026-09-14 — Direct GitHub CJK upgrade implementation
+
+- Rechecked the connected repository, created `feat/cjk-publishing-upgrade-20260914` from `7020c3b` and pushed real code commits through the GitHub connector. No main update, force-push, merge, deployment or article publication.
+- `d3935ef`: literal-safe inline tokenization and Unicode-aware prose spacing, with 56 isolated production-module checks. Baseline inline source was verified against blob `d38d5932462e13dc1276240a120badd5d08ba64a`; the same inline cases produced 12 passes and 15 failures before the fix.
+- `b850770`: text checks now precede Vitest in `npm test`; explicit deep verification fails when checks cannot run. Seven verification-gate unit tests passed, versus five failing tests on the original gate. Those unit tests mock external command outcomes; they are not evidence of running the full project.
+- `5c4622d`: added pinned, read-only publishing quality CI without deployment, persisted checkout credentials or error suppression. Initial workflow-run query returned no runs; execution must be confirmed separately.
+- `e392bce`: removed reference-regex backtracking. A 250k-Latin-plus-Han probe exceeded the old scan's 2-second watchdog; the updated text suite has 59 passing checks, including that prose case, protocol-relative URLs and conservative @ preservation. This is not an editor/browser benchmark.
+- Local environment: Node v22.16.0 and an installed global TypeScript compiler exposed through NODE_PATH for module checks. Container `git clone` failed with GitHub DNS resolution; full dependency installation, build, Vitest and browser/WeChat round trips were not executed or claimed successful.
+- Recorded remaining approved work in `CURRENT_PLAN.md` and `CJK_UPGRADE.md`. Parser unification, trust enforcement, pagination, CodeMirror integration and publication-engine comparison remain unfinished.
+
 ## 2026-09-14
 
 - Added long-view universal image resize handles; browser verified Markdown width 40% to 56%, raw HTML 200px to 49%, and resizing at 50% preview zoom. Fixed legacy action-strip empty space intercepting small-image clicks.
@@ -16,7 +26,7 @@
 - Browser regression: actual 13-image article changed from 50% to 70% width without duplication or loss of local paths. Multi-article folder selected the correct same-named image; repeated-image action changed only the selected occurrence. Bulk WeChat upload remains unimplemented pending the extension installation decision.
 
 - Restored semantic table/thead/tbody/th/td export on both magazine and WeChat-theme paths. Tables use fixed percentage layout, bounded cell padding, border-box sizing and native leaf text runs instead of repeating column labels in paragraphs.
-- Removed inherited keep-all/nowrap/anywhere heading combinations from magazine copying; WeChat headings and their copied descendants now use normal wrapping, break-word fallback and strict CJK line breaking.
+- Removed inherited keep-all/nowrap/anywhere heading combinations from magazine copying; WeChat headings and their copied descendants now use normal wrapping, break-word fallback and strict CJK punctuation.
 - Preserved the user's latest draft edits while restoring its two table grids. A screenshot resized in WeChat retained fixed height; restored proportional height without changing its desktop width. During paste verification detected duplicated content and replaced it with the backed-up single complete article before final verification.
 - At the user's subsequent request increased every explicit article font size by 2px and maintained line-height ratios. Native save/reload confirmed exact text equality, 13 images, two tables, 16px body and normal heading breaks. 32 tests and targeted strict TypeScript check pass. No publication or public deployment.
 
@@ -39,7 +49,7 @@
 - Captured real editor screenshots from `npm run dev` (Playwright) and committed `screenshots/magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`. Added `!screenshots/*.png` so the global `*.png` gitignore no longer drops them.
 - Split the public README into four languages (`README.md` 简体 default, `README.zh-Hant.md`, `README.ja.md`, `README.en.md`) with a centered language switcher.
 - Cited the live editor https://bubufu.com/tools/magmark/ in all four READMEs, `llms.txt`, and `llms-full.txt`. Kept magazine vs WeChat path honesty and MIT.
-- Rebased GEO public-entity docs from `origin/cursor/geo-public-entity-31c9` onto current main (WeChat paste HTML fix #2, tip `92b9922`).
+- Rebased GEO public-entity docs from `origin/cursor/geo-public-entity-31c9` (PR #1) onto current main (WeChat paste HTML fix #2, tip `92b9922`).
 - Deepened README / `llms.txt` / `llms-full.txt` with the shipped WeChat Official Account inline-CSS HTML path (复制富文本; no `text-justify`; no oversized widths) and explicit non-claims (no GitHub Pages, no MagMark 2.0 SEO module as product).
 - Kept both governance histories: WeChat paste-fix entries below plus the 2026-09-01 GEO notes.
 - Fixed WeChat Official Account paste HTML so 内容结构检测 stops flagging long articles.

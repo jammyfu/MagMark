@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## 2026-09-14 — CJK upgrade branch (not released)
+
+- Preserve exact-length backtick code spans, escaped delimiters, nested tokens and image attributes in the shared inline guard.
+- Make prose spacing Unicode-aware and conservative around code, math, links, raw HTML and references. Avoid long-prose regex backtracking; add a 250k-character case.
+- Add `test:text` and run it before Vitest in `npm test`; add separate verification-gate unit tests via `test:verify`.
+- Requested deep verification now fails if checks cannot run; governance-only success is explicitly scoped.
+- Add a pinned, read-only CI workflow. Workflow execution, full build, browser tests and the larger publishing upgrade are not represented as completed.
+
 ## 2026-09-14
 
 - Long-article Markdown and HTML images now have direct drag-resize handles that persist to source. Missing-image menus expose batch directory mapping, and the header labels this action explicitly.

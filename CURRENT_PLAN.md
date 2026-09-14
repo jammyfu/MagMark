@@ -1,5 +1,26 @@
 # CURRENT_PLAN.md
 
+## Active: CJK Publishing Upgrade (2026-09-14)
+
+- Branch: `feat/cjk-publishing-upgrade-20260914`; base: `7020c3ba575e77bf7f25cbdeeaf50d1c80636197`.
+- User approved direct branch development of the full optimization proposal. Do not merge, force-push, deploy or publish WeChat articles.
+- Detailed status and remaining acceptance gates: `docs/project-governance/CJK_UPGRADE.md`.
+- [x] Push literal-safe inline tokenization and Unicode-aware, conservative prose spacing with regression checks.
+- [x] Integrate text checks into `npm test`; make requested deep verification fail when checks cannot run.
+- [x] Remove quadratic reference-detection backtracking and add a 250k-character prose case.
+- [x] Commit a read-only CI workflow for dependency installation, tests, typecheck, build and deep verification.
+- [ ] Confirm actual CI execution and fix/reconcile full-project baseline failures without weakening strictness.
+- [ ] Implement a shared HTML trust boundary and honest public export capability errors.
+- [ ] Unify source-aware Markdown semantics, preserving existing image extensions and legacy line-break behavior.
+- [ ] Implement non-destructive typography profiles and cross-inline text runs without stacked spacing engines.
+- [ ] Repair legal Unicode pagination, multi-page oversized blocks, resource readiness and stale render cancellation.
+- [ ] Integrate CodeMirror into the actual textarea-based entry and verify source editing, selection, undo and IME behavior.
+- [ ] Run browser/WeChat round-trip regression and a reproducible Paged.js/Vivliostyle comparison before selecting a publication backend.
+- Current executed checks: 59 text-module cases passed; 7 verification-gate unit tests passed. These are separate scopes, not a full-editor pass.
+- Container clone failed on GitHub DNS; remote GitHub connector writes succeeded. Full-project build/browser checks have not been claimed. A workflow file is not evidence of a successful workflow run.
+
+## Previous Execution History (preserved; historical scopes below do not limit the active upgrade)
+
 ## Completed: Long-Article Image Resize And Batch Mapping (2026-09-14)
 
 - [x] Universal image-bounds resize overlay for Markdown and raw HTML images; write sizes back to source and account for preview zoom.

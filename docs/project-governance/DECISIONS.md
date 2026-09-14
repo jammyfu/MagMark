@@ -1,5 +1,16 @@
 # DECISIONS.md
 
+## 2026-09-14 — CJK upgrade branch
+
+- Work only on `feat/cjk-publishing-upgrade-20260914`; the user approved implementation, not merging, deployment, WeChat uploads or publication.
+- Keep Markdown source authoritative. The committed AST spacing transformer only changes rendering text, skips literal/reference subtrees and is not a complete cross-inline typography engine.
+- Preserve entire ambiguous reference text runs, including any @ or // signal. Conservative false positives leave text untouched; fixed-width detection avoids quadratic backtracking.
+- Inline token protection is not a security sanitizer. Shared HTML trust enforcement remains an explicit unfinished task before untrusted HTML can be considered safe.
+- Module regressions are part of `npm test`, but do not stand in for whole-project, browser, IME or WeChat save/reload checks. Verification-gate unit tests mock command outcomes only to test propagation, not to claim actual npm execution.
+- `verify.py --deep` must return failure for unconfigured or skipped checks. Default verification must identify governance-only scope.
+- CI uses content-read permission, pinned action commits, no persisted checkout credentials, no deployment and no continue-on-error. A committed workflow is not a successful run.
+- Preserve the existing real-image editing and WeChat table/inset behavior throughout parser, typography, pagination and editor migration.
+
 ## 2026-09-14
 
 - Long-view resizing uses image bounds and the actual preview scale, not fixed page width or figure caption bounds. Source edits remain authoritative. Local image access requires one directory selection, never one file selection per missing image.
