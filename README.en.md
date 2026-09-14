@@ -77,6 +77,7 @@ Paste HTML is written to stay **content-structure safe** for 公众号「内容�
 - No `text-align: justify` and no `text-justify` (including `inter-ideograph`)
 - `text-align` is only `left`, `right`, `center`, or omitted
 - Standalone images use a centered `<p>` + `img { max-width: 100% }`; no `<figure>`, no nested `display:block` + `margin:auto`, no oversized fixed widths (WeChat content column is about 677px)
+- Markdown `*italic*` / `_italic_` becomes a colored `<span>`, not `<em>`, `font-style:italic`, or `text-emphasis` sesame dots
 
 Do **not** describe WeChat paste as magazine Han/Paged output. Magazine preview, 打印预览, and 3× PNG remain a different path.
 

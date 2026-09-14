@@ -84,6 +84,7 @@ WeChat paste HTML facts (shipped; see also the 2026-09-14 paste-safe fix):
 - Output is Markdown → inline-CSS HTML for 公众号粘贴, not a magazine page and not a Paged.js document.
 - `renderWechatHtml` and `copyWechatHtml` both run `sanitizeWechatPasteHtml`.
 - Content-structure safe: no `text-justify`; `text-align` only `left` | `right` | `center` or omit; standalone images are a centered `<p>` + `max-width:100%` img; no `<figure>`; no nested `display:block` + `margin:auto`; no fixed widths above the ~677px content column.
+- Markdown `*italic*` / `_italic_` is a colored `<span>` with `text-emphasis:none`. Paste HTML does not emit `<em>`, `font-style:italic`, or Han.css sesame/circle dots.
 - Supported Markdown in the WeChat renderer: H1–H3, paragraphs, bold/italic/inline code, nested lists, quotes, hr, fenced code, GFM tables, images, links.
 
 Optional AI image/cover generation needs `VITE_GEMINI_API_KEY` and/or `VITE_OPENAI_API_KEY` in `.env` (from `.env.example`) or keys pasted in the UI (`localStorage`). Layout, print preview, PNG export, and WeChat paste HTML work without keys.

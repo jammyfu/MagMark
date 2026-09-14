@@ -77,6 +77,7 @@ MagMark 可以把 Markdown 轉成**內聯 CSS HTML**，貼到微信公眾號後�
 - 不輸出 `text-align: justify`，也不輸出 `text-justify`（包括 `inter-ideograph`）
 - `text-align` 只允許 `left`、`right`、`center`，或省略
 - 獨立圖片用置中 `<p>` + `img { max-width: 100% }`；不用 `<figure>`，不用巢狀 `display:block` + `margin:auto`，不用超過公眾號內容欄（約 677px）的固定寬度
+- Markdown `*斜體*` / `_斜體_` 輸出為帶顏色的 `<span>`，不帶 `<em>`、`font-style:italic` 或 `text-emphasis` 著重號
 
 **不要**把公眾號貼上寫成雜誌 Han / Paged 輸出。雜誌預覽、列印預覽、3× PNG 是另一條路。
 

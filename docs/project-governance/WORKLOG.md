@@ -2,6 +2,10 @@
 
 ## 2026-09-14
 
+- Disabled Han.css CJK 着重号 on Markdown `*emphasis*`: `editor.css` + print-preview override `text-emphasis: none` on `em:lang(zh|ja)`, and skip `Han.normalize.renderEm`. Magazine path keeps italic without sesame/circle dots.
+- WeChat paste maps `*...*` / `_..._` to a color `<span>` (`font-style:normal; text-emphasis:none`), not `<em>`. Sanitizer remaps leftover `<em>`/`<i>` and strips `text-emphasis*`.
+- Added WeChat paste unit tests for the user fixture `*视频里的标题画面：The Legend of Trump。*`.
+
 - Tightened the WeChat paste path against the editor dump: line-height ≥ 2× font-size (Range.getClientRects fragments inlines), text-align:left on every text tag, no font-family, no container padding, images/tables marked `data-ignore-width`, GFM tables flattened to paragraphs, no `<br>` inside `<p>`.
 - Converted unitless line-heights to explicit px/em, defaulted body `text-align` to `left`, flattened theme/export gradients, and set image `width:100%` with captions that carry a safe line-height.
 - Extended `tests/wechat-paste-html.test.ts` so every built-in theme is checked with a long text-only article and an image-rich article.

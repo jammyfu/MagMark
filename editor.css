@@ -1568,6 +1568,33 @@ input:checked+.slider:before {
    Han.css 深度集成 — CJK 高精度排版层
    =========================================== */
 
+/*
+ * Han.css v3 defaults `em:lang(zh|ja)` to CJK 着重号
+ * (`text-emphasis: filled circle` + a dotted-border fallback).
+ * MagMark Markdown `*emphasis*` must stay readable italic, not sesame/circle dots.
+ * Loaded after han.min.css. `:lang(zh)` also matches zh-Hans / zh-CN on <html>.
+ * Global (not only .magmark): WeChat preview lives in the same document.
+ */
+em:lang(zh),
+em:lang(ja),
+i:lang(zh),
+i:lang(ja) {
+    -webkit-text-emphasis: none;
+    -moz-text-emphasis: none;
+    text-emphasis: none;
+    -webkit-text-emphasis-style: none;
+    -moz-text-emphasis-style: none;
+    text-emphasis-style: none;
+    font-style: italic;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.no-textemphasis em:lang(zh) h-char:after,
+.no-textemphasis em:lang(ja) h-char:after {
+    content: none !important;
+}
+
 /* 汉字与拉丁/数字之间自动插入 1/4 em 间距 */
 .magmark em.hei,
 .magmark em.song,

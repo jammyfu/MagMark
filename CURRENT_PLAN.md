@@ -2,34 +2,34 @@
 
 ## Goal
 
-Restore real product screenshots, rewrite the public README into four languages (简体 default), and cite the live editor at https://bubufu.com/tools/magmark/ everywhere it belongs. Docs + screenshots only.
+Stop Han.css CJK 着重号 (sesame/circle dots under every glyph) on Markdown `*italic*` / `_italic_`. Magazine preview keeps readable italic. WeChat paste never emits `<em>` / `font-style:italic` / `text-emphasis` marks.
 
 ## Tasks
 
-- [x] Capture real UI PNGs from a running `npm run dev` (Playwright + system Chrome): `magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`.
-- [x] Allow `screenshots/*.png` in `.gitignore` so the PNGs can be committed.
-- [x] Rewrite `README.md` as 简体中文; add `README.zh-Hant.md`, `README.ja.md`, `README.en.md` with a centered language switcher.
-- [x] Put https://bubufu.com/tools/magmark/ in the lead of all four READMEs, `llms.txt`, and `llms-full.txt`.
-- [x] Keep magazine vs WeChat paths distinct; keep MIT; do not invent features or GitHub Pages.
-- [x] Open a ready (non-draft) docs/screenshots PR against main.
+- [x] Confirm Han.css `em:lang(zh|ja)` default (`text-emphasis: filled circle` + dotted-border fallback) and that `index.html` loads it globally (magazine + WeChat preview share the stylesheet).
+- [x] Override Han.css emphasis on `em`/`i` in `editor.css`; skip `Han.normalize.renderEm` in magazine init.
+- [x] Same override in Paged.js print-preview HTML (loads Han.css independently).
+- [x] WeChat `inlineMd`: map `*...*` / `_..._` to color `<span>`, not `<em>`.
+- [x] `sanitizeWechatPasteHtml` strips `text-emphasis*` and remaps leftover `<em>`/`<i>`.
+- [x] Unit tests in `tests/wechat-paste-html.test.ts`.
+- [x] `python3 tools/verify.py` + WeChat paste tests.
+- [x] Ready (non-draft) PR.
 
 ## Out Of Scope
 
-- Rendering, pagination, WeChat sanitizer, or export code changes.
-- Replacing `scripts/capture-screenshot.js` (legacy stub kept; real capture is `scripts/capture-readme-screenshots.mjs`).
-- Setting GitHub About/homepage via API (propose in the PR body; maintainer applies with `gh repo edit --homepage`).
-- Inventing GitHub Pages, metrics, users, or badges.
-- Treating MagMark 2.0 SEO-module planning docs as shipped product.
+- Magazine Han spacing / biaodian / hanging punctuation (only the emphasis-mark routine).
+- Vendoring a Han.css fork.
+- Changing blockquote `font-style: italic` (not `<em>`, not the reported bug).
+- Inventing new Markdown syntax.
 
 ## Verification
 
-- Run `python3 tools/verify.py`
-- Confirm all four README image paths exist under `screenshots/` as PNGs.
-- Confirm H1 stays `MagMark` and the first screen answers what / who / method / what it is not, plus the bubufu URL.
+- `python3 tools/verify.py`
+- `npm run typecheck` and `npm run test`
+- WeChat paste tests: no `<em>`, no `font-style:italic` on emphasis, no `text-emphasis` other than `none`
 
 ## Next Candidates
 
-- Maintainer: `gh repo edit jammyfu/MagMark --homepage https://bubufu.com/tools/magmark/` and keep the bubufu URL in the About description if space allows (≤350 chars).
-- Optional later: GitHub Pages-hosted `/llms.txt` (not required; repo-root `llms.txt` is enough).
+- Maintainer: `gh repo edit jammyfu/MagMark --homepage https://bubufu.com/tools/magmark/`
 - Define release-quality acceptance criteria.
 - Document export-engine boundaries in code comments without changing behavior.

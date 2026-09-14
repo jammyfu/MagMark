@@ -3,6 +3,7 @@
 ## Current Acceptance Gates
 
 - WeChat paste HTML (`renderWechatHtml`) contains no `text-justify` and only `text-align: left|right|center`.
+- WeChat paste Markdown `*emphasis*` / `_emphasis_` is a `<span>` with no `<em>` / `font-style:italic` / `text-emphasis` other than `none`.
 - WeChat paste HTML has no CSS gradients on text backgrounds, and every text-bearing style has line-height ≥ 2× font-size (explicit px or em).
 - WeChat standalone images do not use `<figure>` or fixed widths above the ~677px content column.
 - Image-free and image-rich WeChat paste fixtures stay clean on every built-in theme.

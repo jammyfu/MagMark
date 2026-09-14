@@ -50,7 +50,13 @@ function resolveImageSrc(src: string): string {
  */
 
 // Han.css 全局函数声明（由 <script src="han.min.js"> 注入）
-declare const Han: ((el: Element) => { render(): void }) | undefined;
+interface HanApi {
+    (el: Element): { render(): void };
+    normalize?: {
+        renderEm?: ((context?: unknown, target?: unknown) => void) & { __magmarkDisabled?: boolean };
+    };
+}
+declare const Han: HanApi | undefined;
 
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
 
@@ -86,11 +92,23 @@ let marqueeStart = { x: 0, y: 0 };
 let isDraggingMarquee = false;
 
 /**
+ * Han.css 默认把 CJK `<em>` 渲染成着重号（text-emphasis / h-char:after）。
+ * MagMark 的 Markdown `*...*` 只要斜体强调，不要每个字底下的点。
+ */
+function disableHanEmphasisMarks() {
+    const locale = typeof Han !== 'undefined' ? Han.normalize : undefined;
+    if (!locale || typeof locale.renderEm !== 'function' || locale.renderEm.__magmarkDisabled) return;
+    locale.renderEm = function () { /* MagMark: keep *em* as italic, not 着重号 */ };
+    locale.renderEm.__magmarkDisabled = true;
+}
+
+/**
  * Han.css 初始化 — 对所有 .magmark 内容元素执行汉字排印处理
  * 包括：CJK↔拉丁间距修正、标点宽度压缩、引号配对
  */
 function initHanTypography() {
     if (typeof Han === 'undefined') return;
+    disableHanEmphasisMarks();
     previewArea.querySelectorAll('.magmark').forEach(el => {
         try {
             Han(el).render();
@@ -1307,6 +1325,14 @@ p {
 }
 strong { font-weight: 700; color: ${thPrimary}; }
 em     { font-style: italic; }
+/* Override Han.css CJK 着重号 on Markdown emphasis — keep italic, no sesame/circle dots. */
+em:lang(zh), em:lang(ja), i:lang(zh), i:lang(ja) {
+    -webkit-text-emphasis: none; -moz-text-emphasis: none; text-emphasis: none;
+    -webkit-text-emphasis-style: none; text-emphasis-style: none;
+    font-style: italic; border-bottom: none; padding-bottom: 0;
+}
+.no-textemphasis em:lang(zh) h-char:after,
+.no-textemphasis em:lang(ja) h-char:after { content: none !important; }
 a      { color: ${thPrimary}; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 del    { text-decoration: line-through; opacity: 0.6; }
 
@@ -1407,12 +1433,18 @@ ${combinedHtml}
 <script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
 <script>
 // Paged.js 完成分页后再运行 Han.css，确保所有文本节点均已插入 DOM
+function disableHanEmphasisMarks() {
+    if (typeof Han !== 'function' || !Han.normalize || typeof Han.normalize.renderEm !== 'function') return;
+    Han.normalize.renderEm = function() {};
+}
 if (typeof PagedPolyfill !== 'undefined') {
     PagedPolyfill.preview().then(function() {
+        disableHanEmphasisMarks();
         if (typeof Han === 'function') Han(document.body).render();
     });
 } else {
     window.addEventListener('load', function() {
+        disableHanEmphasisMarks();
         if (typeof Han === 'function') Han(document.body).render();
     });
 }

@@ -77,6 +77,7 @@ MagMark 可以把 Markdown 转成**内联 CSS HTML**，粘到微信公众号后�
 - 不输出 `text-align: justify`，也不输出 `text-justify`（包括 `inter-ideograph`）
 - `text-align` 只允许 `left`、`right`、`center`，或省略
 - 独立图片用居中 `<p>` + `img { max-width: 100% }`；不用 `<figure>`，不用嵌套 `display:block` + `margin:auto`，不用超过公众号内容栏（约 677px）的固定宽度
+- Markdown `*斜体*` / `_斜体_` 输出为带颜色的 `<span>`，不带 `<em>`、`font-style:italic` 或 `text-emphasis` 着重号
 
 **不要**把公众号粘贴写成杂志 Han / Paged 输出。杂志预览、打印预览、3× PNG 是另一条路。
 

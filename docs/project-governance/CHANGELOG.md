@@ -2,6 +2,7 @@
 
 ## 2026-09-14
 
+- Markdown `*italic*` no longer gets Han.css 着重号 dots. Magazine/print override `text-emphasis` on `em`; WeChat paste uses a colored `<span>` and the sanitizer strips leftover `text-emphasis*` / `<em>`.
 - WeChat paste HTML now flattens CSS gradients, forces line-height ≥ 2× font-size (Range-rect safe), writes `text-align: left` on every text tag, strips `font-family`, flattens GFM tables, and marks images `data-ignore-width`.
 - Added image-free and image-rich paste fixtures that must stay clean on every built-in WeChat theme.
 - Added four-language READMEs (简体 default), real editor screenshots under `screenshots/`, and the live editor URL https://bubufu.com/tools/magmark/ in human and machine docs.
