@@ -214,18 +214,11 @@ function convertMarkdownToTypst(markdown: string): string {
  * Note: Requires typst CLI to be installed
  */
 export async function compileTypst(
-  input: string,
-  outputPath: string,
-  options: TypstOptions = {}
+  _input: string,
+  _outputPath: string,
+  _options: TypstOptions = {}
 ): Promise<{ success: boolean; output?: string; error?: string }> {
-  const template = generateTypstTemplate(input, options);
-  
-  // In production, this would call the Typst CLI
-  // For now, return the template as output
-  return {
-    success: true,
-    output: template,
-  };
+  return { success: false, error: 'No compiler backend is configured. Use the template/HTML generator separately or the web editor print preview.' };
 }
 
 /**

@@ -52,6 +52,10 @@ def main() -> int:
     skipped: list[str] = []
     should_run_commands = RUN_CHECKS_BY_DEFAULT or args.deep
 
+    if should_run_commands and not COMMANDS:
+        print("Verification incomplete: no deep commands are configured.")
+        return 1
+
     if VERIFY_MODE == "node":
         if not should_run_commands:
             skipped.append("deep repo checks skipped by default; rerun with --deep")
@@ -96,7 +100,14 @@ def main() -> int:
         print(f"Verification failed with {failures} failing check(s).")
         return 1
 
-    print("Verification passed.")
+    if should_run_commands and skipped:
+        print("Verification incomplete: requested deep checks did not run.")
+        return 1
+
+    if should_run_commands:
+        print("Deep verification passed: all configured commands ran successfully.")
+    else:
+        print("Governance-only verification passed; project checks were not executed.")
     return 0
 
 

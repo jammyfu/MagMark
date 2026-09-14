@@ -1,3 +1,4 @@
+import { sanitizeArticleHtml } from '../security/article-html';
 /**
  * MagMark 1.6.0 - Core Class
  * Main API for magazine-quality markdown conversion
@@ -8,13 +9,10 @@ import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 
 import { createMagazinePipeline } from '../plugins';
-import { generateTypstTemplate } from '../export/typst-converter';
-import { generatePrinceHtml } from '../export/princexml-converter';
-import { generateRenderHtml, getPlatformDimensions } from '../export/image-renderer';
-import { createCarouselZip } from '../export/xiaohongshu-zipper';
-import { combineToLongImage } from '../export/wechat-combiner';
+import { getExportCapabilities, UnsupportedExportError } from './export-capabilities';
+import type { ExportCapabilities } from './export-capabilities';
 import { validateMagazineInput, getDefaultDesignTokens } from '../schemas/input-schema';
-import type { MagazineInput, DesignTokens, Platform } from '../schemas/input-schema';
+import type { DesignTokens, Platform } from '../schemas/input-schema';
 
 export interface MagMarkOptions {
   platform?: Platform;
@@ -97,7 +95,7 @@ export class MagMark {
       .use(rehypeStringify, { allowDangerousHtml: true });
 
     const result = await processor.process(markdown);
-    const html = String(result);
+    const html = sanitizeArticleHtml(String(result));
 
     // Calculate metadata
     const wordCount = markdown.split(/\s+/).filter(Boolean).length;
@@ -115,58 +113,31 @@ export class MagMark {
     };
   }
 
-  /**
-   * Export as PDF using Typst
-   */
-  async exportTypst(outputPath: string): Promise<void> {
-    // Implementation would call Typst CLI
-    console.log(`Exporting to ${outputPath} via Typst...`);
+  /** Capabilities of this SDK instance; browser-editor exports are separate. */
+  getExportCapabilities(): ExportCapabilities {
+    return getExportCapabilities();
   }
 
-  /**
-   * Export as PDF using PrinceXML
-   */
-  async exportPrince(outputPath: string): Promise<void> {
-    // Implementation would call Prince CLI
-    console.log(`Exporting to ${outputPath} via PrinceXML...`);
+  /** Reject until a real compiler and file writer are wired to this SDK. */
+  async exportTypst(_outputPath: string): Promise<void> {
+    throw new UnsupportedExportError('typst');
   }
 
-  /**
-   * Export as images for carousel
-   */
-  async exportImages(markdown: string): Promise<Buffer[]> {
-    const { html } = await this.render(markdown);
-    const renderHtml = generateRenderHtml(html, {
-      platform: this.options.platform,
-    });
-
-    // In production, use Playwright to capture screenshots
-    console.log(`Rendering ${this.options.platform} images...`);
-    return [];
+  async exportPrince(_outputPath: string): Promise<void> {
+    throw new UnsupportedExportError('prince');
   }
 
-  /**
-   * Export as Xiaohongshu carousel ZIP
-   */
-  async exportXiaohongshu(outputPath: string, markdown: string): Promise<void> {
-    const images = await this.exportImages(markdown);
-    const zip = await createCarouselZip(images, {
-      resolution: this.options.resolution,
-    });
-
-    // Write ZIP to file
-    console.log(`Writing carousel to ${outputPath}...`);
+  async exportImages(_markdown: string): Promise<Buffer[]> {
+    throw new UnsupportedExportError('images');
   }
 
-  /**
-   * Export as WeChat long image
-   */
-  async exportWeChat(outputPath: string, markdown: string): Promise<void> {
-    const images = await this.exportImages(markdown);
-    const combined = await combineToLongImage(images);
+  async exportXiaohongshu(_outputPath: string, _markdown: string): Promise<void> {
+    throw new UnsupportedExportError('xiaohongshu');
+  }
 
-    // Write image to file
-    console.log(`Writing WeChat image to ${outputPath}...`);
+  /** This is the long-image API, not the browser's WeChat HTML clipboard path. */
+  async exportWeChat(_outputPath: string, _markdown: string): Promise<void> {
+    throw new UnsupportedExportError('wechatLongImage');
   }
 
   /**

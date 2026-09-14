@@ -1,38 +1,23 @@
 # CHANGELOG.md
 
-## 2026-09-14
+## 2026-09-15 — Continuation (feature branch; not released)
 
-- Long-article Markdown and HTML images now have direct drag-resize handles that persist to source. Missing-image menus expose batch directory mapping, and the header labels this action explicitly.
+- Add shared HTML trust processing for current magazine, SDK, WeChat, clipboard and cover paths; keep source inspection inert and preserve anchors/table references.
+- Refine image/cover tools to quiet native dialogs with keyboard containment and return focus. Collapse infrequent ratio/AI settings and remove nonfunctional crop controls.
+- Preserve the selected image through ratio preference changes; restore placeholder insertion after clearing an image.
+- Prevent old queued previews from reappearing after source changes/clearing; guard output while layout is pending. Zoom retains article nodes and edit identity.
+- Extend trust, image-state and production workspace regressions. Local results and remaining remote/OS-IME/WeChat/slow-resource gates are recorded separately.
 
-- Fixed long-article block selection and style retention, added editable missing-image placeholders, and fixed Markdown image paths containing parentheses or spaces. Single-file imports now explain when an image directory must be associated.
+## 2026-09-15 — quiet workspace, branch only
 
-- Added article-folder import and accurate relative image mapping, plus in-place right-click image actions. Fixed figure editing inserting duplicate images and enabled figure controls in long-article mode.
+- Add a neutral light workspace with write/compare/preview, mobile single-pane presentation, an optional typography inspector, a file disclosure and one export dialog.
+- Connect the actual web editor to CodeMirror. Preserve Markdown, source selection, repeated-image targeting and undo. Guard external replacements during composition.
+- Block blank and known oversized-page PNG exports; remove stale dialog feedback and false reset/download-success implications.
+- Repair baseline strict errors, check the real app entry, and make the default production build output the website rather than only a library.
+- Replace lower-level fake export results with explicit unavailable errors.
+- Add focused unit tests and production-asset Chromium workspace tests. Fresh remote installation, typecheck, build, deep checks and browser suites passed in integration run 34877645243 before commit e226271.
+- Remove temporary diagnostic/integration helpers. Ordinary CI remains read-only. Not deployed or merged; the broader publishing migration remains unfinished.
 
-- Restored proper WeChat table columns, headers and cell borders instead of flattened labeled paragraphs. Fixed mobile subheadings inheriting desktop keep-all/nowrap wrapping rules.
+## Previous changes
 
-- Fixed WeChat article text touching the background edges: copied magazine layouts now include 24px top/bottom and 20px left/right paper insets, preserved after saving. Images remain proportional without overflow; general Word spacing is unchanged.
-
-- Added current-layout "复制到公众号" alongside general rich-text copy, including visible error/local-image status and local image-directory association.
-- Fixed underscore-containing image URLs being rewritten as Markdown emphasis, lost clipboard colors, and redundant legacy clipboard writes.
-- Added save-stable native WeChat text runs, portable styles, paper background preservation and proportional images. Verified an actual 13-image draft by native paste, save and reload without publishing.
-
-- Markdown `*italic*` no longer gets Han.css 着重号 dots. Magazine/print override `text-emphasis` on `em`; WeChat paste uses a colored `<span>` and the sanitizer strips leftover `text-emphasis*` / `<em>`.
-- WeChat paste HTML now flattens CSS gradients, forces line-height ≥ 2× font-size (Range-rect safe), writes `text-align: left` on every text tag, strips `font-family`, flattens GFM tables, and marks images `data-ignore-width`.
-- Added image-free and image-rich paste fixtures that must stay clean on every built-in WeChat theme.
-- Added four-language READMEs (简体 default), real editor screenshots under `screenshots/`, and the live editor URL https://bubufu.com/tools/magmark/ in human and machine docs.
-- Landed GEO public-entity docs from `cursor/geo-public-entity-31c9` (PR #1) onto main after the WeChat paste HTML fix, and deepened README / `llms.txt` / `llms-full.txt` so magazine PDF/PNG and WeChat Official Account paste HTML are cited as separate shipped paths.
-- WeChat paste HTML no longer emits `text-justify` or non-standard `text-align` values.
-- WeChat images/captions use a simple centered `<p>` + `max-width:100%` pattern instead of `<figure>` with nested auto margins.
-- Added a WeChat-only sanitizer and unit tests that reject oversized fixed widths and unsafe alignment.
-
-## 2026-09-01
-
-- README lead is now the MagMark product entity; internal project-entry chrome is demoted to the footer.
-- Added `llms.txt` and `llms-full.txt` for generative-engine citation.
-- Documented author identity: Fu Jam / jammyfu / PaintingCoder.
-
-## 2026-04-18
-
-- Added standardized governance files and continuous loop entrypoints.
-- Added a repo-level `tools/verify.py` and `tools/next_plan.py`.
-- Normalized the README entry section for agent and human navigation.
+The complete previous changelog is preserved unchanged in [2026-09-14-CHANGELOG.md](archive/2026-09-14-CHANGELOG.md).

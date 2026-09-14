@@ -1,3 +1,5 @@
+import { createPanelDialog } from '../workspace/panel-dialog';
+import { sanitizeArticleHtml } from '../security/article-html';
 /**
  * CoverPanel — 封面生成面板 v2.0
  *
@@ -170,7 +172,8 @@ ${prompt}
 // ─── Panel Class ──────────────────────────────────────────────────────────────
 
 export class CoverPanel {
-    private overlay!: HTMLElement;
+    private overlay!: HTMLDialogElement;
+    private dialog = createPanelDialog('mm-cp-dialog-title');
     private onInsert: OnInsert;
     private selectedTemplate = 0;
     private currentTitle = '';
@@ -184,15 +187,17 @@ export class CoverPanel {
         this.injectStyles();
     }
 
+    destroy() { this.dialog.destroy(); }
+
     // ─── DOM Construction ────────────────────────────────────────────────────
 
     private buildDom() {
-        this.overlay = document.createElement('div');
-        this.overlay.className = 'mm-cp-overlay';
+        this.overlay = this.dialog.element;
+        this.overlay.classList.add('mm-cp-overlay');
         this.overlay.innerHTML = `
 <div class="mm-cp-panel">
   <div class="mm-cp-header">
-    <span class="mm-cp-title">
+    <span class="mm-cp-title" id="mm-cp-dialog-title">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style="vertical-align:-2px;margin-right:6px">
         <rect x="1" y="1" width="13" height="13" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
         <line x1="1" y1="5.5" x2="14" y2="5.5" stroke="currentColor" stroke-width="1"/>
@@ -201,7 +206,7 @@ export class CoverPanel {
       </svg>
       封面生成
     </span>
-    <button class="mm-cp-close">✕</button>
+    <button type="button" class="mm-cp-close" aria-label="关闭封面面板">✕</button>
   </div>
 
   <div class="mm-cp-body">
@@ -214,7 +219,7 @@ export class CoverPanel {
       <div class="mm-cp-section-label" style="margin-top:16px">选择模板</div>
       <div class="mm-cp-template-grid" id="mm-cp-template-grid"></div>
 
-      <div class="mm-cp-section-label" style="margin-top:16px">AI 生成封面</div>
+      <details class="mm-cp-ai-options"><summary>AI 生成（可选）</summary>
       <div class="mm-cp-ai-row">
         <input class="mm-cp-input" id="mm-cp-apikey" placeholder="Gemini API Key" type="password" autocomplete="off">
       </div>
@@ -228,6 +233,7 @@ export class CoverPanel {
         AI 生成
       </button>
       <div class="mm-cp-ai-status" id="mm-cp-ai-status"></div>
+      </details>
     </div>
 
     <!-- Right: preview + ratio selector -->
@@ -724,7 +730,7 @@ export class CoverPanel {
 
     private injectTextIntoHtml(html: string): string {
         const tmp = document.createElement('div');
-        tmp.innerHTML = html;
+        tmp.innerHTML = sanitizeArticleHtml(html, 'cover');
         const titleEl = tmp.querySelector('.mm-cover-title');
         const subtitleEl = tmp.querySelector('.mm-cover-subtitle');
         const dateEl = tmp.querySelector('.mm-cover-date');
@@ -843,13 +849,13 @@ export class CoverPanel {
         const subtitleInput = this.overlay.querySelector('#mm-cp-subtitle-input') as HTMLInputElement;
         titleInput.value = title;
         subtitleInput.value = subtitle;
-        this.overlay.style.display = 'flex';
+        this.dialog.open();
         // 初始比例（4:5）
         this.selectAspectRatio(this.currentRatioIdx);
         this.fullRebuildPreview(COVER_TEMPLATES[this.selectedTemplate].html);
     }
 
     close() {
-        this.overlay.style.display = 'none';
+        this.dialog.close();
     }
 }

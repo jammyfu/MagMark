@@ -1,3 +1,4 @@
+import { sanitizeArticleHtml } from '../security/article-html';
 /**
  * MagMark — WeChat Official Account paste sanitizer
  *
@@ -654,7 +655,7 @@ export function collectUnsafeLineHeights(html: string): UnsafeLineHeightHit[] {
  * Strip / rewrite WeChat-forbidden styles in generated paste HTML.
  */
 export function sanitizeWechatPasteHtml(html: string): string {
-    let out = html;
+    let out = sanitizeArticleHtml(html);
     out = rewriteFigures(out);
     out = rewriteEmphasisTags(out);
     out = rewriteStyleAttrs(out);

@@ -6,6 +6,8 @@
 // Core exports
 export { MagMark } from './core/magmark';
 export type { MagMarkOptions, RenderResult } from './core/magmark';
+export { getExportCapabilities, UnsupportedExportError } from './core/export-capabilities';
+export type { ExportOperation, ExportCapability, ExportCapabilities } from './core/export-capabilities';
 
 // Plugin exports
 export {

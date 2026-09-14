@@ -25,7 +25,7 @@ export interface SitemapOptions {
   maxURLsPerFile?: number;       // Split into multiple sitemaps if needed
 }
 
-const defaultOptions: SitemapOptions = {
+const defaultOptions: Required<SitemapOptions> = {
   baseUrl: 'https://example.com',
   excludePaths: [],
   includeImages: false,
@@ -39,7 +39,13 @@ export function generateSitemap(
   entries: SitemapEntry[],
   options: Partial<SitemapOptions> = {}
 ): { xml: string; index?: string; files: string[] } {
-  const opts = { ...defaultOptions, ...options };
+  const opts: Required<SitemapOptions> = {
+    baseUrl: options.baseUrl ?? defaultOptions.baseUrl,
+    excludePaths: options.excludePaths ?? defaultOptions.excludePaths,
+    includeImages: options.includeImages ?? defaultOptions.includeImages,
+    maxURLsPerFile: options.maxURLsPerFile ?? defaultOptions.maxURLsPerFile,
+  };
+  if (!Number.isInteger(opts.maxURLsPerFile) || opts.maxURLsPerFile < 1) throw new RangeError('maxURLsPerFile must be a positive integer.');
   
   // Filter excluded paths
   const filteredEntries = entries.filter(entry => 
@@ -53,9 +59,8 @@ export function generateSitemap(
   if (filteredEntries.length > opts.maxURLsPerFile) {
     const chunks = chunkArray(filteredEntries, opts.maxURLsPerFile);
     
-    chunks.forEach((chunk, idx) => {
+    chunks.forEach((_chunk, idx) => {
       const fileName = `sitemap-${idx + 1}.xml`;
-      const xml = generateSingleSitemap(chunk, opts);
       
       files.push(fileName);
       index = generateSitemapIndex(files, opts.baseUrl);

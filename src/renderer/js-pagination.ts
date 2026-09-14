@@ -79,7 +79,7 @@ export function calculatePageHeights(
   options: PaginationOptions
 ): PageLayout[] {
   const opts = { ...defaultOptions, ...options };
-  const { availableHeight, minContentHeight, widowOrphanLines, lineHeight } = opts;
+  const { availableHeight, minContentHeight, lineHeight } = opts;
   
   const pages: PageLayout[] = [];
   let currentPage: PaginationElement[] = [];
@@ -225,7 +225,7 @@ export function calculatePageHeights(
 function splitTextElement(
   element: PaginationElement,
   firstPageSpace: number,
-  availableHeight: number,
+  _availableHeight: number,
   lineHeight: number
 ): { before?: PaginationElement; after?: PaginationElement } {
   // Calculate lines that fit on first page

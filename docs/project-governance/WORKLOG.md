@@ -1,61 +1,30 @@
 # WORKLOG.md
 
-## 2026-09-14
+## 2026-09-15 — Continuation after quiet workspace
 
-- Added long-view universal image resize handles; browser verified Markdown width 40% to 56%, raw HTML 200px to 49%, and resizing at 50% preview zoom. Fixed legacy action-strip empty space intercepting small-image clicks.
-- Missing-image click now opens a menu with batch directory association instead of forcing individual replacement. Browser file-chooser check passed. All 43 unit tests and targeted strict TypeScript checks passed.
+- Resumed remote 6815b10 and read-only snapshot e0b0a5c, not earlier unpushed claims. Confirmed prior ordinary CI 34878022617 succeeded. Only the approved feature branch is used.
+- Reproduced four failures in six initial trust cases: WeChat/SDK executable markup and image references falsely found inside comments, script strings and quoted attributes. Added shared rehype-raw/rehype-sanitize processing before live DOM, passive URL/CSS policy, idempotent anchor/IDREF namespacing, and exact inert source ranges.
+- Reproduced image ratio replacing a real asset and clearing an image preventing placeholder insertion; both now pass targeted regression. Removed crop controls that only toggled CSS classes and never performed cropping.
+- Added quiet native auxiliary dialogs with real Chromium focus wrap/return, Escape and composing-Enter checks; guarded unavailable preference storage and set saved field values as DOM properties, not HTML interpolation. These checks do not certify a real OS input method.
+- Reproduced stale content after clearing during queued pagination and article DOM replacement on zoom. Revision checks and synchronous empty-source invalidation prevent stale commits; pending output actions are guarded. Zoom is transform-only.
+- Local final scopes: 104 Vitest in 17 files, 59 standalone text, 6 isolated SDK guards, 7 verification gate tests, 17 controlled pagination and 21 production-asset/offline Chromium cases passed. Strict typecheck, web build and deep verification passed. Browser: 144.0.7559.96.
+- Added an optional localhost HTTP navigation mode for CI. Local browser navigation returned ERR_BLOCKED_BY_ADMINISTRATOR; the policy was not modified or retried through an alternate host. HTTP navigation is unverified locally, pending the ordinary GitHub runner. External CDN resources remain blocked in fixtures to exercise graceful offline behavior.
+- Locked two direct HTML trust packages, adding only their required closure; existing package versions/integrities remain unchanged. Bundle-size warning and pre-existing dependency advisories remain open.
+- Remote integration and final CI evidence will be recorded after execution. No merge, deployment, WeChat login/image upload or publication.
 
-- Fixed long-article selection: renderScroll previously omitted block IDs and click listeners. Long-view blocks now use their own IDs and restore saved block style overrides.
-- Added explicit missing-image art with preserved source identity, click-to-replace, right-click editing, double-click editing and keyboard Enter support. Kept placeholder SVGs out of WeChat image exports; valid loaded images retain their sizing.
-- Fixed Markdown image parsing for parenthesized/space-containing destinations and made edited Markdown paths safe to parse again. Added unique suffix mapping for separately selected image subfolders and file URLs, while still rejecting ambiguous matches.
-- Long-view browser verification: three valid Markdown image variants load; one missing image opens the editor and is replaced without duplication; paragraph selection and a 22px override work. 41 unit tests and changed-module strict typecheck pass. No changes to the user's live WeChat draft.
+## 2026-09-15 — quiet workspace implementation and remote verification
 
-- Added right-click image editing, replacement, alignment, width presets, source selection and deletion. Markdown AST source ranges prevent edits to code examples or the wrong occurrence of repeated images; stale/ambiguous source mappings are rejected.
-- Existing figure Edit now applies changes at the original source instead of inserting another image. HTML images retain surrounding links, local source paths and unrelated attributes; editing preserves alt text. Added figure controls to long-article mode.
-- Added article-folder import with explicit article selection when multiple Markdown files exist. Resolve images relative to the selected article before considering unique suffix matches; support parent paths and URL-encoded filenames.
-- Browser regression: actual 13-image article changed from 50% to 70% width without duplication or loss of local paths. Multi-article folder selected the correct same-named image; repeated-image action changed only the selected occurrence. Bulk WeChat upload remains unimplemented pending the extension installation decision.
+Resumed verified remote afb7dca from its checksummed source/dependency artifact. Previously described unpushed changes were absent and were not counted as recovered. Implemented the real-entry CodeMirror bridge, optional inspector, three workspace views, file disclosure and native export dialog with independent light styling. Source and repeated-image targeting/undo passed actual Chromium interactions. Fixed baseline strict errors and included root entries in typecheck; default production build now emits the website. Lower-level placeholder exports no longer pretend to create files.
 
-- Restored semantic table/thead/tbody/th/td export on both magazine and WeChat-theme paths. Tables use fixed percentage layout, bounded cell padding, border-box sizing and native leaf text runs instead of repeating column labels in paragraphs.
-- Removed inherited keep-all/nowrap/anywhere heading combinations from magazine copying; WeChat headings and their copied descendants now use normal wrapping, break-word fallback and strict CJK line breaking.
-- Preserved the user's latest draft edits while restoring its two table grids. A screenshot resized in WeChat retained fixed height; restored proportional height without changing its desktop width. During paste verification detected duplicated content and replaced it with the backed-up single complete article before final verification.
-- At the user's subsequent request increased every explicit article font size by 2px and maintained line-height ratios. Native save/reload confirmed exact text equality, 13 images, two tables, 16px body and normal heading breaks. 32 tests and targeted strict TypeScript check pass. No publication or public deployment.
+Local evidence: 88 Vitest, 59 text, 6 SDK guards, 7 gate checks, 17 pagination DOM cases and 14 production-asset workspace interactions passed in separate scopes. Strict typecheck, web build and deep verification passed. Network navigation, OS IME, other browser engines and live WeChat round trips remain unverified.
 
-- Fixed the magazine-to-WeChat export forcing outer padding to zero. Set mobile-safe paper insets to 24px vertically and 20px horizontally with border-box sizing; kept Word export spacing unchanged. Regression test first failed with 0px, then all 31 tests passed.
-- Native paste at 375px and full-article layout at 320/375/677px have no horizontal/image overflow; platform structure checks pass at all widths. With explicit user approval, restored the now-empty draft and saved/reloaded it: 4200 non-whitespace characters, 13 hosted images, cream background and padding:24px 20px retained. Changed-module strict typecheck passes; no publication or deployment.
+- `7958a2283e4e32dfda85462ea4a21f9f6d13550e`: actual UI, controller, CodeMirror adapter, tests and configuration pushed through the GitHub connector.
+- Run `34877645243`, job `104088701081`: hash-checked 13 baseline repairs against tested source, resolved pinned CodeMirror dependencies while retaining all existing locked versions/integrities, performed fresh npm ci, strict typecheck, unit/text/SDK/gate checks, web build, deep verification, Chromium pagination and production-asset workspace checks. Every step passed.
+- `e2262712d00b3260127b2f9b28ece9356c588616`: verified repaired source and lockfile pushed only after those checks. No main writes, force-push, merge or deployment.
+- Remove one-time integration/diagnostic workflows and helpers after successful integration. Ordinary CI retains read-only permission and now tests the production workspace too. Its subsequent run must be checked separately.
 
-- Reproduced the reported Garden long-article copy failure using the actual Markdown and native Chrome UI. Existing image paths contained emphasis-generated HTML and pointed at localhost; 13 images failed insertion.
-- Added current-magazine WeChat copying, computed-style allowlisting, local image-directory association and explicit clipboard/image status. Protected raw HTML attributes and generated inline elements from Markdown emphasis replacement.
-- Replaced direct paragraph text with native span[leaf] text runs. The live platform checker counts overlapping inline Range rects, so increasing line-height alone did not solve mixed bold/link/code paragraphs.
-- Uploaded 13 images through the native WeChat picker, pasted the corrected article, saved the draft and reloaded it. Verified exact equality of 4200 non-whitespace characters, 13 hosted images, no Han custom tags, green typography, cream background and percentage image widths. No publication performed; Chrome JavaScript automation setting remained disabled.
-- Verification: 30 unit tests pass; changed-module strict TypeScript checks pass; tools/verify.py and git diff --check pass. Full-project typecheck still reports unrelated existing errors. Live platform verifyArticleStructure returned isValid:true for the final article. Private draft artifacts stay outside tracked source files.
+Current details: [QUIET_WORKSPACE.md](QUIET_WORKSPACE.md) and [remote evidence](REMOTE_WORKSPACE_VERIFICATION.md).
 
-- Disabled Han.css CJK 着重号 on Markdown `*emphasis*`: `editor.css` + print-preview override `text-emphasis: none` on `em:lang(zh|ja)`, and skip `Han.normalize.renderEm`. Magazine path keeps italic without sesame/circle dots.
-- WeChat paste maps `*...*` / `_..._` to a color `<span>` (`font-style:normal; text-emphasis:none`), not `<em>`. Sanitizer remaps leftover `<em>`/`<i>` and strips `text-emphasis*`.
-- Added WeChat paste unit tests for the user fixture `*视频里的标题画面：The Legend of Trump。*`.
+## Prior execution history
 
-- Tightened the WeChat paste path against the editor dump: line-height ≥ 2× font-size (Range.getClientRects fragments inlines), text-align:left on every text tag, no font-family, no container padding, images/tables marked `data-ignore-width`, GFM tables flattened to paragraphs, no `<br>` inside `<p>`.
-- Converted unitless line-heights to explicit px/em, defaulted body `text-align` to `left`, flattened theme/export gradients, and set image `width:100%` with captions that carry a safe line-height.
-- Extended `tests/wechat-paste-html.test.ts` so every built-in theme is checked with a long text-only article and an image-rich article.
-- Captured real editor screenshots from `npm run dev` (Playwright) and committed `screenshots/magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`. Added `!screenshots/*.png` so the global `*.png` gitignore no longer drops them.
-- Split the public README into four languages (`README.md` 简体 default, `README.zh-Hant.md`, `README.ja.md`, `README.en.md`) with a centered language switcher.
-- Cited the live editor https://bubufu.com/tools/magmark/ in all four READMEs, `llms.txt`, and `llms-full.txt`. Kept magazine vs WeChat path honesty and MIT.
-- Rebased GEO public-entity docs from `origin/cursor/geo-public-entity-31c9` onto current main (WeChat paste HTML fix #2, tip `92b9922`).
-- Deepened README / `llms.txt` / `llms-full.txt` with the shipped WeChat Official Account inline-CSS HTML path (复制富文本; no `text-justify`; no oversized widths) and explicit non-claims (no GitHub Pages, no MagMark 2.0 SEO module as product).
-- Kept both governance histories: WeChat paste-fix entries below plus the 2026-09-01 GEO notes.
-- Fixed WeChat Official Account paste HTML so 内容结构检测 stops flagging long articles.
-- Removed `text-align:justify` / `text-justify` from WeChat themes (editor #2.6 / spec #1.6).
-- Replaced `<figure>` + `margin:auto` image blocks with a single `text-align:center` paragraph + `max-width:100%` img (spec #1.4).
-- Added `sanitizeWechatPasteHtml` on `renderWechatHtml` / `copyWechatHtml` and unit tests in `tests/wechat-paste-html.test.ts`.
-- Magazine Han/Paged preview path was left unchanged.
-
-## 2026-09-01
-
-- GEO pass for the public MagMark entity: README now opens with H1 `MagMark`, bilingual product lead, FAQ, and comparison vs Typora / VuePress / Vivliostyle.
-- Demoted `personal-project-standard-entry` to the README footer; governance files kept.
-- Added root `llms.txt` and `llms-full.txt`. MIT LICENSE untouched. Docs/metadata only.
-
-## 2026-04-18
-
-- Bootstrapped the repository into the `continuous-project-loop` structure.
-- Added durable planning files, governance logs, and a repo-level verification entry.
-- Standardized the README entry section and automation guidance for `MagMark`.
+The complete earlier worklog is preserved unchanged, using its original Git blob, in [2026-09-14-WORKLOG.md](archive/2026-09-14-WORKLOG.md). Historical test scopes and earlier platform checks are not reclassified as tests of this UI iteration.
