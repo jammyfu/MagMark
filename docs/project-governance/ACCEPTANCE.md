@@ -3,7 +3,7 @@
 ## Current Acceptance Gates
 
 - WeChat paste HTML (`renderWechatHtml`) contains no `text-justify` and only `text-align: left|right|center`.
-- WeChat paste HTML has no CSS gradients on text backgrounds, and every text-bearing style has line-height ≥ font-size (explicit px or em ≥ 1).
+- WeChat paste HTML has no CSS gradients on text backgrounds, and every text-bearing style has line-height ≥ 2× font-size (explicit px or em).
 - WeChat standalone images do not use `<figure>` or fixed widths above the ~677px content column.
 - Image-free and image-rich WeChat paste fixtures stay clean on every built-in theme.
 - Public README H1 is `MagMark`; first screen answers what / who / method / what it is not, plus print-quality PDF and WeChat Official Account HTML as separate paths, plus https://bubufu.com/tools/magmark/.

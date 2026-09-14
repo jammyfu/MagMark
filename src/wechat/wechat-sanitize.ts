@@ -19,20 +19,34 @@
 /** WeChat editor content column is ~677px on desktop. */
 export const WECHAT_CONTENT_MAX_WIDTH_PX = 677;
 
-/** Prefer this ratio when a text node has no usable line-height. */
-export const WECHAT_MIN_LINE_HEIGHT_RATIO = 1.6;
+/**
+ * Layout detector (#2.3.2) uses Range.getClientRects(). Nested inlines
+ * (strong/em/a/code) split one visual line into several rects, so
+ * avg = contentHeight / rectCount can fall below 0.95×font-size on
+ * 2-line paragraphs unless line-height is ≥ ~2× font-size.
+ */
+export const WECHAT_MIN_LINE_HEIGHT_RATIO = 2;
 
 const SAFE_TEXT_ALIGN = new Set(['left', 'right', 'center']);
 
-/** Block / cell tags that carry wrapping text and must have a safe line-height. */
+/** Block / cell tags that wrap text and must carry font-size + line-height. */
 const TEXT_BLOCK_TAGS = new Set([
     'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     'li', 'td', 'th', 'blockquote', 'pre', 'figcaption',
+    'section', 'div', 'ul', 'ol',
 ]);
+
+/** WeChat serializes omitted align as `start` — set left on these too. */
+const ALIGN_TAGS = new Set([
+    ...TEXT_BLOCK_TAGS,
+    'a', 'strong', 'em', 'b', 'i', 'span', 'code', 'thead', 'tbody', 'tr',
+]);
+
+const VOID_OR_MEDIA = new Set(['img', 'hr', 'br', 'input', 'col', 'colgroup', 'source']);
 
 const FIXED_WIDTH_RE = /^(-?[\d.]+)(px|pt|cm|mm|in|pc|q)$/i;
 
-const GRADIENT_FN_RE = /(?:repeating-)?(?:linear|radial|conic)-gradient\(/i;
+const GRADIENT_FN_RE = /(?:-webkit-)?(?:repeating-)?(?:linear|radial|conic)-gradient\(|-webkit-gradient\(/i;
 
 const NAMED_TRANSPARENT = /^(transparent|currentcolor)$/i;
 
@@ -149,7 +163,7 @@ export function firstSolidColorFromCssValue(value: string): string | null {
 /** Replace every CSS gradient function with a solid color (or drop the token). */
 export function flattenCssGradients(value: string): string {
     let out = value;
-    const marker = /(?:repeating-)?(?:linear|radial|conic)-gradient\s*\(/ig;
+    const marker = /(?:-webkit-)?(?:repeating-)?(?:linear|radial|conic)-gradient\s*\(|-webkit-gradient\s*\(/ig;
     let m: RegExpExecArray | null;
     const replacements: Array<{ start: number; end: number; next: string }> = [];
     while ((m = marker.exec(out))) {
@@ -246,7 +260,7 @@ export function safeLineHeightDeclaration(
         const px = parsed.px;
         const usable = (px != null && px >= fontPx) || (ratio != null && ratio >= 1);
         const useRatio = usable && ratio != null && ratio >= 1
-            ? ratio
+            ? Math.max(ratio, WECHAT_MIN_LINE_HEIGHT_RATIO)
             : WECHAT_MIN_LINE_HEIGHT_RATIO;
         const nextPx = Math.max(fontPx, Math.round(fontPx * useRatio * 100) / 100);
         return `${nextPx}px`;
@@ -299,7 +313,7 @@ export function rewriteWechatStyle(
         const value = stripImportant(decl.slice(colon + 1).trim()).replace(/"/g, "'");
         if (!prop || !value) continue;
 
-        if (prop === 'text-justify' || prop === 'text-align-last') {
+        if (prop === 'font-family' || prop === 'text-justify' || prop === 'text-align-last') {
             map.delete(prop);
             continue;
         }
@@ -336,7 +350,7 @@ export function rewriteWechatStyle(
             continue;
         }
 
-        if (isImg && prop === 'display' && /^block$/i.test(value)) {
+        if (prop === 'display' && /^block$/i.test(value)) {
             map.delete('display');
             continue;
         }
@@ -377,15 +391,20 @@ export function rewriteWechatStyle(
     if (isImg && !map.has('max-width')) map.set('max-width', '100%');
     if (isImg && !map.has('width')) map.set('width', '100%');
 
+    if (isTextBlock && !map.has('font-size') && !isImg) {
+        map.set('font-size', '16px');
+    }
+
+    const needsLineHeight = isTextBlock || ALIGN_TAGS.has(tag);
     const safeLh = safeLineHeightDeclaration(map.get('font-size'), map.get('line-height'), {
-        textBlock: isTextBlock,
+        textBlock: needsLineHeight,
     });
     if (safeLh) map.set('line-height', safeLh);
-    else if (isTextBlock && !map.has('line-height')) {
+    else if (needsLineHeight && !map.has('line-height') && !isImg) {
         map.set('line-height', `${WECHAT_MIN_LINE_HEIGHT_RATIO}em`);
     }
 
-    if (isTextBlock && !map.has('text-align')) {
+    if (ALIGN_TAGS.has(tag) && !map.has('text-align')) {
         map.set('text-align', 'left');
     }
 
@@ -404,8 +423,11 @@ function rewriteStyleAttrs(html: string): string {
             const align = raw.toLowerCase();
             return SAFE_TEXT_ALIGN.has(align) ? ` align="${align}"` : '';
         });
-        if (TEXT_BLOCK_TAGS.has(tagName) && !/\sstyle\s*=/i.test(nextAttrs)) {
+        if ((TEXT_BLOCK_TAGS.has(tagName) || ALIGN_TAGS.has(tagName)) && !/\sstyle\s*=/i.test(nextAttrs) && !VOID_OR_MEDIA.has(tagName)) {
             nextAttrs += ` style="${rewriteWechatStyle('', { tag: tagName })}"`;
+        }
+        if ((tagName === 'img' || tagName === 'table') && !/data-ignore-width/i.test(nextAttrs)) {
+            nextAttrs += ' data-ignore-width=""';
         }
         return `<${tag}${nextAttrs}>`;
     });
@@ -434,9 +456,9 @@ function rewriteFigures(html: string): string {
         );
         const caption = captionMatch ? captionMatch[1].trim() : '';
         if (!img) return String(inner).trim();
-        let out = `<p style="text-align:center;margin:20px 0;">${img}</p>`;
+        let out = `<p data-ignore-width="" style="text-align:center;margin:20px 0;">${img}</p>`;
         if (caption) {
-            out += `<p style="text-align:center;font-size:13px;line-height:21px;color:#888;margin:8px 0 0;">${caption}</p>`;
+            out += `<p style="text-align:center;font-size:13px;line-height:26px;color:#888;margin:8px 0 0;">${caption}</p>`;
         }
         return out;
     });

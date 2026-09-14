@@ -38,9 +38,9 @@ export interface WechatTheme {
 }
 
 // WeChat #2.6 / spec #1.6: only text-align left|right|center. Omit becomes start after paste.
-const BASE_P = 'font-size: 16px; line-height: 1.85; margin: 20px 0; letter-spacing: 0.02em; text-align: left;';
-const BASE_CODE = "padding: 3px 6px; border-radius: 4px; font-family: 'Fira Code', 'Courier New', monospace; font-size: 14px;";
-const BASE_PRE = "padding: 16px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-family: 'Fira Code', 'Courier New', monospace; font-size: 14px; line-height: 1.6;";
+const BASE_P = 'font-size: 16px; line-height: 2; margin: 20px 0; letter-spacing: 0.02em; text-align: left;';
+const BASE_CODE = 'padding: 3px 6px; border-radius: 4px;';
+const BASE_PRE = 'padding: 16px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 14px; line-height: 2;';
 // WeChat #1.4: width/max-width 100% only — no display:block + margin:auto (nested centering).
 const BASE_IMG = 'max-width: 100%; width: 100%; height: auto; border-radius: 8px;';
 const BASE_TABLE = 'max-width: 100%; width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px;';
@@ -53,7 +53,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Minimalist',
     accent: '#333333',
     styles: {
-      container: 'background-color: #ffffff; color: #3e3e3e; padding: 20px;',
+      container: 'background-color: #ffffff; color: #3e3e3e;',
       h1: 'font-size: 24px; font-weight: bold; margin: 30px 0 20px; text-align: center; color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; line-height: 1.4;',
       h2: 'font-size: 20px; font-weight: bold; margin: 25px 0 15px; color: #333; border-left: 4px solid #333; padding-left: 10px; line-height: 1.4;',
       h3: 'font-size: 18px; font-weight: bold; margin: 20px 0 10px; color: #555; line-height: 1.4;',
@@ -81,9 +81,9 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Elegant Teal',
     accent: '#00a7a7',
     styles: {
-      container: 'background-color: #ffffff; color: #444444; padding: 20px;',
+      container: 'background-color: #ffffff; color: #444444;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #00a7a7; letter-spacing: 2px; line-height: 1.4;',
-      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #00a7a7; padding: 8px 15px; border-radius: 4px; display: block; line-height: 1.4;',
+      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #00a7a7; padding: 8px 15px; border-radius: 4px; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #00a7a7; border-bottom: 1px dashed #00a7a7; padding-bottom: 5px; line-height: 1.4;',
       p: BASE_P + ' color: #444;',
       blockquote: 'margin: 25px 0; padding: 20px; background: #f0fafa; border-radius: 8px; border-left: 6px solid #00a7a7; color: #007a7a;',
@@ -109,7 +109,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Modern Orange',
     accent: '#ff5722',
     styles: {
-      container: 'background-color: #fffaf9; color: #2c3e50; padding: 20px;',
+      container: 'background-color: #fffaf9; color: #2c3e50;',
       h1: 'font-size: 28px; font-weight: 900; margin: 40px 0 30px; text-align: center; color: #ff5722; line-height: 1.3;',
       h2: 'font-size: 24px; font-weight: bold; margin: 35px 0 25px; color: #333; border-bottom: 4px solid #ff5722; padding-bottom: 5px; line-height: 1.3;',
       h3: 'font-size: 20px; font-weight: bold; margin: 30px 0 20px; color: #ff5722; line-height: 1.3;',
@@ -137,7 +137,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Business Blue',
     accent: '#1a237e',
     styles: {
-      container: 'background-color: #ffffff; color: #333333; padding: 20px;',
+      container: 'background-color: #ffffff; color: #333333;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #1a237e; border-top: 3px solid #1a237e; border-bottom: 3px solid #1a237e; padding: 10px 0; line-height: 1.4;',
       h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #1a237e; border-left: 6px solid #1a237e; padding-left: 15px; background: #e8eaf6; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #3949ab; line-height: 1.4;',
@@ -165,7 +165,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Retro Paper',
     accent: '#8d6e63',
     styles: {
-      container: 'background-color: #fdf6e3; color: #4e342e; padding: 20px;',
+      container: 'background-color: #fdf6e3; color: #4e342e;',
       h1: 'font-size: 25px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #5d4037; font-family: serif; line-height: 1.4;',
       h2: 'font-size: 21px; font-weight: bold; margin: 30px 0 20px; color: #5d4037; text-align: center; padding-bottom: 10px; line-height: 1.4;',
       h3: 'font-size: 18px; font-weight: bold; margin: 25px 0 15px; color: #795548; font-family: serif; line-height: 1.4;',
@@ -193,9 +193,9 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Girly Pink',
     accent: '#ec407a',
     styles: {
-      container: 'background-color: #fff9fb; color: #555555; padding: 20px;',
+      container: 'background-color: #fff9fb; color: #555555;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #ec407a; text-shadow: 2px 2px 0px #fce4ec; line-height: 1.4;',
-      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #f06292; padding: 8px 20px; border-radius: 20px; display: block; line-height: 1.4;',
+      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #f06292; padding: 8px 20px; border-radius: 20px; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #ec407a; border-left: 4px solid #f8bbd0; padding-left: 10px; line-height: 1.4;',
       p: BASE_P + ' color: #555;',
       blockquote: 'margin: 25px 0; padding: 20px; background: #fff1f5; border-radius: 15px; border: 1px solid #f8bbd0; color: #ad1457;',
@@ -222,7 +222,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     accent: '#ffffff',
     isDark: true,
     styles: {
-      container: 'background-color: #000000; color: #ffffff; padding: 20px;',
+      container: 'background-color: #000000; color: #ffffff;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #ffffff; background: #111111; padding: 15px 0; border-radius: 4px; line-height: 1.4; border: 1px solid #333;',
       h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #ffffff; border-left: 4px solid #ffffff; padding-left: 15px; line-height: 1.4; background: #050505;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #ffffff; border-bottom: 1px solid #333; padding-bottom: 5px; line-height: 1.4;',
@@ -250,7 +250,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Forest Breath',
     accent: '#2e7d32',
     styles: {
-      container: 'background-color: #f1f8e9; color: #333; padding: 20px;',
+      container: 'background-color: #f1f8e9; color: #333;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #1b5e20; border-bottom: 2px solid #a5d6a7; padding-bottom: 10px; line-height: 1.4;',
       h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #2e7d32; border-left: 5px solid #2e7d32; padding-left: 12px; background: #f1f8e9; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #388e3c; line-height: 1.4;',
@@ -278,9 +278,9 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Deep Ocean',
     accent: '#0277bd',
     styles: {
-      container: 'background-color: #e1f5fe; color: #37474f; padding: 20px;',
+      container: 'background-color: #e1f5fe; color: #37474f;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #01579b; padding: 10px 0; line-height: 1.4;',
-      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #0277bd; border-bottom: 2px solid #0277bd; display: block; line-height: 1.4;',
+      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #0277bd; border-bottom: 2px solid #0277bd; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #0288d1; line-height: 1.4;',
       p: BASE_P + ' color: #37474f;',
       blockquote: 'margin: 25px 0; padding: 20px; background: #e1f5fe; border-radius: 0 20px 20px 0; border-left: 5px solid #0277bd; color: #01579b;',
@@ -306,7 +306,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Lavender',
     accent: '#7e57c2',
     styles: {
-      container: 'background-color: #f3e5f5; color: #424242; padding: 20px;',
+      container: 'background-color: #f3e5f5; color: #424242;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #512da8; border-bottom: 2px dashed #d1c4e9; padding-bottom: 10px; line-height: 1.4;',
       h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #7e57c2; border-left: 5px solid #b39ddb; padding-left: 12px; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #9575cd; line-height: 1.4;',
@@ -334,11 +334,11 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Coffee Time',
     accent: '#6d4c41',
     styles: {
-      container: 'background-color: #fdfdfd; color: #4e342e; padding: 20px;',
+      container: 'background-color: #fdfdfd; color: #4e342e;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #3e2723; border-bottom: 2px solid #d7ccc8; padding-bottom: 10px; line-height: 1.4;',
-      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #6d4c41; padding: 8px 15px; border-radius: 4px; display: block; line-height: 1.4;',
+      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #6d4c41; padding: 8px 15px; border-radius: 4px; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #5d4037; border-left: 4px solid #d7ccc8; padding-left: 10px; line-height: 1.4;',
-      p: BASE_P + " color: #4e342e; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;",
+      p: BASE_P + ' color: #4e342e;',
       blockquote: 'margin: 25px 0; padding: 20px; background: #efebe9; border-radius: 8px; color: #5d4037;',
       code: BASE_CODE + ' background: #d7ccc8; color: #3e2723;',
       pre: BASE_PRE + ' background: #efebe9; color: #4e342e;',
@@ -363,11 +363,11 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     accent: '#ff00ff',
     isDark: true,
     styles: {
-      container: 'background-color: #000000; color: #00ff00; padding: 20px;',
+      container: 'background-color: #000000; color: #00ff00;',
       h1: 'font-size: 28px; font-weight: 900; margin: 40px 0 30px; text-align: center; color: #fff; text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; border: 2px solid #ff00ff; padding: 15px; line-height: 1.3;',
       h2: 'font-size: 24px; font-weight: bold; margin: 35px 0 25px; color: #00ffff; text-shadow: 0 0 5px #00ffff; border-left: 8px solid #ff00ff; padding-left: 15px; line-height: 1.3;',
       h3: 'font-size: 20px; font-weight: bold; margin: 30px 0 20px; color: #ffff00; text-shadow: 0 0 5px #ffff00; line-height: 1.3;',
-      p: BASE_P + " color: #00ff00; font-family: 'Courier New', monospace; letter-spacing: 0.05em;",
+      p: BASE_P + ' color: #00ff00; letter-spacing: 0.05em;',
       blockquote: 'margin: 30px 0; padding: 25px; background: rgba(255, 0, 255, 0.05); border: 2px solid #ff00ff; color: #ffffff;',
       code: BASE_CODE + ' background: #0a0a0a; border: 1px solid #00ffff; color: #00ffff;',
       pre: BASE_PRE + ' background: #0a0a0a; color: #00ff00; border: 1px solid #00ffff;',
@@ -391,7 +391,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Premium Gold',
     accent: '#bf953f',
     styles: {
-      container: 'background-color: #fdfbf0; color: #333; padding: 20px;',
+      container: 'background-color: #fdfbf0; color: #333;',
       h1: 'font-size: 26px; font-weight: bold; margin: 40px 0 30px; text-align: center; color: #bf953f; border: 2px solid #bf953f; padding: 15px; background: #fdfbf0; box-shadow: 4px 4px 0px #bf953f; line-height: 1.4;',
       h2: 'font-size: 22px; font-weight: bold; margin: 35px 0 25px; color: #bf953f; border-bottom: 2px solid #bf953f; padding-bottom: 5px; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 30px 0 20px; color: #8a6d3b; border-left: 5px solid #bf953f; padding-left: 12px; line-height: 1.4;',
@@ -419,7 +419,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Tech Blueprint',
     accent: '#0052cc',
     styles: {
-      container: 'background-color: #ffffff; color: #172b4d; padding: 20px;',
+      container: 'background-color: #ffffff; color: #172b4d;',
       h1: 'font-size: 28px; font-weight: bold; margin: 45px 0 35px; text-align: left; color: #0052cc; border-left: 10px solid #0052cc; padding-left: 20px; background: #f4f5f7; line-height: 1.4;',
       h2: 'font-size: 24px; font-weight: bold; margin: 40px 0 30px; color: #172b4d; border-bottom: 2px solid #0052cc; padding-bottom: 8px; line-height: 1.4;',
       h3: 'font-size: 20px; font-weight: bold; margin: 35px 0 25px; color: #0052cc; background: #deebff; padding: 5px 15px; border-radius: 4px; line-height: 1.4;',
@@ -447,9 +447,9 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Sunset Glow',
     accent: '#ef6c00',
     styles: {
-      container: 'background-color: #fff3e0; color: #4e342e; padding: 20px;',
+      container: 'background-color: #fff3e0; color: #4e342e;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #e65100; text-shadow: 1px 1px 2px #ffe0b2; line-height: 1.4;',
-      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #f4511e; padding: 8px 20px; border-radius: 5px; display: block; line-height: 1.4;',
+      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #f4511e; padding: 8px 20px; border-radius: 5px; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #ef6c00; line-height: 1.4;',
       p: BASE_P + ' color: #4e342e;',
       blockquote: 'margin: 25px 0; padding: 20px; background: #fff3e0; border-left: 5px solid #ff9800; color: #e65100;',
@@ -475,9 +475,9 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Mint Fresh',
     accent: '#4db6ac',
     styles: {
-      container: 'background-color: #e0f2f1; color: #333; padding: 20px;',
+      container: 'background-color: #e0f2f1; color: #333;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #00796b; border-bottom: 2px solid #b2dfdb; padding-bottom: 10px; line-height: 1.4;',
-      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #4db6ac; padding: 8px 15px; border-radius: 4px; display: block; line-height: 1.4;',
+      h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #fff; background: #4db6ac; padding: 8px 15px; border-radius: 4px; line-height: 1.4;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #00796b; border-left: 4px solid #b2dfdb; padding-left: 10px; line-height: 1.4;',
       p: BASE_P + ' color: #333;',
       blockquote: 'margin: 25px 0; padding: 20px; background: #e0f2f1; border-radius: 8px; color: #004d40;',
@@ -503,7 +503,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'Handwritten',
     accent: '#5c6bc0',
     styles: {
-      container: 'background-color: #fafafa; color: #3d3d3d; padding: 20px;',
+      container: 'background-color: #fafafa; color: #3d3d3d;',
       h1: 'font-size: 26px; font-weight: bold; margin: 35px 0 25px; text-align: center; color: #3949ab; border-bottom: 3px double #c5cae9; padding-bottom: 15px; line-height: 1.5;',
       h2: 'font-size: 22px; font-weight: bold; margin: 30px 0 20px; color: #3949ab; position: relative; padding-bottom: 8px; line-height: 1.5;',
       h3: 'font-size: 19px; font-weight: bold; margin: 25px 0 15px; color: #5c6bc0; line-height: 1.5;',
@@ -531,7 +531,7 @@ export const WECHAT_THEMES: Record<string, WechatTheme> = {
     nameEn: 'WeChat Green',
     accent: '#07c160',
     styles: {
-      container: 'background-color: #ffffff; color: #333333; padding: 20px;',
+      container: 'background-color: #ffffff; color: #333333;',
       h1: 'font-size: 22px; font-weight: bold; margin: 28px 0 18px; color: #07c160; text-align: center; border-bottom: 2px solid #07c160; padding-bottom: 8px; line-height: 1.4;',
       h2: 'font-size: 19px; font-weight: bold; margin: 24px 0 14px; color: #06ae56; border-left: 4px solid #07c160; padding-left: 10px; line-height: 1.4;',
       h3: 'font-size: 17px; font-weight: bold; margin: 20px 0 10px; color: #06ae56; line-height: 1.4;',

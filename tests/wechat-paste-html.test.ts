@@ -42,6 +42,7 @@ function assertSafePasteHtml(html: string, label: string): void {
     }
     expect(html, label).not.toMatch(/text-justify/i);
     expect(html, label).not.toMatch(/(?:^|;|\s)text-align\s*:\s*(start|end|justify|inherit|initial|unset|match-parent)/i);
+    expect(html, label).not.toMatch(/font-family\s*:/i);
 }
 
 const TEXT_ONLY_ARTICLE = `# 作为一枚铁粉，任凭
@@ -119,7 +120,7 @@ describe('WeChat paste HTML — content structure', () => {
         const html = render(IMAGE_RICH_ARTICLE);
         expect(html).not.toMatch(/<figure\b/i);
         expect(html).toMatch(
-            /<p style="[^"]*text-align:\s*center[^"]*"><img src="https:\/\/example.com\/legend-of-trump\.jpg"/,
+            /<p[^>]*style="[^"]*text-align:\s*center[^"]*"><img[^>]*src="https:\/\/example.com\/legend-of-trump\.jpg"/,
         );
         expect(html).toMatch(
             /<p style="[^"]*text-align:\s*center[^"]*">The Legend of Trump<\/p>/,
@@ -138,26 +139,28 @@ describe('WeChat paste HTML — content structure', () => {
 
     it('keeps body paragraphs readable without justify', () => {
         const html = render(IMAGE_RICH_ARTICLE);
-        expect(html).toMatch(/<p style="[^"]*line-height:\s*29\.6px/);
+        expect(html).toMatch(/<p style="[^"]*line-height:\s*32px/);
         expect(html).toMatch(/letter-spacing:\s*0\.02em/);
         expect(html).toMatch(/text-align:left/);
         expect(html).toContain('作为一枚铁粉');
         expect(html).toContain('White House');
     });
 
-    it('table cell alignment only uses left/right/center', () => {
+    it('flattens GFM tables into paragraphs instead of table/th (avoids #1.4 / #2.3.2)', () => {
         const md = `
 | Left | Mid | Right |
 |:-----|:---:|------:|
 | a | b | c |
 `;
         const html = render(md);
+        expect(html).not.toMatch(/<table\b/i);
+        expect(html).not.toMatch(/<th\b/i);
+        expect(html).toContain('Left');
+        expect(html).toContain('a');
         const aligns = collectTextAlignValues(html);
         for (const value of aligns) {
             expect(['left', 'right', 'center']).toContain(value);
         }
-        expect(html).toMatch(/text-align:center/);
-        expect(html).toMatch(/text-align:right/);
     });
 
     it('image-free long articles stay clean on every built-in theme', () => {
@@ -173,7 +176,7 @@ describe('WeChat paste HTML — content structure', () => {
         for (const theme of Object.values(WECHAT_THEMES)) {
             const html = render(IMAGE_RICH_ARTICLE, theme);
             assertSafePasteHtml(html, `image-rich ${theme.nameEn}`);
-            expect(html, theme.nameEn).toMatch(/<img\b/i);
+            expect(html, theme.nameEn).toMatch(/<img\b[^>]*data-ignore-width/i);
             expect(html, theme.nameEn).toMatch(/The Legend of Trump/);
         }
     });
@@ -217,7 +220,7 @@ describe('sanitizeWechatPasteHtml', () => {
         expect(clean).not.toMatch(/width:900px/);
         expect(clean).not.toMatch(/width="1080"/);
         expect(collectOversizedWidths(clean)).toEqual([]);
-        expect(clean).toMatch(/<p style="[^"]*text-align:\s*center[^"]*"><img /);
+        expect(clean).toMatch(/<p[^>]*style="[^"]*text-align:\s*center[^"]*"><img /);
         expect(clean).toMatch(/The Legend of Trump/);
         expect(clean).toMatch(/max-width:100%/);
         assertSafePasteHtml(clean, 'figure rewrite');
@@ -241,7 +244,7 @@ describe('sanitizeWechatPasteHtml', () => {
         expect(clean).not.toMatch(/gradient\s*\(/i);
         expect(clean).toMatch(/#f4511e|#ff5722|rgb\(248,\s*245,\s*247\)/);
         expect(collectUnsafeLineHeights(clean)).toEqual([]);
-        expect(WECHAT_MIN_LINE_HEIGHT_RATIO).toBe(1.6);
+        expect(WECHAT_MIN_LINE_HEIGHT_RATIO).toBe(2);
     });
 
     it('raises unitless or undersized line-height to at least font-size, including after fontSizeMultiplier', () => {
@@ -251,17 +254,16 @@ describe('sanitizeWechatPasteHtml', () => {
 <h2 style="font-size:22px;line-height:1.3;">标题</h2>`;
         const clean = sanitizeWechatPasteHtml(dirty);
         expect(collectUnsafeLineHeights(clean)).toEqual([]);
-        expect(isLineHeightSafeForFontSize('16px', '29.6px')).toBe(true);
-        expect(clean).toMatch(/font-size:16px;[^"]*line-height:29\.6px/);
-        expect(clean).toMatch(/font-size:16px;[^"]*line-height:25\.6px/);
-        expect(clean).toMatch(/font-size:13px;[^"]*line-height:20\.8px/);
-        expect(clean).toMatch(/font-size:22px;[^"]*line-height:28\.6px/);
+        expect(isLineHeightSafeForFontSize('16px', '32px')).toBe(true);
+        expect(clean).toMatch(/font-size:16px;[^"]*line-height:32px/);
+        expect(clean).toMatch(/font-size:13px;[^"]*line-height:26px/);
+        expect(clean).toMatch(/font-size:22px;[^"]*line-height:44px/);
 
         const scaled = render(TEXT_ONLY_ARTICLE, WECHAT_THEMES.minimalist, 1.5);
         assertSafePasteHtml(scaled, 'fontSizeMultiplier 1.5 text-only');
         expect(scaled).toMatch(/font-size:24px/);
-        expect(scaled).toMatch(/line-height:44\.4px/);
-        expect(scaled).toMatch(/font-family:'Fira Code'/);
+        expect(scaled).toMatch(/line-height:48px/);
+        expect(WECHAT_MIN_LINE_HEIGHT_RATIO).toBe(2);
     });
 });
 
@@ -269,7 +271,7 @@ describe('rewriteWechatStyle helpers', () => {
     it('defaults text blocks to left align and a safe line-height', () => {
         const next = rewriteWechatStyle('font-size:15px;color:#333', { tag: 'p' });
         expect(next).toMatch(/text-align:left/);
-        expect(next).toMatch(/line-height:24px/);
-        expect(isLineHeightSafeForFontSize('15px', '24px')).toBe(true);
+        expect(next).toMatch(/line-height:30px/);
+        expect(isLineHeightSafeForFontSize('15px', '30px')).toBe(true);
     });
 });
