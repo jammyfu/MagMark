@@ -2,6 +2,9 @@
 
 ## 2026-09-14
 
+- Default public README is Simplified Chinese. Traditional Chinese, Japanese, and English live beside it with a language switcher; English keeps the GEO narrative and the same facts.
+- The live product URL is https://bubufu.com/tools/magmark/. Cite it as the online editor. Do not invent GitHub Pages or a `github.io` `/llms.txt`.
+- README screenshots must be real captures from the running editor, committed as PNGs under `screenshots/`. Do not keep broken image links.
 - Public docs must keep magazine (Han.css / Paged.js / 3× PNG) and WeChat Official Account paste HTML (`src/wechat/*`) as separate shipped paths. Do not describe WeChat paste as magazine Han/Paged typography.
 - WeChat export HTML (`src/wechat/*`) is a separate paste path from magazine preview. Only this path is sanitized for 公众号「内容结构检测」.
 - Safe `text-align` values for WeChat paste: `left` | `right` | `center` | omit. Never emit `justify`, `start`, `end`, or `text-justify`.

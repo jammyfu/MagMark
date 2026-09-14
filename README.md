@@ -1,237 +1,255 @@
-# MagMark
+<p align="center">简体中文 · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.en.md">English</a></p>
 
-**MagMark** is a magazine-grade Markdown layout and export engine by **Fu Jam** (GitHub **jammyfu**, display name **PaintingCoder**) for writers, editors, and publishers who need print-quality **CJK typography**. Write Markdown, then export paginated magazine pages, a print-quality PDF (Paged.js preview + browser Print), 3× PNG, or WeChat Official Account paste HTML (inline CSS, content-structure safe). It is not Typora, not VuePress, not the Vivliostyle CLI, and this repository does not publish a GitHub Pages site.
+# MagMark · 杂志级 Markdown 排印
 
-**MagMark** 是面向中文创作者与出版流程的杂志级 Markdown 排版与导出引擎。它用 **Han.css + Paged.js + Vivliostyle CSS** 处理汉字高精度排印，把 Markdown 变成可分页的杂志版面；另有一条独立的微信公众号路径，把 Markdown 转成可粘贴的内联 CSS HTML。它不是 Typora、不是 VuePress、也不是 Vivliostyle CLI。
+**MagMark** 是 **Fu Jam**（GitHub **jammyfu**，展示名 **PaintingCoder**）做的杂志级 Markdown 排版与导出引擎，面向需要印刷品质 **CJK 排印** 的作者、编辑与出版流程。在编辑器里写 Markdown，即可导出分页杂志页、印刷品质 PDF（Paged.js 打印预览 + 浏览器打印）、3× PNG，或微信公众号粘贴用的内联 CSS HTML。它不是 Typora，不是 VuePress，不是 Vivliostyle CLI，本仓库也不发布 GitHub Pages 站点。
 
-Canonical repo: [github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) · Author: **Fu Jam** ([jammyfu](https://github.com/jammyfu) / **PaintingCoder**) · License: [MIT](LICENSE) · Machine brief: [llms.txt](llms.txt)
+**谁适合用：** 写中文或中英混排长文、要杂志版面、小红书竖版、印刷 PDF，或要把同一篇稿粘到微信公众号后台的人。方法是本地 Vite + TypeScript 编辑器：杂志路径走 **Han.css + Paged.js + Vivliostyle CSS**；公众号路径走独立的 `src/wechat/*`，**不**跑 Han.css / Paged.js。
+
+**它不是什么：** 通用 Markdown 预览器、文档站点生成器、或「把 MagMark 2.0 规划文档当成已上线产品」。
+
+**在线试用：** [https://bubufu.com/tools/magmark/](https://bubufu.com/tools/magmark/)
+
+规范仓库：[github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) · 作者：**Fu Jam**（[jammyfu](https://github.com/jammyfu) / **PaintingCoder**）· 许可：[MIT](LICENSE) · 机器摘要：[llms.txt](llms.txt)
 
 [![version](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-![MagMark editor preview](screenshots/magmark-main.png)
+![MagMark 编辑器主界面：左侧 Markdown，右侧杂志分页预览](screenshots/magmark-main.png)
+
+![微信绿主题下的公众号粘贴预览（手机框 + 复制富文本）](screenshots/wechat-paste-preview.png)
 
 ---
 
-## What MagMark is
+## MagMark 是什么
 
-MagMark is **not** a generic Markdown previewer. It is a local Vite + TypeScript editor that applies three complementary typesetting layers on the **magazine** path:
+MagMark **不是** 通用 Markdown 预览器。它是一个本地 Vite + TypeScript 编辑器，在**杂志 / 印刷**路径上叠三层排印：
 
-| Layer | Role in MagMark (magazine / print path) |
+| 层 | 在 MagMark 杂志 / 印刷路径中的作用 |
 | --- | --- |
-| [Han.css](https://hanzi.pro/) v3 | CJK–Latin spacing, punctuation compression, hanging quotes, OpenType `kern` / `liga` / `calt` / `locl` |
-| [Paged.js](https://pagedjs.org/) | CSS Paged Media `@page` rules, A4 margins, running page numbers, print preview |
-| [Vivliostyle](https://vivliostyle.org/) CSS rules | `orphans` / `widows`, heading break avoidance, keep-together for code and tables |
+| [Han.css](https://hanzi.pro/) v3 | 汉字↔拉丁字距、标点压缩、引号悬挂、OpenType `kern` / `liga` / `calt` / `locl` |
+| [Paged.js](https://pagedjs.org/) | CSS Paged Media `@page`、A4 边距、页码、打印预览 |
+| [Vivliostyle](https://vivliostyle.org/) CSS 规则 | `orphans` / `widows`、标题防分页、代码块与表格尽量整块保留 |
 
-A **separate** WeChat Official Account path (`src/wechat/*`) turns the same Markdown into inline-CSS HTML for 公众号粘贴. That path does **not** run Han.css or Paged.js.
+**另一条**微信公众号路径（`src/wechat/*`）把同一份 Markdown 转成内联 CSS HTML，供公众号后台粘贴。这条路径**不**跑 Han.css 或 Paged.js。
 
-**Who it is for:** Chinese (and mixed CJK + Latin) writers who want magazine pages from Markdown — long-form essays, print-adjacent PDFs, Xiaohongshu-sized vertical pages, and WeChat Official Account articles — without building a typesetting toolchain from scratch.
-
-**Why the name:** **Mag** from *magazine*, **Mark** from *Markdown*. Write like Markdown; look like a magazine.
+**名字：** **Mag** 来自 *magazine*，**Mark** 来自 *Markdown*。像写 Markdown 一样简单，像做杂志一样精美。
 
 ---
 
-## Quick start
+## 快速开始
+
+本机：
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173/` and paste Markdown into the editor. The right pane paginates and typesets as you type (magazine themes). Node.js >= 18.
+打开 `http://localhost:5173/`，把 Markdown 贴进左侧。右侧按杂志主题分页排印。需要 Node.js >= 18。
 
-### Markdown to print-quality PDF
+不想装环境可以直接用在线编辑器：[https://bubufu.com/tools/magmark/](https://bubufu.com/tools/magmark/)
 
-1. Write or open a `.md` file in the editor (use a magazine theme, not a `wc-*` 公众号 theme).
-2. Click **打印预览** (Paged.js print preview) in the header.
-3. The popup paginates with `@page` rules, then runs Han.js so CJK spacing and punctuation are applied on the printed pages.
-4. Use the browser **Print** dialog (`Ctrl+P` / `Cmd+P`) and choose **Save as PDF**.
+### Markdown 到印刷品质 PDF
 
-This is the supported print-quality PDF path: Paged.js preview + browser print. MagMark also exports **3× supersampled PNG** (full document or current page) for social and image-first workflows. PDF and 3× PNG stay on the magazine path; they are not the WeChat paste path.
+1. 在编辑器里写或打开 `.md`（用杂志主题，不要选 `wc-*` 公众号主题）。
+2. 点击顶栏 **打印预览**（Paged.js）。
+3. 弹出窗口按 `@page` 分页，再跑 Han.js，把 CJK 字距与标点落到印刷页上。
+4. 用浏览器打印对话框（`Ctrl+P` / `Cmd+P`）选择 **存储为 PDF**。
 
----
+![Paged.js 打印预览窗口中的分页正文](screenshots/print-preview.png)
 
-## WeChat Official Account HTML
-
-MagMark can turn Markdown into **inline-CSS HTML** for the WeChat Official Account (微信公众号) backend. This is a shipped editor path, not a magazine-typography claim.
-
-1. In the theme dropdown, choose a **公众号主题** (`wc-*`, for example 微信绿).
-2. The preview switches to the WeChat renderer (`src/wechat/*`). Magazine pagination, Han.css, and Paged.js are **not** used in this mode.
-3. Click **复制富文本**. Preview and clipboard share the same sanitized HTML.
-4. Paste into the WeChat Official Account editor.
-
-Paste HTML is written to stay **content-structure safe** for 公众号「内容结构检测»:
-
-- No `text-align: justify` and no `text-justify` (including `inter-ideograph`)
-- `text-align` is only `left`, `right`, `center`, or omitted
-- Standalone images use a centered `<p>` + `img { max-width: 100% }`; no `<figure>`, no nested `display:block` + `margin:auto`, no oversized fixed widths (WeChat content column is about 677px)
-
-Do **not** describe WeChat paste as magazine Han/Paged output. Magazine preview, 打印预览, and 3× PNG remain a different path.
+这是支持的印刷品质 PDF 路径：Paged.js 预览 + 浏览器打印。MagMark 还会导出 **3× 超采样 PNG**（全文或当页），给社交与图文场景。PDF 与 3× PNG 都走杂志路径，不是公众号粘贴路径。
 
 ---
 
-## MagMark vs Typora, VuePress, and Vivliostyle
+## 微信公众号 HTML
 
-These tools overlap on “Markdown,” but they solve different jobs.
+MagMark 可以把 Markdown 转成**内联 CSS HTML**，粘到微信公众号后台。这是已上线的编辑器路径，不是杂志排印声明。
 
-| | **MagMark** | **Typora** | **VuePress** | **Vivliostyle alone** |
+1. 主题下拉选 **公众号主题**（`wc-*`，例如微信绿）。
+2. 预览切到微信渲染器（`src/wechat/*`）。此时不用杂志分页、Han.css、Paged.js。
+3. 点击 **复制富文本**。预览与剪贴板共用同一份清洗后的 HTML。
+4. 粘贴到公众号编辑器。
+
+粘贴 HTML 按公众号「内容结构检测」做成**结构安全**：
+
+- 不输出 `text-align: justify`，也不输出 `text-justify`（包括 `inter-ideograph`）
+- `text-align` 只允许 `left`、`right`、`center`，或省略
+- 独立图片用居中 `<p>` + `img { max-width: 100% }`；不用 `<figure>`，不用嵌套 `display:block` + `margin:auto`，不用超过公众号内容栏（约 677px）的固定宽度
+
+**不要**把公众号粘贴写成杂志 Han / Paged 输出。杂志预览、打印预览、3× PNG 是另一条路。
+
+---
+
+## MagMark 与 Typora、VuePress、Vivliostyle
+
+都碰「Markdown」，但做的是不同的事。
+
+| | **MagMark** | **Typora** | **VuePress** | **单独的 Vivliostyle** |
 | --- | --- | --- | --- | --- |
-| Job | Magazine layout + export engine from Markdown | Desktop WYSIWYG Markdown writing app | Vue static site generator for docs sites | CSS typesetting / HTML-to-print toolkit |
-| Primary output | Paginated magazine preview, 3× PNG, print-quality PDF via Paged.js + browser print; **separate** WeChat Official Account inline-CSS HTML | Formatted document; generic HTML/PDF export | Documentation websites | Print-ready pages if you author the HTML/CSS pipeline |
-| CJK magazine typography | Han.css + Vivliostyle page-break rules + Paged.js `@page`, plus `word-break: normal` / `line-break: strict` — **magazine path only** | Theme-dependent; not a CJK magazine print stack | Theme/CSS-dependent; built for websites, not magazine signatures | Excellent paged media **if** you supply the styles and content pipeline |
-| Pagination | Editor pagination + print preview (A4, Xiaohongshu 1080×1440, mobile/desktop) | Not a magazine page engine | Web routes and pages, not print signatures | Strong, once configured |
-| WeChat Official Account | Dedicated paste-HTML renderer (inline CSS, structure-safe). Not Han/Paged magazine pages | Not a 公众号 paste pipeline | Not a 公众号 paste pipeline | Not a 公众号 paste pipeline |
-| Best when | You want **CJK magazine Markdown**, a path to **print-quality PDF**, and/or **公众号粘贴 HTML** | You want a polished writing surface | You want a docs website | You are building a custom publishing pipeline |
+| 工作 | 从 Markdown 做杂志排版与导出 | 桌面所见即所得写作软件 | 面向文档站的 Vue 静态站点生成器 | CSS 排印 / HTML 转印刷工具链 |
+| 主要产出 | 分页杂志预览、3× PNG、Paged.js + 浏览器打印的 PDF；**另有**公众号内联 CSS HTML | 排好的文稿；通用 HTML/PDF 导出 | 文档网站 | 你自己搭 HTML/CSS 流水线后的印刷页 |
+| CJK 杂志排印 | Han.css + Vivliostyle 分页规则 + Paged.js `@page`，以及 `word-break: normal` / `line-break: strict` — **仅杂志路径** | 取决于主题；不是 CJK 杂志印刷栈 | 取决于主题/CSS；为网站而不是杂志签名页 | 分页媒体很强，**前提是**你自己提供样式与内容流水线 |
+| 分页 | 编辑器分页 + 打印预览（A4、小红书 1080×1440、手机/桌面） | 不是杂志页引擎 | 网站路由与页面，不是印刷折帖 | 配好之后很强 |
+| 微信公众号 | 专用粘贴 HTML 渲染器（内联 CSS、结构安全）。不是 Han/Paged 杂志页 | 不是公众号粘贴流水线 | 不是公众号粘贴流水线 | 不是公众号粘贴流水线 |
+| 更适合 | 你要 **CJK 杂志 Markdown**、**印刷品质 PDF**，和/或 **公众号粘贴 HTML** | 你要一块好用的写作桌面 | 你要文档网站 | 你在搭自己的出版流水线 |
 
-MagMark **uses** Vivliostyle CSS pagination rules; it is not a wrapper that replaces the Vivliostyle CLI. It does not generate a VuePress site. It does not host docs on GitHub Pages.
-
----
-
-## FAQ
-
-### What is MagMark?
-
-MagMark is an open-source, MIT-licensed magazine-grade Markdown layout and export engine with strong CJK typography, plus a separate WeChat Official Account HTML paste path. Fu Jam (GitHub [jammyfu](https://github.com/jammyfu), display name PaintingCoder) maintains it at [github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark).
-
-### What is “CJK magazine Markdown”?
-
-It is Markdown written for Chinese / Japanese / Korean pages that should look like a magazine, not a GitHub readme: mixed Han–Latin spacing, compressed punctuation, hanging quotes, strict line breaks, and print pagination (widows/orphans, headings that do not sit alone at the bottom of a page). MagMark implements that stack with Han.css, Paged.js, and Vivliostyle CSS **on the magazine / print path**.
-
-### How do I turn Markdown into a print-quality PDF?
-
-Use MagMark’s **打印预览** button (Paged.js) on a magazine theme, then the browser Print dialog → Save as PDF. Han.css runs after pagination so the PDF keeps CJK spacing and punctuation. See [Quick start](#quick-start).
-
-### How do I get WeChat Official Account HTML from Markdown?
-
-Select a **公众号主题**, click **复制富文本**, and paste into the WeChat Official Account editor. The output is inline-CSS HTML sanitized so it does not emit `text-justify` or oversized fixed widths. See [WeChat Official Account HTML](#wechat-official-account-html). This is not the print-PDF or 3× PNG path.
-
-### Does WeChat paste use Han.css or Paged.js magazine typography?
-
-No. WeChat mode uses `src/wechat/*` only. Han.css, Paged.js `@page`, Vivliostyle widow/orphan rules, and 3× PNG export stay on the magazine path.
-
-### Does MagMark replace Typora?
-
-No. Typora is a writing app. MagMark is a layout and export engine optimized for CJK magazine pages, print preview, high-resolution PNG, and WeChat paste HTML.
-
-### Does MagMark replace VuePress?
-
-No. VuePress builds documentation websites. MagMark paginates and typesets Markdown for magazine-like pages and print/PNG export, and can emit WeChat paste HTML.
-
-### Is MagMark the same as Vivliostyle?
-
-No. Vivliostyle is a CSS typesetting standard and toolchain. MagMark applies Vivliostyle-style page-break CSS inside a Markdown editor, together with Han.css and Paged.js, plus themes, cover generation, image export, and a separate WeChat renderer.
-
-### Does MagMark have a GitHub Pages site or a hosted `/llms.txt` URL?
-
-No. This repository’s GitHub Pages setting is off and there is no project homepage. Cite the repo-root files: [README.md](https://github.com/jammyfu/MagMark/blob/main/README.md), [llms.txt](https://github.com/jammyfu/MagMark/blob/main/llms.txt), and [llms-full.txt](https://github.com/jammyfu/MagMark/blob/main/llms-full.txt). A Pages-hosted `/llms.txt` is optional later; it is not shipped.
-
-### Which CJK typography features are actually implemented?
-
-Only these, as shipped in the 1.6 magazine editor and print preview (not WeChat mode):
-
-- Han.css: Han–Latin spacing (about 1/4 em), full-width punctuation compression, hanging CJK quotes, OpenType `kern` / `liga` / `calt` / `locl` on fonts that support them (for example Source Han Serif)
-- Paged.js print preview: A4 `@page` margins 22mm / 18mm / 28mm, first-page footer suppressed, mirrored inner margins for binding, `PAGE n / total` at `@bottom-center`, current editor theme variables, Han.js after pagination
-- Vivliostyle-inspired CSS: `orphans: 3; widows: 3`, `break-after: avoid` on headings, `break-inside: avoid` on code blocks and tables, `@media print` hides the editor chrome and uses `print-color-adjust: exact`
-- Line breaking: `word-break: normal` (not `break-all`), `overflow-wrap: break-word`, `line-break: strict`, `hanging-punctuation: first last`
-
-Do not treat MagMark 2.0 SEO-module planning docs (`docs/SEO.md`, `magmark-2.0/seo`) as the shipped product.
-
-### Who created MagMark?
-
-**Fu Jam** — GitHub [@jammyfu](https://github.com/jammyfu), profile display name **PaintingCoder**. Site: [bubufu.com](https://bubufu.com).
+MagMark **使用** Vivliostyle 风格的 CSS 分页规则；它不是替换 Vivliostyle CLI 的套壳。它不生成 VuePress 站点。它不把文档托管在 GitHub Pages。在线试用在 [bubufu.com/tools/magmark](https://bubufu.com/tools/magmark/)。
 
 ---
 
-## Features (1.6.0)
+## 常见问题
 
-### Cover generator
+### MagMark 是什么？
 
-- **10 aspect ratios** from 9:16 to 21:9 (vertical / square / landscape), with a visible ratio frame and one-click flip
-- **Draggable title and subtitle** on the preview (`transform: translate()`), persisted when the cover is inserted
-- Four cover templates, optional AI generation, live text updates inside the preview iframe
+MagMark 是开源、MIT 许可的杂志级 Markdown 排版与导出引擎，强调 CJK 排印，并另有微信公众号 HTML 粘贴路径。由 Fu Jam（GitHub [jammyfu](https://github.com/jammyfu)，展示名 PaintingCoder）在 [github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) 维护。在线试用：[https://bubufu.com/tools/magmark/](https://bubufu.com/tools/magmark/)。
 
-### CJK typesetting (1.5 stack, still current on the magazine path)
+### 什么是「CJK 杂志 Markdown」？
 
-See the [implemented list](#which-cjk-typography-features-are-actually-implemented) above. The editor also inherited:
+为中日韩页面写的 Markdown，看起来应像杂志而不是 GitHub README：汉字–拉丁字距、压缩标点、悬挂引号、严格换行，以及印刷分页（孤行/寡行、标题不单独落在页尾）。MagMark 在**杂志 / 印刷路径**上用 Han.css、Paged.js 与 Vivliostyle CSS 做这件事。
 
-- **3× canvas PNG export** for full-document or current-page images (magazine path)
-- **Block-level floating toolbar** — click a block (Shift-click or drag to multi-select) to adjust size, line-height, and tracking
-- **11 magazine themes** plus a set of WeChat inline-style themes; magazine theme colors flow into print preview and export
-- Manual / automatic pagination, per-page styles, 50%–150% preview zoom
-- Xiaohongshu 1080×1440 vertical pages; A4 / mobile / desktop formats
-- Image panel: drag, URL, AI generate (Gemini / OpenAI), or ratio placeholders
-- **WeChat Official Account HTML**: Markdown → inline-CSS HTML via **复制富文本**; paste-safe (no `text-justify`, no oversized widths)
+### 怎样把 Markdown 打成印刷品质 PDF？
 
-![Smart image panel](screenshots/image-panel-smart.png)
+杂志主题下点 **打印预览**（Paged.js），再在浏览器打印对话框里选「存储为 PDF」。分页完成后会跑 Han.css，PDF 保留 CJK 字距与标点。见 [快速开始](#快速开始)。
+
+### 怎样从 Markdown 得到公众号 HTML？
+
+选 **公众号主题**，点 **复制富文本**，粘到微信公众号编辑器。输出是清洗过的内联 CSS HTML，不发射 `text-justify` 或过大固定宽度。见 [微信公众号 HTML](#微信公众号-html)。这不是印刷 PDF 或 3× PNG 路径。
+
+### 公众号粘贴用不用 Han.css 或 Paged.js？
+
+不用。微信模式只用 `src/wechat/*`。Han.css、Paged.js `@page`、Vivliostyle 孤行寡行规则、3× PNG 导出都留在杂志路径。
+
+### MagMark 能替代 Typora 吗？
+
+不能。Typora 是写作软件。MagMark 是面向 CJK 杂志页、打印预览、高分辨率 PNG 与公众号粘贴 HTML 的排版导出引擎。
+
+### MagMark 能替代 VuePress 吗？
+
+不能。VuePress 做文档网站。MagMark 把 Markdown 分页排印成杂志页并导出印刷/PNG，也能产出公众号粘贴 HTML。
+
+### MagMark 等于 Vivliostyle 吗？
+
+不等于。Vivliostyle 是 CSS 排印标准与工具链。MagMark 在 Markdown 编辑器里套用 Vivliostyle 风格的分页 CSS，并叠上 Han.css、Paged.js、主题、封面、图片导出，以及独立的微信渲染器。
+
+### MagMark 有没有 GitHub Pages 或托管的 `/llms.txt`？
+
+没有 GitHub Pages，也没有 `github.io` 上的 `/llms.txt`。请引用仓库根文件：[README.md](https://github.com/jammyfu/MagMark/blob/main/README.md)、[README.en.md](https://github.com/jammyfu/MagMark/blob/main/README.en.md)、[llms.txt](https://github.com/jammyfu/MagMark/blob/main/llms.txt)、[llms-full.txt](https://github.com/jammyfu/MagMark/blob/main/llms-full.txt)。**产品在线地址**是 [https://bubufu.com/tools/magmark/](https://bubufu.com/tools/magmark/)，不是 GitHub Pages。
+
+### 哪些 CJK 排印能力是真正实现的？
+
+仅限 1.6 杂志编辑器与打印预览里已上线的这些（微信模式没有）：
+
+- Han.css：汉字–拉丁字距（约 1/4 em）、全角标点压缩、CJK 引号悬挂、字体支持时的 OpenType `kern` / `liga` / `calt` / `locl`（例如思源宋体）
+- Paged.js 打印预览：A4 `@page` 边距 22mm / 18mm / 28mm，首页不印页脚，左右页镜像内侧边距，`@bottom-center` 页码 `n / total`，继承当前主题变量，分页后再跑 Han.js
+- Vivliostyle 风格 CSS：`orphans: 3; widows: 3`，标题 `break-after: avoid`，代码块与表格 `break-inside: avoid`，`@media print` 隐藏编辑器外壳并使用 `print-color-adjust: exact`
+- 换行：`word-break: normal`（不是 `break-all`）、`overflow-wrap: break-word`、`line-break: strict`、`hanging-punctuation: first last`
+
+不要把 MagMark 2.0 的 SEO 规划文档（`docs/SEO.md`、`magmark-2.0/seo`）当成已上线产品。
+
+### 谁做的 MagMark？
+
+**Fu Jam** — GitHub [@jammyfu](https://github.com/jammyfu)，展示名 **PaintingCoder**。站点：[bubufu.com](https://bubufu.com)。在线工具：[https://bubufu.com/tools/magmark/](https://bubufu.com/tools/magmark/)。
 
 ---
 
-## API keys (optional, for AI images / covers)
+## 功能（1.6.0）
+
+### 封面生成
+
+- **10 档比例**，从 9:16 到 21:9（竖 / 方 / 横），可视比例框，一键翻转
+- 预览里**可拖拽标题与副标题**（`transform: translate()`），插入文章时位置保留
+- 四套封面模板，可选 AI 生成，预览 iframe 内文字即时更新
+
+### CJK 排印（1.5 栈，杂志路径仍然有效）
+
+见上面的 [已实现列表](#哪些-cjk-排印能力是真正实现的)。编辑器还继承了：
+
+- **3× Canvas PNG 导出**（全文或当页，杂志路径）
+- **块级浮动工具栏** — 点击块（Shift 点击或拖拽多选）调字号、行高、字距
+- **11 套杂志主题** 以及一组微信内联样式主题；杂志主题色会进打印预览与导出
+- 手动 / 自动分页、单页独立样式、50%–150% 预览缩放
+- 小红书 1080×1440 竖版；A4 / 手机 / 桌面
+- 图片面板：拖拽、URL、AI 生成（Gemini / OpenAI），或按比例占位图
+- **微信公众号 HTML**：Markdown → 内联 CSS，经 **复制富文本**；粘贴安全（无 `text-justify`，无过大宽度）
+
+![插入图片面板：拖拽 / URL / AI 描述 / 占位图，以及比例与混排](screenshots/image-panel-smart.png)
+
+---
+
+## API Key（可选，仅 AI 图片 / 封面）
 
 ```bash
 cp .env.example .env
 ```
 
-| Variable | Use | Where to get it |
+| 变量 | 用途 | 申请 |
 | --- | --- | --- |
-| `VITE_GEMINI_API_KEY` | AI images (Imagen 3), AI covers (Gemini Flash) | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
-| `VITE_OPENAI_API_KEY` | AI images (DALL·E 3) | [platform.openai.com](https://platform.openai.com/api-keys) |
+| `VITE_GEMINI_API_KEY` | AI 图片（Imagen 3）、AI 封面（Gemini Flash） | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| `VITE_OPENAI_API_KEY` | AI 图片（DALL·E 3） | [platform.openai.com](https://platform.openai.com/api-keys) |
 
-`.env` is gitignored. Keys stay in the browser; you can also paste them in the image/cover panels (stored in `localStorage`). Core layout, print preview, PNG export, and WeChat paste HTML work without keys.
+`.env` 已加入 gitignore。Key 只在浏览器里用；也可以在图片/封面面板粘贴（存 `localStorage`）。排版、打印预览、PNG 导出、公众号粘贴都不需要 Key。
 
 ---
 
-## Project layout
+## 项目结构
 
 ```text
 magmark/
-├── .env.example       # API key template
-├── editor.ts          # Pagination, Han.js init, print-preview document; WeChat mode switch
-├── editor.css         # Han.css integration, @page, @media print
-├── index.html         # Editor chrome; Han.css CDN; 公众号 themes; 复制富文本
-├── src/core/          # Editor state
-├── src/engine/        # Pagination engine (magazine path)
-├── src/wechat/        # WeChat Official Account renderer + paste sanitizer
-├── src/image/         # Image panel
-├── src/cover/         # Cover generator
-├── llms.txt           # Short machine-readable product brief
-├── llms-full.txt      # Expanded machine-readable brief
-└── README.md
+├── .env.example       # API Key 模板
+├── editor.ts          # 分页、Han.js、打印预览；微信模式切换
+├── editor.css         # Han.css、@page、@media print
+├── index.html         # 编辑器外壳；Han.css CDN；公众号主题；复制富文本
+├── src/core/          # 编辑器状态
+├── src/engine/        # 分页引擎（杂志路径）
+├── src/wechat/        # 公众号渲染器与粘贴清洗
+├── src/image/         # 图片面板
+├── src/cover/         # 封面生成
+├── llms.txt           # 短机器摘要
+├── llms-full.txt      # 长机器摘要
+├── README.md          # 简体中文（默认）
+├── README.zh-Hant.md  # 繁體中文
+├── README.ja.md       # 日本語
+└── README.en.md       # English
 ```
 
 ---
 
-## Stack
+## 技术栈
 
-- [Han.css](https://hanzi.pro/) — CJK typesetting (magazine / print path)
-- [Paged.js](https://pagedjs.org/) — CSS Paged Media polyfill (magazine / print path)
-- [Vivliostyle](https://vivliostyle.org/) — CSS pagination conventions used in MagMark magazine styles
-- [html-to-image](https://github.com/bubkoo/html-to-image) — high-resolution PNG export (magazine path)
+- [Han.css](https://hanzi.pro/) — CJK 排印（杂志 / 印刷路径）
+- [Paged.js](https://pagedjs.org/) — CSS Paged Media polyfill（杂志 / 印刷路径）
+- [Vivliostyle](https://vivliostyle.org/) — MagMark 杂志样式采用的 CSS 分页约定
+- [html-to-image](https://github.com/bubkoo/html-to-image) — 高分辨率 PNG（杂志路径）
 - Vite + TypeScript
-- WeChat paste: MagMark’s own inline-CSS renderer in `src/wechat/` (not Han/Paged)
+- 公众号粘贴：`src/wechat/` 自研内联 CSS 渲染器（不是 Han/Paged）
 
 ---
 
-## Author
+## 作者
 
-**Fu Jam** (傅 Jam) maintains MagMark.
+**Fu Jam**（傅 Jam）维护 MagMark。
 
-| Identity | Value |
+| 身份 | 值 |
 | --- | --- |
 | GitHub | [jammyfu](https://github.com/jammyfu) |
-| Display name | PaintingCoder |
-| Product | MagMark |
-| Canonical URL | https://github.com/jammyfu/MagMark |
-| Site | https://bubufu.com |
-| License | MIT |
+| 展示名 | PaintingCoder |
+| 产品 | MagMark |
+| 规范仓库 | https://github.com/jammyfu/MagMark |
+| 在线试用 | https://bubufu.com/tools/magmark/ |
+| 站点 | https://bubufu.com |
+| 许可 | MIT |
 
 ---
 
-## License
+## 许可证
 
-MIT. See [LICENSE](LICENSE).
+MIT。见 [LICENSE](LICENSE)。
 
-For agents and longer context, start with [llms.txt](llms.txt) or [llms-full.txt](llms-full.txt). There is no GitHub Pages host for these files; use the repository-root URLs on `github.com/jammyfu/MagMark`.
+给代理与更长上下文，从 [llms.txt](llms.txt) 或 [llms-full.txt](llms-full.txt) 开始。这些文件没有 GitHub Pages 托管；请用 `github.com/jammyfu/MagMark` 仓库根 URL。产品试用请走 [https://bubufu.com/tools/magmark/](https://bubufu.com/tools/magmark/)。
+
+其他语言：[繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [English](README.en.md)
 
 ---
 
@@ -251,7 +269,7 @@ Internal planning files live **below** the public product entity. They are for m
 
 ### Standardized Summary
 
-- Positioning: Magazine-grade Markdown layout and export engine with strong CJK typography (Han.css + Paged.js + Vivliostyle), plus a separate WeChat Official Account paste-HTML path.
+- Positioning: Magazine-grade Markdown layout and export engine with strong CJK typography (Han.css + Paged.js + Vivliostyle), plus a separate WeChat Official Account paste-HTML path. Online: https://bubufu.com/tools/magmark/
 - Stack: Vite + TypeScript with rendering, export, and typography pipelines.
 - Author: Fu Jam (GitHub jammyfu, display name PaintingCoder).
 <!-- END:personal-project-standard-entry -->

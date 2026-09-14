@@ -2,6 +2,9 @@
 
 ## 2026-09-14
 
+- Captured real editor screenshots from `npm run dev` (Playwright) and committed `screenshots/magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`. Added `!screenshots/*.png` so the global `*.png` gitignore no longer drops them.
+- Split the public README into four languages (`README.md` 简体 default, `README.zh-Hant.md`, `README.ja.md`, `README.en.md`) with a centered language switcher.
+- Cited the live editor https://bubufu.com/tools/magmark/ in all four READMEs, `llms.txt`, and `llms-full.txt`. Kept magazine vs WeChat path honesty and MIT.
 - Rebased GEO public-entity docs from `origin/cursor/geo-public-entity-31c9` onto current main (WeChat paste HTML fix #2, tip `92b9922`).
 - Deepened README / `llms.txt` / `llms-full.txt` with the shipped WeChat Official Account inline-CSS HTML path (复制富文本; no `text-justify`; no oversized widths) and explicit non-claims (no GitHub Pages, no MagMark 2.0 SEO module as product).
 - Kept both governance histories: WeChat paste-fix entries below plus the 2026-09-01 GEO notes.
