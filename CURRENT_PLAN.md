@@ -2,35 +2,34 @@
 
 ## Goal
 
-Land the GEO public-entity docs from `cursor/geo-public-entity-31c9` (PR #1) onto current `main` (includes WeChat paste HTML fix #2), then deepen SEO/GEO so ChatGPT / Perplexity / Google AI Overviews can cite MagMark as a stable public entity. Docs/metadata only.
+Restore real product screenshots, rewrite the public README into four languages (简体 default), and cite the live editor at https://bubufu.com/tools/magmark/ everywhere it belongs. Docs + screenshots only.
 
 ## Tasks
 
-- [x] Fetch `origin/cursor/geo-public-entity-31c9` and rebase its docs onto current `main` (`92b9922`).
-- [x] Prefer GEO versions of README.md, llms.txt, llms-full.txt, and product-facing PROJECT_BRIEF.md.
-- [x] Keep both governance histories: WeChat paste-fix entries from main plus GEO notes.
-- [x] Deepen README / llms.txt / llms-full.txt with the shipped WeChat Official Account HTML path; keep magazine Han/Paged and 3× PNG distinct.
-- [x] Keep MIT LICENSE unchanged. No editor.ts / CSS / WeChat renderer code changes.
-- [x] Open a ready (non-draft) docs-only PR against main that supersedes conflicting draft PR #1 (https://github.com/jammyfu/MagMark/pull/3).
+- [x] Capture real UI PNGs from a running `npm run dev` (Playwright + system Chrome): `magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`.
+- [x] Allow `screenshots/*.png` in `.gitignore` so the PNGs can be committed.
+- [x] Rewrite `README.md` as 简体中文; add `README.zh-Hant.md`, `README.ja.md`, `README.en.md` with a centered language switcher.
+- [x] Put https://bubufu.com/tools/magmark/ in the lead of all four READMEs, `llms.txt`, and `llms-full.txt`.
+- [x] Keep magazine vs WeChat paths distinct; keep MIT; do not invent features or GitHub Pages.
+- [x] Open a ready (non-draft) docs/screenshots PR against main.
 
 ## Out Of Scope
 
 - Rendering, pagination, WeChat sanitizer, or export code changes.
-- Setting GitHub About/topics via API (propose in the PR body only; maintainer applies with `gh repo edit`).
+- Replacing `scripts/capture-screenshot.js` (legacy stub kept; real capture is `scripts/capture-readme-screenshots.mjs`).
+- Setting GitHub About/homepage via API (propose in the PR body; maintainer applies with `gh repo edit --homepage`).
 - Inventing GitHub Pages, metrics, users, or badges.
 - Treating MagMark 2.0 SEO-module planning docs as shipped product.
-- Destroying governance files or wiping the WeChat paste-fix history.
 
 ## Verification
 
 - Run `python3 tools/verify.py`
-- Confirm README H1 is `MagMark` and the first screen answers what / who / method / what it is not, plus print PDF and WeChat HTML.
-- Confirm `llms.txt` follows the H1 → blockquote → prose → H2 link-list shape with absolute github.com links.
+- Confirm all four README image paths exist under `screenshots/` as PNGs.
+- Confirm H1 stays `MagMark` and the first screen answers what / who / method / what it is not, plus the bubufu URL.
 
 ## Next Candidates
 
-- Apply the proposed GitHub About description and topics in the repository settings after review (`gh repo edit`).
+- Maintainer: `gh repo edit jammyfu/MagMark --homepage https://bubufu.com/tools/magmark/` and keep the bubufu URL in the About description if space allows (≤350 chars).
 - Optional later: GitHub Pages-hosted `/llms.txt` (not required; repo-root `llms.txt` is enough).
 - Define release-quality acceptance criteria.
 - Document export-engine boundaries in code comments without changing behavior.
-- Add typography regression fixtures to the governance loop.

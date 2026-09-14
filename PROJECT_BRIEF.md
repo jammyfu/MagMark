@@ -8,7 +8,9 @@
 - Stack: Vite + TypeScript with rendering, export, and typography pipelines.
 - Author: Fu Jam (GitHub `jammyfu`, display name PaintingCoder)
 - Canonical URL: https://github.com/jammyfu/MagMark
+- Online editor: https://bubufu.com/tools/magmark/
 - License: MIT
+- Human docs: `README.md` (简体中文 default), `README.zh-Hant.md`, `README.ja.md`, `README.en.md`
 - Machine briefs: `llms.txt`, `llms-full.txt` (repo root; no GitHub Pages host)
 
 ## Problem
