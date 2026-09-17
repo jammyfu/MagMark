@@ -1,6 +1,6 @@
 import { EditorState, Transaction } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, isolateHistory, undo, redo, undoDepth, redoDepth } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
 
@@ -13,7 +13,7 @@ export function changedRange(before: string, after: string) {
   return { from, to, insert: after.slice(from, end) };
 }
 
-export interface SourceEditorOptions { onFocus?: () => void; onSave?: () => void; report?: (message: string) => void }
+export interface SourceEditorOptions { onFocus?: () => void; onSave?: () => void; report?: (message: string) => void; onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void }
 
 /**
  * Per-element migration adapter. The existing renderer and image tools keep their
@@ -42,6 +42,7 @@ export function mountSourceEditor(textarea: HTMLTextAreaElement, host: HTMLEleme
       EditorView.contentAttributes.of({ 'aria-label': 'Markdown 原文', spellcheck: 'false', autocapitalize: 'off' }),
       keymap.of([{ key: 'Mod-s', run: () => { options.onSave?.(); return true; } }, ...defaultKeymap, ...historyKeymap]),
       EditorView.updateListener.of(update => {
+        options.onHistoryChange?.(undoDepth(update.state) > 0, redoDepth(update.state) > 0);
         if (!update.docChanged && !update.selectionSet) return;
         syncNative();
         if (update.docChanged && !externalWrite) textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -77,6 +78,8 @@ export function mountSourceEditor(textarea: HTMLTextAreaElement, host: HTMLEleme
   host.addEventListener('keydown', stopLegacyKeys);
   return {
     view,
+    undo: () => { if (!view.composing) undo(view); },
+    redo: () => { if (!view.composing) redo(view); },
     destroy() {
       syncNative(); view.destroy(); host.removeEventListener('keydown', stopLegacyKeys);
       for (const key of ['value', 'focus', 'setSelectionRange']) {

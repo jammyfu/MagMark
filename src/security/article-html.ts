@@ -15,7 +15,7 @@ const schema: Options = {
     ...defaultSchema.attributes,
     '*': [...(defaultSchema.attributes?.['*'] || []).filter(item => item !== 'name'),
       'className', 'style', 'lang', 'dir', 'dataMmSrc', 'dataPageBreak', 'dataBreakType',
-      'dataLanguage', 'dataIgnoreWidth', 'leaf'],
+      'dataLanguage', 'dataIgnoreWidth', 'dataMmEdit', 'leaf'],
     img: [...(defaultSchema.attributes?.img || []), 'width', 'height', 'loading', 'decoding', 'referrerPolicy'],
     ol: [...(defaultSchema.attributes?.ol || []), 'start', 'reversed'],
     li: [...(defaultSchema.attributes?.li || []), 'value'],
@@ -91,6 +91,20 @@ function visitElements(tree: Root | Element, visit: (node: Element) => void) {
   }
 }
 
+function isImageParagraph(element: Element): boolean {
+  if (element.tagName !== 'p') return false;
+  let hasImage = false;
+  for (const child of element.children) {
+    if (child.type === 'text') {
+      if (child.value.trim()) return false;
+      continue;
+    }
+    if (child.type !== 'element' || !['img', 'br', 'em'].includes(child.tagName)) return false;
+    if (child.tagName === 'img') hasImage = true;
+  }
+  return hasImage;
+}
+
 /** Shared trust boundary for article/SDK/clipboard/cover HTML. Does not modify Markdown. */
 export function sanitizeArticleHtml(html: string, profile: HtmlProfile = 'article'): string {
   const tree = sanitizer.runSync(parseInertHtml(html)) as Root;
@@ -111,6 +125,10 @@ export function sanitizeArticleHtml(html: string, profile: HtmlProfile = 'articl
       const values = Array.isArray(p.className) ? p.className.map(String) : String(p.className).split(/\s+/);
       p.className = values.filter(value => /^(?:mm-[\w-]+|language-[\w+-]+|hljs(?:-[\w-]+)?|token|contains-task-list|task-list-item)$/.test(value));
       if (!p.className.length) delete p.className;
+    }
+    if (isImageParagraph(element)) {
+      const values = Array.isArray(p.className) ? p.className.map(String) : [];
+      if (!values.includes('mm-image-paragraph')) p.className = [...values, 'mm-image-paragraph'];
     }
     if (typeof p.src === 'string' && !isSafeImageSource(p.src)) delete p.src;
     if (typeof p.href === 'string' && !isSafeLink(p.href)) delete p.href;

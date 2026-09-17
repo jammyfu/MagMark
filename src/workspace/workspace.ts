@@ -1,4 +1,6 @@
 import { store } from '../core/state';
+import { mountAppearance } from './appearance';
+import { mountSplitter } from './splitter';
 import { getPageDimensions, type PaginationDiagnostic } from '../engine/layout';
 import { WECHAT_DEVICE_OPTIONS } from '../wechat/wechat-themes';
 
@@ -13,6 +15,7 @@ const required = <T extends HTMLElement>(id: string): T => {
 /** Presentation state only. Changing workspace views never changes article source. */
 export function mountWorkspace() {
   const body = document.body;
+  const disposeAppearance = mountAppearance(required<HTMLSelectElement>('workspace-appearance'), body);
   const input = required<HTMLTextAreaElement>('markdown-input');
   const inspector = required('layout-inspector');
   const layoutButton = required<HTMLButtonElement>('btn-layout');
@@ -224,14 +227,7 @@ export function mountWorkspace() {
     if (Number.isFinite(percent) && percent > 0) applyWechatZoom(percent / 100);
   }, true);
   const resize = required('resize-handle');
-  listen(resize, 'keydown', event => {
-    const key = event as KeyboardEvent;
-    if (!['ArrowLeft','ArrowRight','Home','End'].includes(key.key)) return;
-    key.preventDefault(); key.stopImmediatePropagation();
-    const now = Number(resize.getAttribute('aria-valuenow') || 42);
-    const next = key.key === 'Home' ? 25 : key.key === 'End' ? 70 : Math.max(25, Math.min(70, now + (key.key === 'ArrowLeft' ? -2 : 2)));
-    required('editor-panel').style.width = `${next}%`; resize.setAttribute('aria-valuenow', String(next)); scheduleFit();
-  });
+  const disposeSplitter = mountSplitter(resize, required('editor-panel'), scheduleFit);
   const mediaChanged = () => { closeInspector(false); setView(media.matches ? (currentView === 'preview' ? 'preview' : 'write') : 'compare'); };
   media.addEventListener('change', mediaChanged);
   const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(scheduleFit) : undefined;
@@ -243,6 +239,6 @@ export function mountWorkspace() {
   setView(currentView); refreshDocument(); syncOutput();
   return {
     setView, showSource, refreshDocument, report,
-    destroy() { unsubscribe(); aborter.abort(); media.removeEventListener('change', mediaChanged); observer?.disconnect(); feedbackObserver.disconnect(); cancelAnimationFrame(frame); clearTimeout(toastTimer); },
+    destroy() { disposeSplitter(); disposeAppearance(); unsubscribe(); aborter.abort(); media.removeEventListener('change', mediaChanged); observer?.disconnect(); feedbackObserver.disconnect(); cancelAnimationFrame(frame); clearTimeout(toastTimer); },
   };
 }

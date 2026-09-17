@@ -12,7 +12,7 @@
 
 Canonical repo: [github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) · Author: **Fu Jam** ([jammyfu](https://github.com/jammyfu) / **PaintingCoder**) · License: [MIT](LICENSE) · Machine brief: [llms.txt](llms.txt)
 
-[![version](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
+[![version](https://img.shields.io/badge/version-2.0.0--beta.1-gold.svg)](https://github.com/jammyfu/MagMark/tree/codex/2.0.0-beta)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ![MagMark editor main view: Markdown on the left, paginated magazine preview on the right](screenshots/magmark-main.png)
@@ -155,7 +155,7 @@ Do not treat MagMark 2.0 SEO-module planning docs (`docs/SEO.md`, `magmark-2.0/s
 
 ---
 
-## Features (1.6.0)
+## Features (2.0.0-beta.1)
 
 ### Cover generator
 

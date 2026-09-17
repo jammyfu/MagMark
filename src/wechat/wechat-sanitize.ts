@@ -1,4 +1,6 @@
 import { sanitizeArticleHtml } from '../security/article-html';
+import { parseInertHtml, serializeInertHtml } from '../security/inert-html';
+import type { Element, ElementContent, Root } from 'hast';
 /**
  * MagMark — WeChat Official Account paste sanitizer
  *
@@ -669,14 +671,32 @@ export function sanitizeWechatPasteHtml(html: string): string {
 
 /** Native text runs keep inline marks together when WeChat parses and saves HTML. */
 function wrapWechatTextBlocks(html: string): string {
-    return html.replace(/<(p|h[1-6]|td|th)\b([^>]*)>([\s\S]*?)<\/\1>/gi,
-        (full, tag: string, attrs: string, inner: string) => {
-            if (!inner.replace(/<[^>]*>/g, '').trim()) return full;
-            if (/<(?:p|div|section|blockquote|pre|table|ul|ol|li|h[1-6])\b/i.test(inner)) return full;
-            if (/^\s*<span\b[^>]*\sleaf\s*=/.test(inner) && /<\/span>\s*$/.test(inner)) return full;
-            const style = attrs.match(/\sstyle="([^"]*)"/i)?.[1] || '';
-            const textProps = new Set(['color', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-decoration']);
-            const textStyle = style.split(';').filter(decl => textProps.has(decl.split(':')[0].trim())).join(';');
-            return `<${tag}${attrs}><span leaf="" style="${textStyle}">${inner}</span></${tag}>`;
-        });
+    const tree = parseInertHtml(html);
+    const textProps = new Set(['color', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-decoration']);
+    const blocks = new Set([...TEXT_BLOCK_TAGS, 'table', 'figure', 'hr']);
+    const hasText = (node: ElementContent): boolean => node.type === 'text'
+        ? !!node.value.trim() : node.type === 'element' && node.children.some(hasText);
+    const isLeaf = (node: ElementContent) => node.type === 'element' && node.tagName === 'span' && 'leaf' in node.properties;
+    function walk(parent: Root | Element) {
+        for (const child of parent.children) if (child.type === 'element') walk(child);
+        if (parent.type !== 'element' || !/^(p|h[1-6]|td|th|li)$/.test(parent.tagName)) return;
+        const style = String(parent.properties.style || '');
+        const textStyle = style.split(';').filter(decl => textProps.has(decl.split(':')[0].trim())).join(';');
+        const result: ElementContent[] = [];
+        let run: ElementContent[] = [];
+        const flush = () => {
+            if (run.some(hasText)) result.push({ type: 'element', tagName: 'span', properties: { leaf: '', style: textStyle }, children: run });
+            else result.push(...run);
+            run = [];
+        };
+        for (const child of parent.children) {
+            // A nested list or paragraph must never be put inside an inline span.
+            if (isLeaf(child) || (child.type === 'element' && blocks.has(child.tagName))) {
+                flush(); result.push(child);
+            } else run.push(child);
+        }
+        flush(); parent.children = result;
+    }
+    walk(tree);
+    return serializeInertHtml(tree);
 }

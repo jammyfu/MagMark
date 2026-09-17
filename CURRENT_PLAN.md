@@ -2,7 +2,13 @@
 
 ## Active: quiet workspace and CJK publishing upgrade (2026-09-15)
 
-Branch: `feat/cjk-publishing-upgrade-20260914`. Original base: `7020c3b`; this iteration resumed verified `afb7dca`. No main update, merge, force-push, deployment or WeChat account action is authorized.
+Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed verified `afb7dca`. On 2026-09-18 the user authorized committing and synchronizing the current upgrade on an independent 2.0 beta branch. Remote main stays at 1.6.0. No main update, merge, force-push, deployment or WeChat account action is authorized.
+
+### Current release preparation (2026-09-18)
+
+- Fix preview double-click source mapping using renderer-owned ranges; verify list titles, repeated text and paginated blocks.
+- Set 2.0.0-beta.1, refresh README workspace screenshot, commit and push only the independent beta branch.
+- Preserve unrelated untracked deployment experiments locally; verify the isolated release tree before pushing.
 
 This is the only current execution entry. Earlier status and complete execution history are preserved byte-for-byte in [the prior plan](docs/project-governance/archive/2026-09-14-CURRENT_PLAN.md). Earlier unpushed-local claims were not assumed recovered.
 

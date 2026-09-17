@@ -19,7 +19,7 @@
       <span class="brand-name">MagMark</span>
       <span class="brand-divider" aria-hidden="true"></span>
       <span id="document-title" class="document-title">未命名文章</span>
-      <span class="logo-version" hidden>1.6.0</span>
+      <span class="logo-version" hidden>2.0.0-beta.1</span>
     </div>
     <nav id="workspace-tabs" class="workspace-tabs" aria-label="工作区视图">
       <button type="button" data-workspace-view="write" aria-pressed="false">写作</button>
@@ -27,6 +27,10 @@
       <button type="button" data-workspace-view="preview" aria-pressed="false">预览</button>
     </nav>
     <div class="workspace-actions">
+      <select id="workspace-appearance" aria-label="工作区外观" title="工作区外观（不影响文章）">
+        <option value="light">亮色</option>
+        <option value="dark">暗色</option>
+      </select>
       <details id="file-menu" class="file-menu">
         <summary>文件 <span aria-hidden="true">⌄</span></summary>
         <div class="file-popover" aria-label="文件操作">
@@ -50,6 +54,9 @@
       <div class="panel-header workspace-panel-header">
         <div class="panel-heading"><span class="panel-dot" aria-hidden="true"></span><h1>Markdown</h1><span class="panel-caption">专注于表达</span></div>
         <div class="insert-actions" aria-label="插入内容">
+          <button type="button" id="btn-undo" aria-label="撤销" title="撤销（⌘/Ctrl Z）" disabled>↶</button>
+          <button type="button" id="btn-redo" aria-label="重做" title="重做（⌘/Ctrl Shift Z）" disabled>↷</button>
+          <button type="button" id="btn-history" aria-label="历史记录" title="查看自动保存历史">◷</button>
           <button type="button" id="btn-image" title="插入或编辑图片">图片</button>
           <button type="button" id="btn-cover" title="设置文章封面">封面</button>
         </div>
@@ -58,7 +65,7 @@
       <textarea id="markdown-input" aria-label="Markdown 原文" spellcheck="false" placeholder="# 从一个想法开始
 
 写下你的内容。"></textarea>
-      <footer class="editor-footer"><span id="char-count">0 字符</span><span id="document-status" role="status" aria-live="polite">Markdown 原文</span></footer>
+      <footer class="editor-footer"><span id="char-count">0 字符</span><span id="autosave-status" role="status">自动保存准备中</span><span id="document-status" role="status" aria-live="polite">Markdown 原文</span></footer>
     </section>
 
     <div class="resize-handle" id="resize-handle" role="separator" aria-label="调整写作区宽度" aria-orientation="vertical" aria-valuemin="25" aria-valuemax="70" aria-valuenow="42" tabindex="0"></div>
@@ -191,9 +198,22 @@
     <section class="export-section" data-magazine-only><h3>保存文件</h3>
       <div class="export-file-grid"><button type="button" id="btn-export">当前页 PNG</button><button type="button" id="btn-export-all">全部页 PNG</button><button type="button" id="btn-print-preview">打印 / PDF 预览</button></div>
     </section>
-    <footer class="export-note">本地图片需在目标平台单独上传。导出不会自动发布。</footer>
+    <footer class="export-note">已加载的本地图片随排版复制；粘贴后请确认目标平台已接收图片。导出不会自动发布。</footer>
   </dialog>
-  <div class="floating-toolbar" id="block-toolbar" style="display: none;">
+<div class="floating-toolbar" id="block-toolbar" style="display: none;">
+<div class="toolbar-item toolbar-selection-item">
+<label for="toolbar-select-scope">选取</label>
+<select id="toolbar-select-scope" aria-label="按文字层级批量选取">
+<option value="">批量选取…</option>
+<option value="body">全部正文（不含标题）</option>
+<option value="h1">全部主标题 H1</option>
+<option value="h2">全部副标题 H2</option>
+<option value="h3">全部小标题 H3</option>
+<option value="minor-headings">全部次级标题 H4–H6</option>
+<option value="headings">全部标题 H1–H6</option>
+</select>
+</div>
+<div class="toolbar-divider"></div>
 <div class="toolbar-item toolbar-typography-item">
 <label>字号</label>
 <input id="toolbar-fontsize" max="64" min="10" step="1" type="range"/>
@@ -239,6 +259,9 @@
 </button>
 <div class="toolbar-divider"></div>
 <span class="toolbar-count" id="toolbar-count" style="display:none;"></span>
+<button type="button" class="toolbar-btn toolbar-delete" id="toolbar-delete" aria-label="删除选中内容" title="删除选中文字或图片（可在原文中撤销）">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>
+</button>
 <button class="toolbar-btn" id="toolbar-close">✕</button>
 </div>
   <script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>

@@ -133,7 +133,7 @@ describe('WeChat paste HTML — content structure', () => {
         const html = render(IMAGE_RICH_ARTICLE);
         expect(html).not.toMatch(/<figure\b/i);
         expect(html).toMatch(
-            /<p[^>]*style="[^"]*text-align:\s*center[^"]*"><img[^>]*src="https:\/\/example.com\/legend-of-trump\.jpg"/,
+            /<p[^>]*style="[^"]*text-align:\s*center[^"]*"[^>]*><img[^>]*src="https:\/\/example.com\/legend-of-trump\.jpg"/,
         );
         expect(html).toMatch(
             /<p style="[^"]*text-align:\s*center[^"]*"><span leaf=""[^>]*>The Legend of Trump<\/span><\/p>/,

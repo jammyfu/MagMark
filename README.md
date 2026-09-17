@@ -12,10 +12,12 @@
 
 规范仓库：[github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) · 作者：**Fu Jam**（[jammyfu](https://github.com/jammyfu) / **PaintingCoder**）· 许可：[MIT](LICENSE) · 机器摘要：[llms.txt](llms.txt)
 
-[![version](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
+[![version](https://img.shields.io/badge/version-2.0.0--beta.1-gold.svg)](https://github.com/jammyfu/MagMark/tree/codex/2.0.0-beta)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ![MagMark 编辑器主界面：左侧 Markdown，右侧杂志分页预览](screenshots/magmark-main.png)
+
+当前分支为 **2.0.0-beta.1** 测试版；稳定版 **1.6.0** 保留在 `main`。新版支持亮暗工作区、双击预览编辑、撤销／重做、本地草稿历史及多媒体封面独立／整体编辑。草稿仅保存在当前浏览器，暂不包含排版设置与封面版本。
 
 ![微信绿主题下的公众号粘贴预览（手机框 + 复制富文本）](screenshots/wechat-paste-preview.png)
 
@@ -155,7 +157,7 @@ MagMark 是开源、MIT 许可的杂志级 Markdown 排版与导出引擎，强�
 
 ---
 
-## 功能（1.6.0）
+## 功能（2.0.0-beta.1）
 
 ### 封面生成
 

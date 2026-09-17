@@ -87,4 +87,13 @@ describe('shared HTML policy details', () => {
     const out = sanitizeArticleHtml('<p style="background:u\\72l(https://invalid.test/a);color:#123456;border-image: url(x);font-family:evil(1)">文本</p>');
     expect(parsed(out).querySelector('p')?.getAttribute('style')).toBe('color:#123456');
   });
+  it('marks imported image-only paragraphs for compact layout without changing mixed prose', () => {
+    const output = parsed(sanitizeArticleHtml(
+      '<p align="center">\n  <img src="assets/card.png">\n  <br>\n  <em>图片说明</em>\n</p>' +
+      '<p>正文 <img src="assets/inline.png"> 继续</p>'
+    ));
+    const paragraphs = output.querySelectorAll('p');
+    expect(paragraphs[0].classList.contains('mm-image-paragraph')).toBe(true);
+    expect(paragraphs[1].classList.contains('mm-image-paragraph')).toBe(false);
+  });
 });

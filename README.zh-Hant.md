@@ -12,7 +12,7 @@
 
 規範儲存庫：[github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) · 作者：**Fu Jam**（[jammyfu](https://github.com/jammyfu) / **PaintingCoder**）· 授權：[MIT](LICENSE) · 機器摘要：[llms.txt](llms.txt)
 
-[![version](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
+[![version](https://img.shields.io/badge/version-2.0.0--beta.1-gold.svg)](https://github.com/jammyfu/MagMark/tree/codex/2.0.0-beta)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ![MagMark 編輯器主畫面：左側 Markdown，右側雜誌分頁預覽](screenshots/magmark-main.png)
@@ -155,7 +155,7 @@ MagMark 是開源、MIT 授權的雜誌級 Markdown 排版與匯出引擎，強�
 
 ---
 
-## 功能（1.6.0）
+## 功能（2.0.0-beta.1）
 
 ### 封面產生
 

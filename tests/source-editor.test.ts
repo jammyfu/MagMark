@@ -12,6 +12,12 @@ function setup(value = '中文**API**工具\n\n`中文_key` 与 👩🏽‍💻'
   return { textarea, host, input, ...mounted };
 }
 describe('transactional source editor bridge', () => {
+  it('exposes undo and redo actions for the toolbar', () => {
+    const item = setup('原文');
+    item.textarea.value = '改文';
+    item.undo(); expect(item.textarea.value).toBe('原文');
+    item.redo(); expect(item.textarea.value).toBe('改文');
+  });
   it('preserves literal Markdown and changes only the adapted textarea', () => {
     const prototype = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
     const source = '中文**API**工具\n`中文_key` 👩🏽‍💻'; const item = setup(source);

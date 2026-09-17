@@ -1,5 +1,55 @@
 # WORKLOG.md
 
+## 2026-09-18 — 2.0 beta release preparation and preview editing repair
+
+- User confirmed an independent 2.0 branch; created codex/2.0.0-beta and set package/lockfile/UI/README version to 2.0.0-beta.1. Fetched origin and confirmed main remains 7020c3b, version 1.6.0; no main mutation or deployment.
+- Fixed renderer/parser mismatch for list titles and continuation text with renderer-owned source ranges, session-scoped identifiers and exact-document validation. Repeated and paginated blocks use their original ranges rather than ambiguous text lookup; legacy renderers retain conservative matching.
+- Browser verified that the current article's “情怀撕开” list title opens with its Markdown formatting intact. Cancelled without changing the user's article. Replaced screenshots/magmark-main.png with an actual current dark workspace capture used by all four README translations.
+- Isolated staged release tree passed strict typecheck, 132 Vitest tests, 59 text cases, 6 SDK guard cases, production build and governance verification. Working-directory checks still fail only on unrelated untracked sanitize-html experiments with missing dompurify/jsdom types; those files and untracked deployment output/config remain untouched and excluded from the beta commit. Build reports the existing large-JS-chunk warning.
+
+## 2026-09-18 — Multi-media cover editing
+
+- Researched cover placements and recorded cited recommendations in docs/MEDIA_COVER_SIZES.md, including current YouTube official 3840×2160 / 2160×3840 guidance. XHS, WeChat and Bilibili recommendations are explicitly not claimed as verified official constraints.
+- Applied frontend-design guidance within the existing restrained workspace: media selector, scoped edits, small variant preview grid, exact output-size canvas, preset reset and current PNG action. Added exact 2.35:1 instead of approximating it as 21:9.
+- Three tests passed for preset arithmetic and real panel switching/local/shared edit isolation. Browser showed all nine preview variants and 940×400 WeChat output. PNG action ran, but the in-app browser download event timed out; switched to an attached Blob download link. Download receipt and all-platform acceptance remain unverified. Existing missing dompurify/jsdom types still block full typecheck. Governance/diff checks passed. No deployment or AI API request.
+
+## 2026-09-18 — Autosave, local history and undo/redo
+
+- Added undo/redo actions with live enabled states, history dialog with dated previews, bounded local snapshots, guarded restore and actual-save status. Captures pasted image data and associated directory blobs; stores only locally. Does not include typography state or generated cover state.
+- 14 targeted draft/source/workspace tests passed. Browser verified a new 420-character version, undo/redo/undo returning to original 413 characters, automatic save, and refresh reporting recovered local draft. The original text was restored. Image blob round-trip and multi-tab conflict are not browser-certified in this turn.
+- Governance verification passed. Full typecheck still reports existing missing dompurify and jsdom types in the unrelated untracked sanitize-html file. No deployment.
+
+## 2026-09-17 — Readable typography values
+
+Removed article-primary color inheritance from floating typography values. Browser computed styles verified all three values at 12px and rgb(245,247,255), with a subtle backing. Labels, slider thumbs and count badge also use independent contrast colors. Governance verification and whitespace checks passed.
+
+## 2026-09-17 — Selection delete icon
+
+Added an accessible trash icon to the floating toolbar and connected figure selection to it. Deletion resolves unique text block/image reference ranges and commits through the source bridge. Three focused tests passed for multiple text blocks, image attributes and atomic ambiguity refusal. Browser verified the icon appears for selected text; did not delete user content through the UI. Governance and whitespace checks passed. Typecheck remains blocked by the existing unrelated sanitize-html missing dependencies.
+
+## 2026-09-17 — Restore splitter dragging
+
+Found only keyboard handlers on the workspace separator. Added pointer capture and bounded drag resizing with cleanup; widened hit target to 13px. Six targeted splitter/workspace tests passed. Browser drag changed the editor from about 789px (42%) to 959px (51%). Governance verification passed; no deployment.
+
+## 2026-09-17 — WeChat list warning follow-up
+
+- Inspected actual starter-article clipboard: 14px body / 28px line-height were already safe numerically, but all three list items lacked leaf grouping. The screenshot's paragraphs 10–12 are consistent with this omission; live checker causality remains unverified.
+- Replaced text-run regex with inert-tree grouping including list items and nested block boundaries. Added list/nesting/idempotence regressions; adjusted image assertion to permit the existing image-paragraph class after style.
+- 32 clipboard/WeChat tests passed; actual browser clipboard contains three list items and three directly grouped leaf runs after the change. Governance verification and diff check passed. Typecheck still has the existing unrelated missing dompurify/jsdom type dependencies. User must retry live WeChat paste; no WeChat account actions performed.
+
+## 2026-09-17 — Restore directory-image clipboard export
+
+- Removed the unconditional WeChat placeholder replacement for local images. Embedded raster data is preserved; loaded blob/local images are encoded as PNG in the exported HTML. Missing placeholders and unreadable images still report a replacement requirement.
+- Clipboard and content-trust tests: 22 passed. This verifies exported image data and sanitization, not WeChat server-side upload or persistence. Governance verification and whitespace checks passed.
+
+## 2026-09-17 — Preview selection refinements
+
+- Made image figures shrink-wrap their rendered content so edit outlines no longer reserve a mostly empty block around narrower images.
+- Added semantic batch selection to the existing floating typography toolbar: body copy excluding headings/images/separators, H1, H2, H3, H4–H6, and all headings. The selected scope reuses the existing multi-block typography controls.
+- Compact imported image-only HTML paragraphs by tagging the safe `<p><img><br><em>` structure during sanitization, suppressing empty BR line boxes and restoring a deliberate caption line height. The supplied 7,202-character article identified all 6 imported image paragraphs; measured blocks fell from roughly 325–349px to 206–224px with only caption height plus about 7px internal spacing remaining.
+- Browser verification selected 8 body blocks with zero headings and 2 H2 blocks with zero body paragraphs in the starter article. The floating toolbar is clamped inside the viewport after its final controls and count badge are laid out.
+- Targeted workspace/image tests passed (6/6); compact image sanitization/workspace tests passed (19/19). Browser console remained clear, `git diff --check` and governance verification passed. Full typecheck/test remain blocked by pre-existing untracked `src/core/sanitize-html.ts` / `tests/sanitize-html.test.ts` dependencies (`dompurify`, `@types/jsdom`); `editor.ts` also retains its existing ESLint baseline findings.
+
 ## 2026-09-15 — Continuation after quiet workspace
 
 - Resumed remote 6815b10 and read-only snapshot e0b0a5c, not earlier unpushed claims. Confirmed prior ordinary CI 34878022617 succeeded. Only the approved feature branch is used.
@@ -25,6 +75,19 @@ Local evidence: 88 Vitest, 59 text, 6 SDK guards, 7 gate checks, 17 pagination D
 
 Current details: [QUIET_WORKSPACE.md](QUIET_WORKSPACE.md) and [remote evidence](REMOTE_WORKSPACE_VERIFICATION.md).
 
+## 2026-09-17 — Workspace light/dark preference
+
+- Added a labelled header appearance selector, guarded preference persistence and listener cleanup. Updated workspace surfaces, editor text, auxiliary panels and native dropdown colors without mutating article themes.
+- Six targeted appearance/workspace tests passed, including restored preference, unavailable storage, disposal and article identity preservation. Browser interaction confirmed dark workspace with unchanged light article, then restored light mode; inspected native options as dark text on white with light color-scheme.
+- Governance verification passed. Full typecheck remains blocked by existing untracked `src/core/sanitize-html.ts` imports for missing `dompurify` and `@types/jsdom`; no unrelated dependency changes were made. No deployment.
+
 ## Prior execution history
+
+## 2026-09-17 — Double-click preview text editing
+
+- Added a source-preserving contextual editor for uniquely matched Markdown headings/paragraphs/list text. Save updates the existing source bridge; cancel leaves source untouched. Ambiguous/unsupported mapping and concurrent changes fail closed.
+- Fixed the floating selection toolbar intercepting the second click by delaying its single-click display and cancelling on double-click.
+- Ten targeted preview/workspace tests passed. Real browser verified double-click, edit/save, updated rendered heading, reopen/cancel, and CodeMirror undo restoring the original article. Real OS IME and all unsupported markup variants are not certified.
+- Governance-only verifier and diff whitespace checks passed. Typecheck still reports only the existing untracked sanitize-html missing dompurify/jsdom types. No deployment.
 
 The complete earlier worklog is preserved unchanged, using its original Git blob, in [2026-09-14-WORKLOG.md](archive/2026-09-14-WORKLOG.md). Historical test scopes and earlier platform checks are not reclassified as tests of this UI iteration.

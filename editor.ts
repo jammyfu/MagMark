@@ -1,4 +1,6 @@
 import { sanitizeArticleHtml } from './src/security/article-html';
+import { markEditableSource } from './src/workspace/preview-edit';
+import { deleteSelectedSource } from './src/workspace/delete-selection';
 import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
 import * as htmlToImage from 'html-to-image';
@@ -33,6 +35,24 @@ let wcFontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 const imageStore = new Map<string, string>(); // uuid → data URL
 const localImageFiles = new Map<string, string>();
 let articleRelativePath = '';
+
+export interface SavedImages { pasted: Array<[string, string]>; directory: Array<[string, Blob]>; path: string }
+export function imageSaveKey() { return JSON.stringify([[...imageStore], [...localImageFiles], articleRelativePath]); }
+export async function captureSavedImages(): Promise<SavedImages> {
+    const directory = await Promise.all([...localImageFiles].map(async ([name, url]): Promise<[string, Blob]> => {
+        if (!url.startsWith('blob:')) throw new Error('Unsupported local image source');
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Local image unavailable');
+        return [name, await response.blob()];
+    }));
+    return { pasted: [...imageStore], directory, path: articleRelativePath };
+}
+export function restoreSavedImages(images: SavedImages) {
+    // Retain earlier references so source undo can still resolve its images.
+    for (const [key, value] of images.pasted) imageStore.set(key, value);
+    for (const [key, value] of images.directory) localImageFiles.set(key, URL.createObjectURL(value));
+    articleRelativePath = images.path;
+}
 
 function storeImage(dataUrl: string): string {
     const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
@@ -391,6 +411,8 @@ function attachBlockListeners() {
                     if (f !== b) f.classList.remove('mm-fig-selected');
                 });
                 b.classList.toggle('mm-fig-selected');
+                if (b.classList.contains('mm-fig-selected')) selectBlock(b);
+                else clearSelection();
             } else {
                 // Non-figure block clicked → clear all figure selections
                 previewArea.querySelectorAll('figure.mm-figure.mm-fig-selected').forEach(f => {
@@ -409,6 +431,10 @@ function attachBlockListeners() {
     // Note: marquee mousedown is bound once in init()
 }
 
+// Let a second click reach the text before the floating toolbar can cover it.
+let blockToolbarTimer: ReturnType<typeof setTimeout>;
+previewArea.addEventListener('dblclick', () => clearTimeout(blockToolbarTimer), true);
+
 /** Single-click select (clears previous selection) */
 function selectBlock(el: HTMLElement) {
     const bid = el.dataset.blockId;
@@ -423,7 +449,8 @@ function selectBlock(el: HTMLElement) {
     store.setState({ selectedBlockId: bid });
     el.classList.add('block-editing');
 
-    showToolbar([el]);
+    clearTimeout(blockToolbarTimer);
+    blockToolbarTimer = setTimeout(() => { if (el.isConnected) showToolbar([el]); }, 300);
 }
 
 /** Shift-click to add/remove from multi-selection */
@@ -462,13 +489,51 @@ function shiftSelectBlock(el: HTMLElement) {
     }
 }
 
+type BlockSelectionScope = 'body' | 'h1' | 'h2' | 'h3' | 'minor-headings' | 'headings';
+
+function blockMatchesSelectionScope(block: HTMLElement, scope: BlockSelectionScope): boolean {
+    const tag = block.tagName.toLowerCase();
+    if (scope === 'h1' || scope === 'h2' || scope === 'h3') return tag === scope;
+    if (scope === 'headings') return /^h[1-6]$/.test(tag);
+    if (scope === 'minor-headings') return /^h[4-6]$/.test(tag);
+    // Body copy includes prose containers such as lists, quotes, code and tables,
+    // while intentionally excluding headings, images and visual separators.
+    return !/^h[1-6]$/.test(tag) && tag !== 'figure' && tag !== 'hr';
+}
+
+/** Select one semantic text layer across every rendered page. */
+function selectBlocksByScope(scope: BlockSelectionScope) {
+    const blocks = Array.from(
+        previewArea.querySelectorAll<HTMLElement>('.magmark > [data-block-id]')
+    ).filter(block => blockMatchesSelectionScope(block, scope));
+    if (!blocks.length) return;
+
+    const currentId = store.getState().selectedBlockId;
+    const primary = blocks.find(block => block.dataset.blockId === currentId) || blocks[0];
+    const ordered = [primary, ...blocks.filter(block => block !== primary)];
+
+    selectedBlockIds.clear();
+    previewArea.querySelectorAll('.block-editing, .block-selected').forEach(block => {
+        block.classList.remove('block-editing', 'block-selected');
+    });
+
+    primary.classList.add('block-editing');
+    ordered.slice(1).forEach(block => {
+        const id = block.dataset.blockId;
+        if (!id) return;
+        selectedBlockIds.add(id);
+        block.classList.add('block-selected');
+    });
+    store.setState({ selectedBlockId: primary.dataset.blockId || null });
+    showToolbar(ordered);
+}
+
 function showToolbar(els: HTMLElement | HTMLElement[]) {
     const elArray = Array.isArray(els) ? els : [els];
     if (elArray.length === 0) return;
 
     const primary = elArray[0];
     toolbar.style.display = 'flex';
-    positionToolbar(primary);
 
     const bid = primary.dataset.blockId!;
     const state = store.getState();
@@ -485,6 +550,7 @@ function showToolbar(els: HTMLElement | HTMLElement[]) {
         toolbar.querySelectorAll<HTMLElement>('.toolbar-align-btn').forEach(btn => {
             btn.classList.toggle('active', btn.id === `toolbar-align-${activeLayout.replace('float-', '')}`);
         });
+        positionToolbar(primary);
         return;
     }
 
@@ -502,12 +568,13 @@ function showToolbar(els: HTMLElement | HTMLElement[]) {
     $('#toolbar-val-letterspacing').textContent = over.letterSpacing.toFixed(2);
 
     // Show count badge if multi-select
-    const count = elArray.length + selectedBlockIds.size;
+    const count = previewArea.querySelectorAll('.block-editing, .block-selected').length;
     const countBadge = $('#toolbar-count');
     if (countBadge) {
         countBadge.textContent = count > 1 ? `${count} 块已选` : '';
         (countBadge as HTMLElement).style.display = count > 1 ? 'block' : 'none';
     }
+    positionToolbar(primary);
 }
 
 function positionToolbar(el: HTMLElement) {
@@ -515,8 +582,12 @@ function positionToolbar(el: HTMLElement) {
     const rect = el.getBoundingClientRect();
     // Position above the element
     const tbHeight = toolbar.offsetHeight || 48;
+    const tbWidth = toolbar.offsetWidth || 0;
+    // Keep a little extra room for the entry animation's scale interpolation.
+    const viewportPadding = 16;
+    const maxLeft = Math.max(viewportPadding, window.innerWidth - tbWidth - viewportPadding);
     toolbar.style.top = `${rect.top - tbHeight - 10}px`;
-    toolbar.style.left = `${Math.max(8, rect.left)}px`;
+    toolbar.style.left = `${Math.min(maxLeft, Math.max(viewportPadding, rect.left))}px`;
 }
 
 /* ── Marquee (PS Box Select) ── */
@@ -617,10 +688,11 @@ function applyMarqueeSelection(endEvent: MouseEvent) {
 
 /** Clears all block selections and hides the floating toolbar */
 function clearSelection() {
+    clearTimeout(blockToolbarTimer);
     selectedBlockIds.clear();
     store.setState({ selectedBlockId: null });
-    previewArea.querySelectorAll('.block-editing, .block-selected').forEach(b => {
-        b.classList.remove('block-editing', 'block-selected');
+    previewArea.querySelectorAll('.block-editing, .block-selected, .mm-fig-selected, .mm-image-active').forEach(b => {
+        b.classList.remove('block-editing', 'block-selected', 'mm-fig-selected', 'mm-image-active');
     });
     toolbar.style.display = 'none';
 }
@@ -655,8 +727,17 @@ function stripFrontmatter(md: string): string {
     return match ? md.slice(match[0].length) : md;
 }
 
-function convertMarkdown(md: string): string {
-    const lines = stripFrontmatter(md).replace(/\r\n/g, '\n').split('\n');
+function convertMarkdown(md: string, mapSource = true): string {
+    const body = stripFrontmatter(md);
+    const lines = body.split(/\r?\n/);
+    let offset = md.length - body.length;
+    const offsets = lines.map(line => {
+        const start = offset;
+        offset += line.length + (md.slice(offset + line.length, offset + line.length + 2) === '\r\n' ? 2 : 1);
+        return start;
+    });
+    const editable = (start: number, end: number, prefix = 0) => mapSource
+        ? markEditableSource(md, offsets[start] + prefix, offsets[end] + lines[end].length) : '';
     const blocks: string[] = [];
     let i = 0;
 
@@ -706,7 +787,7 @@ function convertMarkdown(md: string): string {
             i++;
         }
         // Recursively convert inner content (supports nested blockquotes)
-        const inner = convertMarkdown(quoteLines.join('\n'))
+        const inner = convertMarkdown(quoteLines.join('\n'), false)
             .replace(/<\/?p>/g, '') // keep inner markup clean
             || quoteLines.map(l => inlineMarkdown(l)).join('<br>');
         return `<blockquote><p>${inner}</p></blockquote>`;
@@ -775,6 +856,7 @@ function convertMarkdown(md: string): string {
                 if (!ulMatch && !olMatch) break;
 
                 let content = ulMatch ? ulMatch[2] : olMatch![1];
+                const sourceMark = editable(i, i, line.length - content.length);
                 let checked = false;
 
                 // Task list item
@@ -800,7 +882,7 @@ function convertMarkdown(md: string): string {
                     }
                 }
 
-                html += `<li>${content}${nested}</li>`;
+                html += `<li${sourceMark}>${content}${nested}</li>`;
             }
             return html;
         }
@@ -837,6 +919,7 @@ function convertMarkdown(md: string): string {
         /^\[!\[[^\]]*\]\([^)]+\)\]\([^)]+\)\s*$/.test(l.trim());
 
     function parseParagraph(): string {
+        const start = i;
         const rawLines: string[] = [];
         const paraLines: string[] = [];
         while (i < lines.length && !isBlockStop(lines[i])) {
@@ -849,7 +932,7 @@ function convertMarkdown(md: string): string {
         if (rawLines.length > 0 && rawLines.every(isBadgeLine)) {
             return `<p class="mm-badge-row">${paraLines.join(' ')}</p>`;
         }
-        return `<p>${paraLines.join('<br>')}</p>`;
+        return `<p${editable(start, i - 1)}>${paraLines.join('<br>')}</p>`;
     }
 
     // ── Main parsing loop ─────────────────────────────────
@@ -868,7 +951,7 @@ function convertMarkdown(md: string): string {
         const hm = line.match(/^(#{1,6}) (.+)$/);
         if (hm) {
             const level = hm[1].length;
-            blocks.push(`<h${level}>${inlineMarkdown(hm[2])}</h${level}>`);
+            blocks.push(`<h${level}${editable(i, i, level + 1)}>${inlineMarkdown(hm[2])}</h${level}>`);
             i++;
             continue;
         }
@@ -1133,7 +1216,7 @@ async function copyCurrentPageRichContent(target: ClipboardTarget = 'document') 
         if (status) status.textContent = !ok
             ? '复制失败，请允许浏览器访问剪贴板后重试。'
             : target === 'wechat' && payload.localImages
-                ? `已复制正文和样式；${payload.localImages} 张本地或未加载图片已保留位置，请在公众号后台上传替换。`
+                ? `已复制正文、样式和可读取图片；${payload.localImages} 张图片无法读取，请重新关联图片目录或在公众号后台上传替换。`
                 : target === 'wechat' ? '已复制公众号兼容排版，保留当前主题颜色。' : '已复制排版，可粘贴到 Word 或网页编辑器。';
         return ok;
     } catch {
@@ -1945,6 +2028,18 @@ function init() {
     });
 
     // View Mode
+    $('#toolbar-delete').addEventListener('click', () => {
+        const blocks = [...previewArea.querySelectorAll<HTMLElement>('.block-editing, .block-selected, .mm-fig-selected')];
+        const activeImage = previewArea.querySelector<HTMLElement>('.mm-image-active');
+        if (!blocks.length && activeImage) blocks.push(activeImage);
+        if (!blocks.length) return;
+        const next = deleteSelectedSource(markdownInput.value, blocks, resolveImageSrc);
+        if (next === null) { alert('无法唯一定位选中内容（可能重复或跨页），请在 Markdown 原文中删除，避免误删。'); return; }
+        try { markdownInput.value = next; } catch { return; }
+        clearSelection();
+        markdownInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
     $('#btn-multi').addEventListener('click', () => {
         $('.mode-btn.active').classList.remove('active');
         $('#btn-multi').classList.add('active');
@@ -2262,7 +2357,7 @@ function init() {
         for (const file of files) localImageFiles.set(file.webkitRelativePath, URL.createObjectURL(file));
         render();
         const status = document.getElementById('copy-page-status');
-        if (status) status.textContent = `已关联 ${files.length} 张本地图片。复制到公众号时会保留图片位置，请在公众号后台上传。`;
+        if (status) status.textContent = `已关联 ${files.length} 张本地图片。图片加载完成后，复制到公众号会一并携带图片内容。`;
         input.value = '';
     });
     $<HTMLInputElement>('#file-input').addEventListener('change', (e) => {
@@ -2468,6 +2563,13 @@ function initToolbar() {
         debouncedApply.cancel();
         render();
     };
+
+    $<HTMLSelectElement>('#toolbar-select-scope').addEventListener('change', (event) => {
+        const select = event.target as HTMLSelectElement;
+        const scope = select.value as BlockSelectionScope | '';
+        if (scope) selectBlocksByScope(scope);
+        select.value = '';
+    });
 
     $<HTMLInputElement>('#toolbar-fontsize').addEventListener('input', (e) => {
         const val = parseInt((e.target as HTMLInputElement).value);

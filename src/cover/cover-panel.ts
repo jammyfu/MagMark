@@ -1,5 +1,7 @@
 import { createPanelDialog } from '../workspace/panel-dialog';
 import { sanitizeArticleHtml } from '../security/article-html';
+import { MEDIA_PRESETS, updateMediaDrafts, type MediaDraft } from './media-presets';
+import { toPng } from 'html-to-image';
 /**
  * CoverPanel — 封面生成面板 v2.0
  *
@@ -30,6 +32,7 @@ const ASPECT_RATIOS = [
     { label: '3:2',   value: '3:2',   category: 'Landscape', vw: 124, vh: 82,  rw: 3,  rh: 2  },
     { label: '16:9',  value: '16:9',  category: 'Landscape', vw: 124, vh: 70,  rw: 16, rh: 9  },
     { label: '21:9',  value: '21:9',  category: 'Landscape', vw: 124, vh: 53,  rw: 21, rh: 9  },
+    { label: '2.35:1', value: '2.35:1', category: 'Landscape', vw: 124, vh: 53, rw: 2.35, rh: 1 },
 ];
 
 // ─── Built-in Cover Templates ────────────────────────────────────────────────
@@ -180,6 +183,8 @@ export class CoverPanel {
     private currentSubtitle = '';
     private previewFrame!: HTMLIFrameElement;
     private currentRatioIdx = 3; // 默认 4:5，适合封面
+    private mediaId: string = MEDIA_PRESETS[0].id;
+    private drafts: Record<string, MediaDraft> = {};
 
     constructor(onInsert: OnInsert) {
         this.onInsert = onInsert;
@@ -212,6 +217,11 @@ export class CoverPanel {
   <div class="mm-cp-body">
     <!-- Left: controls -->
     <div class="mm-cp-controls">
+      <label class="mm-cp-section-label" for="mm-cp-media">媒体 / 展示位置</label>
+      <select class="mm-cp-input" id="mm-cp-media">${MEDIA_PRESETS.map(p => `<option value="${p.id}">${p.name} · ${p.ratio}</option>`).join('')}</select>
+      <select class="mm-cp-input" id="mm-cp-scope" aria-label="封面编辑范围"><option value="all">统一编辑所有版本</option><option value="one">仅编辑当前版本</option></select>
+      <p class="mm-cp-media-note" id="mm-cp-media-note"></p>
+      <p class="mm-cp-media-note">统一编辑会同步文字、模板和位置到所有版本，保留各自比例；单独调整请先切换编辑范围。本次面板内保留版本，尚未纳入草稿历史。</p>
       <div class="mm-cp-section-label">文字内容</div>
       <input class="mm-cp-input" id="mm-cp-title-input" placeholder="标题（留空则自动提取）" type="text">
       <input class="mm-cp-input" id="mm-cp-subtitle-input" placeholder="副标题 / 简介" type="text">
@@ -301,7 +311,9 @@ export class CoverPanel {
         </div>
       </div>
 
-      <button class="mm-cp-insert-btn" id="mm-cp-insert-btn">插入封面</button>
+      <div id="mm-cp-media-overview" class="mm-cp-media-overview" aria-label="各媒体封面预览"></div>
+      <button class="mm-cp-insert-btn" id="mm-cp-download">下载当前版本 PNG</button>
+      <button class="mm-cp-insert-btn" id="mm-cp-insert-btn">插入当前封面</button>
     </div>
   </div>
 </div>`;
@@ -553,6 +565,7 @@ export class CoverPanel {
                 btn.classList.add('active');
                 this.selectedTemplate = parseInt((btn as HTMLElement).dataset.idx || '0');
                 this.fullRebuildPreview(COVER_TEMPLATES[this.selectedTemplate].html);
+                this.rememberMedia(true);
             });
         });
     }
@@ -560,6 +573,8 @@ export class CoverPanel {
     // ─── Events ──────────────────────────────────────────────────────────────
 
     private bindEvents() {
+        this.overlay.querySelector('#mm-cp-media')!.addEventListener('change', event => this.switchMedia((event.target as HTMLSelectElement).value));
+        this.overlay.querySelector('#mm-cp-download')!.addEventListener('click', () => { void this.downloadMedia(); });
         this.overlay.querySelector('.mm-cp-close')!.addEventListener('click', () => this.close());
         this.overlay.addEventListener('click', (e) => {
             if (e.target === this.overlay) this.close();
@@ -572,10 +587,12 @@ export class CoverPanel {
         titleInput.addEventListener('input', () => {
             this.currentTitle = titleInput.value;
             this.updateTextInFrame();
+            this.rememberMedia(true);
         });
         subtitleInput.addEventListener('input', () => {
             this.currentSubtitle = subtitleInput.value;
             this.updateTextInFrame();
+            this.rememberMedia(true);
         });
 
         // AI generate
@@ -583,7 +600,7 @@ export class CoverPanel {
 
         // Insert button
         this.overlay.querySelector('#mm-cp-insert-btn')!.addEventListener('click', () => {
-            const html = this.previewFrame?.contentDocument?.body?.innerHTML?.trim() ?? '';
+            const html = this.cleanCoverHtml();
             if (!html) {
                 // 尚未渲染（极少情况），给用户提示
                 const statusEl = this.overlay.querySelector<HTMLElement>('#mm-cp-ai-status');
@@ -607,7 +624,10 @@ export class CoverPanel {
         });
 
         // ── Ratio: reset ──
-        this.overlay.querySelector('#mm-cp-ratio-reset')!.addEventListener('click', () => this.selectAspectRatio(3));
+        this.overlay.querySelector('#mm-cp-ratio-reset')!.addEventListener('click', () => {
+            const preset = MEDIA_PRESETS.find(p => p.id === this.mediaId)!;
+            this.selectAspectRatio(ASPECT_RATIOS.findIndex(r => r.value === preset.ratio));
+        });
 
         // ── Ratio: visual box swap ──
         this.overlay.querySelector('#mm-cp-ar-visual')!.addEventListener('click', () => {
@@ -653,6 +673,7 @@ export class CoverPanel {
 
         // Resize preview box (no iframe rebuild needed)
         this.updatePreviewBoxSize();
+        this.rememberMedia(false);
     }
 
     /** 根据比例计算并更新预览框尺寸（最大 300px 高 / 380px 宽） */
@@ -673,8 +694,12 @@ export class CoverPanel {
         const frame = this.previewFrame;
         box.style.width = w + 'px';
         box.style.height = h + 'px';
-        frame.style.width = w + 'px';
-        frame.style.height = h + 'px';
+        const size = this.mediaSize();
+        frame.style.width = size.width + 'px';
+        frame.style.height = size.height + 'px';
+        frame.style.transformOrigin = 'top left';
+        frame.style.transform = `scale(${w / size.width})`;
+        if (frame.contentDocument?.body) frame.contentDocument.body.style.fontSize = `${Math.min(size.width, size.height) / 22}px`;
     }
 
     // ─── Preview ──────────────────────────────────────────────────────────────
@@ -801,6 +826,7 @@ export class CoverPanel {
             isDragging = false;
             el.style.outline = '1.5px dashed rgba(212,175,55,0.45)';
             el.style.zIndex = '';
+            this.rememberMedia(true);
         };
 
         el.addEventListener('mousedown', onMouseDown);
@@ -828,6 +854,7 @@ export class CoverPanel {
             const fullPrompt = `标题：${this.currentTitle || '(未填写)'}\n副标题：${this.currentSubtitle || '(未填写)'}\n比例：${r.value}\n\n${prompt}`;
             const html = await callGemini(apiKey, fullPrompt);
             this.fullRebuildPreview(html);
+            this.rememberMedia(true);
             // 取消模板高亮
             this.overlay.querySelectorAll('.mm-cp-tpl-btn').forEach(b => b.classList.remove('active'));
             statusEl.textContent = '✓ 生成成功';
@@ -843,6 +870,7 @@ export class CoverPanel {
     // ─── Public API ───────────────────────────────────────────────────────────
 
     open(title = '', subtitle = '') {
+        if (Object.keys(this.drafts).length) { this.dialog.open(); this.switchMedia(this.mediaId); return; }
         this.currentTitle = title;
         this.currentSubtitle = subtitle;
         const titleInput = this.overlay.querySelector('#mm-cp-title-input') as HTMLInputElement;
@@ -853,9 +881,100 @@ export class CoverPanel {
         // 初始比例（4:5）
         this.selectAspectRatio(this.currentRatioIdx);
         this.fullRebuildPreview(COVER_TEMPLATES[this.selectedTemplate].html);
+        for (const preset of MEDIA_PRESETS) this.drafts[preset.id] = {
+            title, subtitle, html: COVER_TEMPLATES[this.selectedTemplate].html,
+            ratio: ASPECT_RATIOS.findIndex(r => r.value === preset.ratio),
+        };
+        this.switchMedia(this.mediaId);
     }
 
     close() {
+        this.rememberMedia(false);
         this.dialog.close();
+    }
+
+    private cleanCoverHtml() {
+        const body = this.previewFrame.contentDocument?.body.cloneNode(true) as HTMLElement | undefined;
+        if (!body) return '';
+        body.querySelectorAll<HTMLElement>('.mm-cover-title,.mm-cover-subtitle').forEach(el => {
+            for (const prop of ['outline', 'outline-offset', 'cursor', 'user-select', 'transition']) el.style.removeProperty(prop);
+            el.removeAttribute('title');
+        });
+        return sanitizeArticleHtml(body.innerHTML, 'cover');
+    }
+
+    private mediaSize(id = this.mediaId, ratio = this.currentRatioIdx) {
+        const preset = MEDIA_PRESETS.find(p => p.id === id)!;
+        const r = ASPECT_RATIOS[ratio];
+        return { width: preset.width, height: r.value === preset.ratio ? preset.height : Math.round(preset.width * r.rh / r.rw) };
+    }
+
+    private rememberMedia(propagate: boolean) {
+        if (!this.drafts[this.mediaId]) return;
+        const next = { title: this.currentTitle, subtitle: this.currentSubtitle, html: this.cleanCoverHtml(), ratio: this.currentRatioIdx };
+        const shared = propagate && this.overlay.querySelector<HTMLSelectElement>('#mm-cp-scope')!.value === 'all';
+        this.drafts = updateMediaDrafts(this.drafts, this.mediaId, next, shared);
+        this.renderMediaOverview();
+    }
+
+    private switchMedia(id: string) {
+        if (!this.drafts[id]) return;
+        if (id !== this.mediaId) this.rememberMedia(false);
+        this.mediaId = id;
+        const draft = this.drafts[id];
+        this.currentTitle = draft.title; this.currentSubtitle = draft.subtitle;
+        this.currentRatioIdx = draft.ratio;
+        this.overlay.querySelector<HTMLSelectElement>('#mm-cp-media')!.value = id;
+        this.overlay.querySelector<HTMLInputElement>('#mm-cp-title-input')!.value = draft.title;
+        this.overlay.querySelector<HTMLInputElement>('#mm-cp-subtitle-input')!.value = draft.subtitle;
+        this.fullRebuildPreview(draft.html);
+        this.selectAspectRatio(draft.ratio);
+    }
+
+    private renderMediaOverview() {
+        const preset = MEDIA_PRESETS.find(p => p.id === this.mediaId)!;
+        const size = this.mediaSize();
+        const note = this.overlay.querySelector('#mm-cp-media-note')!;
+        note.textContent = `${size.width} × ${size.height}px · ${ASPECT_RATIOS[this.currentRatioIdx].value}。${preset.note} `;
+        const link = document.createElement('a'); link.href = preset.source; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = '比例参考 ↗'; note.append(link);
+        const host = this.overlay.querySelector('#mm-cp-media-overview')!; host.replaceChildren();
+        const vars = this.previewFrame.contentDocument?.querySelector('style')?.textContent || '';
+        for (const p of MEDIA_PRESETS) {
+            const draft = this.drafts[p.id]; if (!draft) continue;
+            const item = document.createElement('button'); item.type = 'button'; item.className = 'mm-cp-media-card';
+            item.setAttribute('aria-pressed', String(p.id === this.mediaId));
+            const frame = document.createElement('iframe'); frame.tabIndex = -1; frame.setAttribute('sandbox', ''); frame.title = p.name;
+            const s = this.mediaSize(p.id, draft.ratio), scale = Math.min(100 / s.width, 70 / s.height);
+            const image = document.createElement('div'); image.style.cssText = `width:${s.width * scale}px;height:${s.height * scale}px;overflow:hidden;margin:auto;pointer-events:none`;
+            frame.style.cssText = `width:${s.width}px;height:${s.height}px;border:0;transform:scale(${scale});transform-origin:top left;pointer-events:none`;
+            const tmp = document.createElement('div'); tmp.innerHTML = draft.html;
+            const title = tmp.querySelector('.mm-cover-title'), subtitle = tmp.querySelector('.mm-cover-subtitle');
+            if (title) title.textContent = draft.title; if (subtitle) subtitle.textContent = draft.subtitle;
+            frame.srcdoc = `<style>${vars} body{font-size:${Math.min(s.width,s.height)/22}px}</style>${sanitizeArticleHtml(tmp.innerHTML, 'cover')}`;
+            const label = document.createElement('span'); label.textContent = `${p.name} · ${ASPECT_RATIOS[draft.ratio].value}`;
+            image.append(frame); item.append(image, label); item.addEventListener('click', () => this.switchMedia(p.id)); host.append(item);
+        }
+    }
+
+    private async downloadMedia() {
+        const button = this.overlay.querySelector<HTMLButtonElement>('#mm-cp-download')!;
+        button.disabled = true;
+        try {
+            const doc = this.previewFrame.contentDocument!;
+            await doc.fonts.ready;
+            const size = this.mediaSize();
+            const copy = doc.createElement('div'); copy.style.cssText = `width:${size.width}px;height:${size.height}px;font-size:${Math.min(size.width,size.height)/22}px;overflow:hidden`;
+            copy.innerHTML = this.cleanCoverHtml(); doc.body.append(copy);
+            try {
+                const png = await toPng(copy, { width: size.width, height: size.height, pixelRatio: 1, skipFonts: true });
+                const blob = await (await fetch(png)).blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.download = `${this.mediaId}-${size.width}x${size.height}.png`; a.href = url;
+                document.body.append(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+                this.overlay.querySelector('#mm-cp-media-note')!.textContent = `已生成 ${size.width} × ${size.height}px PNG，并发起下载，请在下载记录中确认。`;
+            } finally { copy.remove(); }
+        } catch { this.overlay.querySelector('#mm-cp-media-note')!.textContent = '导出失败，请检查图片资源是否可读取后重试。'; }
+        finally { button.disabled = false; }
     }
 }

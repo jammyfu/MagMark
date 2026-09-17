@@ -1373,6 +1373,25 @@ input:checked+.slider:before {
     height: 4px;
 }
 
+.toolbar-selection-item select {
+    width: 132px;
+    height: 24px;
+    padding: 0 24px 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #f4f1e9;
+    font: 600 11px/1 var(--font-ui);
+    cursor: pointer;
+    color-scheme: dark;
+}
+
+.toolbar-selection-item select:hover,
+.toolbar-selection-item select:focus-visible {
+    border-color: var(--th-primary);
+    outline: none;
+}
+
 .toolbar-val {
     font-size: 11px;
     font-weight: 700;
@@ -1792,9 +1811,15 @@ i:lang(ja) {
     margin: 1.2em 0;
     page-break-inside: avoid;
     break-inside: avoid;
-    display: flow-root;
+    /* A figure is an image-sized content block by default.  `flow-root` keeps
+       its block-level width, so selection/edit outlines can span a mostly
+       empty row when the image is narrower than the page.  A table box retains
+       normal figure semantics while shrink-wrapping both axes to its contents. */
+    display: table;
     max-width: 100%;
     width: fit-content;
+    height: auto;
+    min-height: 0;
 }
 
 .magmark figure.mm-figure img {
@@ -1809,6 +1834,33 @@ i:lang(ja) {
     color: #888;
     text-align: center;
     margin-top: 0.4em;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Imported/batch image HTML commonly arrives as
+   <p><br><img><br><em>caption</em></p>. Once the image is block-level, the
+   indentation and BR nodes otherwise create several empty line boxes. */
+.magmark p.mm-image-paragraph {
+    line-height: 0;
+    margin-top: 1.1em;
+    margin-bottom: 1.1em;
+}
+
+.magmark p.mm-image-paragraph > br {
+    display: none;
+}
+
+.magmark p.mm-image-paragraph > img {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.magmark p.mm-image-paragraph > em {
+    display: block;
+    margin-top: 0.55em;
+    color: #888;
+    font-size: 0.82em;
     font-style: italic;
     line-height: 1.4;
 }

@@ -12,7 +12,7 @@
 
 正規リポジトリ：[github.com/jammyfu/MagMark](https://github.com/jammyfu/MagMark) · 作者：**Fu Jam**（[jammyfu](https://github.com/jammyfu) / **PaintingCoder**）· ライセンス：[MIT](LICENSE) · 機械向け概要：[llms.txt](llms.txt)
 
-[![version](https://img.shields.io/badge/version-1.6.0-gold.svg)](https://github.com/jammyfu/MagMark)
+[![version](https://img.shields.io/badge/version-2.0.0--beta.1-gold.svg)](https://github.com/jammyfu/MagMark/tree/codex/2.0.0-beta)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ![MagMark エディタのメイン画面。左が Markdown、右が雑誌のページ分割プレビュー](screenshots/magmark-main.png)
@@ -155,7 +155,7 @@ MagMark 2.0 の SEO 企画文書（`docs/SEO.md`、`magmark-2.0/seo`）を出荷
 
 ---
 
-## 機能（1.6.0）
+## 機能（2.0.0-beta.1）
 
 ### カバー生成
 
