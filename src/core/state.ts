@@ -57,7 +57,7 @@ export const initialState: AppState = {
     md: '',
     fontFamily: "'Source Han Serif SC', 'Noto Serif SC', serif",
     format: 'a4',
-    viewMode: 'multi',
+    viewMode: 'scroll',
     manualPagination: false,
     showParagraphDividers: false,
     currentPage: 1,

@@ -1,8 +1,9 @@
-import { EditorState, Transaction } from '@codemirror/state';
+import { Compartment, EditorState, Transaction } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, isolateHistory, undo, redo, undoDepth, redoDepth } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { importClipboard, type PasteMode } from './writing-import';
 
 /** Small, source-preserving replacement for legacy whole-value assignments. */
 export function changedRange(before: string, after: string) {
@@ -13,7 +14,7 @@ export function changedRange(before: string, after: string) {
   return { from, to, insert: after.slice(from, end) };
 }
 
-export interface SourceEditorOptions { onFocus?: () => void; onSave?: () => void; report?: (message: string) => void; onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void }
+export interface SourceEditorOptions { onFocus?: () => void; onSave?: () => void; pasteMode?: () => PasteMode; report?: (message: string) => void; onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void }
 
 /**
  * Per-element migration adapter. The existing renderer and image tools keep their
@@ -28,6 +29,8 @@ export function mountSourceEditor(textarea: HTMLTextAreaElement, host: HTMLEleme
   const wasHidden = textarea.hidden;
   let externalWrite = false;
   let view: EditorView;
+  const language = new Compartment();
+  const accessibleName = new Compartment();
   const syncNative = () => {
     valueDescriptor.set!.call(textarea, view.state.doc.toString());
     const selection = view.state.selection.main;
@@ -37,9 +40,9 @@ export function mountSourceEditor(textarea: HTMLTextAreaElement, host: HTMLEleme
     parent: host,
     state: EditorState.create({ doc: textarea.value, extensions: [
       history(), drawSelection(), EditorView.lineWrapping,
-      markdown(), syntaxHighlighting(defaultHighlightStyle),
+      language.of([markdown(), syntaxHighlighting(defaultHighlightStyle)]),
       placeholder('从一个想法开始。'),
-      EditorView.contentAttributes.of({ 'aria-label': 'Markdown 原文', spellcheck: 'false', autocapitalize: 'off' }),
+      accessibleName.of(EditorView.contentAttributes.of({ 'aria-label': 'Markdown 原文', spellcheck: 'false', autocapitalize: 'off' })),
       keymap.of([{ key: 'Mod-s', run: () => { options.onSave?.(); return true; } }, ...defaultKeymap, ...historyKeymap]),
       EditorView.updateListener.of(update => {
         options.onHistoryChange?.(undoDepth(update.state) > 0, redoDepth(update.state) > 0);
@@ -47,7 +50,30 @@ export function mountSourceEditor(textarea: HTMLTextAreaElement, host: HTMLEleme
         syncNative();
         if (update.docChanged && !externalWrite) textarea.dispatchEvent(new Event('input', { bubbles: true }));
       }),
-      EditorView.domEventHandlers({ focus: () => { options.onFocus?.(); } }),
+      EditorView.domEventHandlers({
+        focus: () => { options.onFocus?.(); },
+        paste: (event, editor) => {
+          if (editor.composing || !event.clipboardData) return false;
+          const text = event.clipboardData.getData('text/plain');
+          const html = event.clipboardData.getData('text/html');
+          if (!text && !html) return false; // Preserve the existing image-paste path.
+          const result = importClipboard(text, html, options.pasteMode?.() || 'auto');
+          let inserted = result.text;
+          if (result.kind.includes('→') && /<(?:p|div|h[1-6]|ul|ol|table|blockquote|pre)\b/i.test(html)) {
+            const { from, to } = editor.state.selection.main;
+            const before = editor.state.sliceDoc(editor.state.doc.lineAt(from).from, from);
+            const after = editor.state.sliceDoc(to, editor.state.doc.lineAt(to).to);
+            if (before.trim()) inserted = '\n\n' + inserted;
+            if (after.trim()) inserted += '\n\n';
+          }
+          event.preventDefault();
+          editor.dispatch(editor.state.replaceSelection(inserted), {
+            annotations: [Transaction.userEvent.of('input.paste'), isolateHistory.of('full')], scrollIntoView: true,
+          });
+          options.report?.(`${result.kind}已粘贴，可撤销。${result.warnings.join('')}`);
+          return true;
+        },
+      }),
     ] }),
   });
   textarea.hidden = true;
@@ -78,6 +104,15 @@ export function mountSourceEditor(textarea: HTMLTextAreaElement, host: HTMLEleme
   host.addEventListener('keydown', stopLegacyKeys);
   return {
     view,
+    setWritingMode(mode: 'plain' | 'markdown') {
+      if (view.composing) { options.report?.('请先完成当前中文输入，再切换写作模式。'); return false; }
+      view.dispatch({ effects: [
+        language.reconfigure(mode === 'plain' ? [] : [markdown(), syntaxHighlighting(defaultHighlightStyle)]),
+        accessibleName.reconfigure(EditorView.contentAttributes.of({ 'aria-label': mode === 'plain' ? '普通文本写作' : 'Markdown 原文', spellcheck: 'false', autocapitalize: 'off' })),
+      ] });
+      host.dataset.writingMode = mode;
+      return true;
+    },
     undo: () => { if (!view.composing) undo(view); },
     redo: () => { if (!view.composing) redo(view); },
     destroy() {

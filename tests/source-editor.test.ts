@@ -12,6 +12,27 @@ function setup(value = '中文**API**工具\n\n`中文_key` 与 👩🏽‍💻'
   return { textarea, host, input, ...mounted };
 }
 describe('transactional source editor bridge', () => {
+  it('switches ordinary text mode without rewriting source or history', () => {
+    const item = setup('# 标题\n\n普通段落');
+    expect(item.setWritingMode('plain')).toBe(true);
+    expect(item.host.dataset.writingMode).toBe('plain');
+    expect(item.host.querySelector('[aria-label="普通文本写作"]')).not.toBeNull();
+    expect(item.textarea.value).toBe('# 标题\n\n普通段落');
+    expect(item.input).not.toHaveBeenCalled();
+    expect(item.setWritingMode('markdown')).toBe(true);
+  });
+  it('converts rich clipboard at the selection and undoes it in one step', () => {
+    const item = setup('前文后文');
+    item.textarea.setSelectionRange(2, 2);
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', { value: { getData: (type: string) => type === 'text/html' ? '<p class="MsoHeading1">标题</p><p><b>重点</b></p>' : '标题\n重点' } });
+    item.view.contentDOM.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(item.textarea.value).toBe('前文\n\n# 标题\n\n**重点**\n\n后文');
+    expect(item.input).toHaveBeenCalledTimes(1);
+    item.undo(); expect(item.textarea.value).toBe('前文后文');
+    item.redo(); expect(item.textarea.value).toContain('**重点**');
+  });
   it('exposes undo and redo actions for the toolbar', () => {
     const item = setup('原文');
     item.textarea.value = '改文';

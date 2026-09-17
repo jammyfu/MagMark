@@ -6,9 +6,7 @@
 <title>MagMark — 写作与排版</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
 <meta content="MagMark，将 Markdown 排成易读的文章、杂志页面与公众号内容。" name="description"/>
-<link href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&amp;family=Noto+Sans+SC:wght@300;400;500;600&amp;family=LXGW+WenKai:wght@300;400;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
-<!-- Han.css — CJK 高级汉字排版 -->
-<link href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&amp;family=Noto+Sans+SC:wght@300;400;500;600&amp;family=LXGW+WenKai:wght@300;400;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <link href="/editor.css" rel="stylesheet"/>
     <link rel="stylesheet" href="/workspace.css">
     <link rel="stylesheet" href="/brand.css">
@@ -36,7 +34,7 @@
       <details id="file-menu" class="file-menu">
         <summary>文件 <span aria-hidden="true">⌄</span></summary>
         <div class="file-popover" aria-label="文件操作">
-          <button type="button" id="file-upload-label" data-open-input="file-input">打开 Markdown <span>.md</span></button>
+<button type="button" id="file-upload-label" data-open-input="file-input">打开文本 <span>.md / .txt</span></button>
           <button type="button" data-open-input="article-directory-input">导入文章目录 <span>含图片</span></button>
           <button type="button" data-open-input="asset-directory-input">关联图片目录 <span>补全缺图</span></button>
           <div class="menu-separator" role="separator"></div>
@@ -54,7 +52,7 @@
   <main class="main-container" id="workspace-main">
     <section class="editor-panel" id="editor-panel" aria-label="写作区">
       <div class="panel-header workspace-panel-header">
-        <div class="panel-heading"><span class="panel-dot" aria-hidden="true"></span><h1>Markdown</h1><span class="panel-caption">专注于表达</span></div>
+<div class="panel-heading"><span class="panel-dot" aria-hidden="true"></span><h1>写作</h1><span class="panel-caption">专注于表达</span></div>
         <div class="insert-actions" aria-label="插入内容">
           <button type="button" id="btn-undo" aria-label="撤销" title="撤销（⌘/Ctrl Z）" disabled>↶</button>
           <button type="button" id="btn-redo" aria-label="重做" title="重做（⌘/Ctrl Shift Z）" disabled>↷</button>
@@ -62,6 +60,13 @@
           <button type="button" id="btn-image" title="插入或编辑图片">图片</button>
           <button type="button" id="btn-cover" title="设置文章封面">封面</button>
         </div>
+      </div>
+      <div class="writing-options">
+        <label for="writing-mode">模式</label>
+        <select id="writing-mode"><option value="markdown">Markdown</option><option value="plain">普通文本</option></select>
+        <label for="writing-paste-mode">粘贴</label>
+        <select id="writing-paste-mode"><option value="auto">自动识别（含 Word）</option><option value="markdown">保留 Markdown 原文</option><option value="plain">仅纯文本（去除格式）</option></select>
+        <span id="writing-hint">Word 标题、加粗、列表自动转换 · 可撤销</span>
       </div>
       <div id="source-editor" class="source-editor" tabindex="-1"></div>
       <textarea id="markdown-input" aria-label="Markdown 原文" spellcheck="false" placeholder="# 从一个想法开始
@@ -75,8 +80,8 @@
     <section class="preview-panel" id="preview-panel" aria-label="文章预览">
       <div class="preview-toolbar">
         <div class="preview-mode" aria-label="文章视图" data-magazine-only>
-          <button type="button" class="mode-btn active" id="btn-multi" data-mode="multi" aria-pressed="true">分页</button>
-          <button type="button" class="mode-btn" id="btn-scroll" data-mode="scroll" aria-pressed="false">长文</button>
+          <button type="button" class="mode-btn" id="btn-multi" data-mode="multi" aria-pressed="false">分页</button>
+          <button type="button" class="mode-btn active" id="btn-scroll" data-mode="scroll" aria-pressed="true">长文</button>
         </div>
         <span class="wechat-preview-label" hidden id="wechat-preview-label">公众号预览</span>
         <div class="format-control" data-magazine-only><label class="sr-only" for="ctrl-format">页面格式</label><select id="ctrl-format">
@@ -203,6 +208,7 @@
     <footer class="export-note">已加载的本地图片随排版复制；粘贴后请确认目标平台已接收图片。导出不会自动发布。</footer>
   </dialog>
 <div class="floating-toolbar" id="block-toolbar" style="display: none;">
+<button type="button" id="toolbar-drag" aria-label="移动工具栏" title="拖动固定工具栏位置；方向键微移">⠿</button>
 <div class="toolbar-item toolbar-selection-item">
 <label for="toolbar-select-scope">选取</label>
 <select id="toolbar-select-scope" aria-label="按文字层级批量选取">
@@ -217,19 +223,25 @@
 </div>
 <div class="toolbar-divider"></div>
 <div class="toolbar-item toolbar-typography-item">
-<label>字号</label>
+<label for="toolbar-fontsize">字号</label>
 <input id="toolbar-fontsize" max="64" min="10" step="1" type="range"/>
 <span class="toolbar-val" id="toolbar-val-fontsize">14px</span>
+<div class="toolbar-size-stepper" role="group" aria-label="微调字号">
+<button type="button" id="toolbar-fontsize-up" aria-label="增大字号 1px" title="增大字号 1px"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="m3 7.5 3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<button type="button" id="toolbar-fontsize-down" aria-label="减小字号 1px" title="减小字号 1px"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="m3 4.5 3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
 </div>
 <div class="toolbar-item toolbar-typography-item">
-<label>行高</label>
+<label for="toolbar-lineheight">行高</label>
 <input id="toolbar-lineheight" max="3" min="1" step="0.05" type="range"/>
 <span class="toolbar-val" id="toolbar-val-lineheight">1.75</span>
+<div class="toolbar-size-stepper" role="group" aria-label="微调行高"><button type="button" id="toolbar-lineheight-up" aria-label="增大行高 0.05" title="增大行高 0.05">⌃</button><button type="button" id="toolbar-lineheight-down" aria-label="减小行高 0.05" title="减小行高 0.05">⌄</button></div>
 </div>
 <div class="toolbar-item toolbar-typography-item">
-<label>间距</label>
+<label for="toolbar-letterspacing">字距</label>
 <input id="toolbar-letterspacing" max="0.5" min="-0.1" step="0.01" type="range"/>
 <span class="toolbar-val" id="toolbar-val-letterspacing">0.01</span>
+<div class="toolbar-size-stepper" role="group" aria-label="微调字距"><button type="button" id="toolbar-letterspacing-up" aria-label="增大字距 0.01em" title="增大字距 0.01em">⌃</button><button type="button" id="toolbar-letterspacing-down" aria-label="减小字距 0.01em" title="减小字距 0.01em">⌄</button></div>
 </div>
 <div class="toolbar-item toolbar-image-item" id="toolbar-image-align" style="display:none;">
 <label>对齐</label>
@@ -266,7 +278,6 @@
 </button>
 <button class="toolbar-btn" id="toolbar-close">✕</button>
 </div>
-  <script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
   <script type="module" src="/app.ts"></script>
 </body>
 </html>

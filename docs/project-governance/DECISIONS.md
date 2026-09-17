@@ -1,5 +1,25 @@
 # DECISIONS.md
 
+## 2026-09-18 — Stable typography controls
+
+Default to scroll view in initial state and reset defaults. Use the existing range steps (font 1px, line height .05, letter spacing .01em) for explicit arrow controls. Store toolbar viewport position independently from selected blocks; initialize once near the first selection and retain it across selection changes/reflow. Dedicated pointer-captured handle supports dragging and keyboard movement; viewport resize clamps position. Remove transformed entry positioning and cancel delayed single-click toolbar updates when a newer multi-selection is shown.
+
+## 2026-09-18 — Flexible clipboard input, one source document
+
+Keep Markdown as the canonical saved document. Ordinary-text mode changes font and language presentation only, never removes existing markup or rewrites the document. It is a plain editing mode, not a Word-compatible WYSIWYG editor. Automatic paste prefers literal Markdown when detected, except Office HTML; explicit plain/Markdown choices bypass HTML conversion. Extract Office structural hints in an inert tree, then pass through the existing shared sanitizer before generating Markdown. Retain tables as safe HTML to preserve merged cells and report unavailable local images. Use one source transaction per paste, preserving undo/autosave. No new package dependency or binary Word file parser.
+
+## 2026-09-18 — Precise font-size controls
+
+Keep the existing slider and add labelled up/down buttons, using its 1px step and 10–64px limits. Dispatch the existing input/change events so individual and batch selection share the established style update and repagination path. Use neutral high-contrast controls independent of article theme, following frontend-design guidance within the existing toolbar.
+
+## 2026-09-18 — Screenshot follow-up: justified prose
+
+Supersedes the earlier left-aligned default after explicit user feedback about ragged right edges. Restore auto justification for magazine paragraphs, lists and quotes with left-aligned last lines. Scope .94em Latin/digit optical sizing to mixed prose; preserve source text, full English words, code, links and pure English paragraphs. Bare URLs get their own break-all span to avoid pushing a whole reference onto the next line. Render these spans before measurement, including print rules. WeChat's own paste sanitizer still enforces its platform-safe left alignment; no claim of platform justification support.
+
+## 2026-09-18 — One typography path before pagination
+
+Use native CSS Text autospace and contextual punctuation trim where supported; otherwise apply conservative cross-inline spacing before measurement. Remove Han CDN rendering from Web/print entry points so no post-pagination DOM decoration changes line metrics. Default body/list/quote alignment to left: CSS-only justification cannot guarantee CLReq gap bounds for long Latin tokens. Keep explicit source spacing and literal code/links intact; portable copy materializes spaces only in output. Theme fonts gain CJK-capable families. Research, limitations and fixtures: docs/MIXED_TYPOGRAPHY.md.
+
 ## 2026-09-18 — Independent beta and preview source identity
 
 User confirmed 2.0 belongs on an independent branch; keep remote main at 1.6.0. Use codex/2.0.0-beta and version 2.0.0-beta.1, without deployment. Renderer-owned, bounded in-memory range identifiers are retained through sanitization and pagination for preview editing. Resolve only against the exact original document; fallback text matching remains conservative for renderers without identifiers.

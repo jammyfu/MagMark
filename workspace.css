@@ -66,6 +66,10 @@ body[data-workspace] .editor-panel { width: 42%; max-width: none; min-width: 280
 .insert-actions button { min-height: 32px; padding: 5px 9px; color: var(--ws-muted); font-size: 12px; }
 .insert-actions button:hover { background: var(--ws-ground); color: var(--ws-ink); }
 .source-editor { min-height: 0; flex: 1; overflow: hidden; display: flex; }
+.writing-options { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 24px; border-bottom: 1px solid var(--ws-line); color: var(--ws-ink); font-size: 12px; }
+.writing-options select { padding: 5px 8px; border: 1px solid var(--ws-line); border-radius: 6px; background: var(--ws-surface); color: var(--ws-ink); color-scheme: var(--ws-scheme); }
+.writing-options span { font-size: 11px; opacity: .7; }
+.source-editor[data-writing-mode='plain'] .cm-scroller { font-family: var(--font-ui); font-size: 15px; }
 .source-editor:empty { display: none; }
 .source-editor .cm-editor { width: 100%; height: 100%; }
 .source-editor .cm-scroller { overflow: auto; font: 14px/1.95 'SFMono-Regular', Consolas, 'Liberation Mono', 'PingFang SC', 'Microsoft YaHei', monospace; }

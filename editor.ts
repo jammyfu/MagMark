@@ -1,5 +1,8 @@
 import { sanitizeArticleHtml } from './src/security/article-html';
 import { markEditableSource } from './src/workspace/preview-edit';
+import { bindRangeStepper } from './src/workspace/range-stepper';
+import { mountToolbarPosition } from './src/workspace/toolbar-position';
+import { prepareMixedPreview } from './src/core/mixed-typography';
 import { deleteSelectedSource } from './src/workspace/delete-selection';
 import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
@@ -72,19 +75,11 @@ function resolveImageSrc(src: string): string {
  * (C) 2026 Editorial Elite System
  *
  * 排版增强层：
- *   • Han.css  — CJK 汉字与标点的精细排印（字间距、标点挤压、引号配对）
+ *   • CSS Text — 原生中西文间距和严格禁则；旧浏览器在分页前兼容处理
  *   • Paged.js — CSS Paged Media 多栏/页眉/页脚（打印预览窗口）
  *   • Vivliostyle 理念 — 严格孤行/寡行控制、CSS @page 分页
  */
 
-// Han.css 全局函数声明（由 <script src="han.min.js"> 注入）
-interface HanApi {
-    (el: Element): { render(): void };
-    normalize?: {
-        renderEm?: ((context?: unknown, target?: unknown) => void) & { __magmarkDisabled?: boolean };
-    };
-}
-declare const Han: HanApi | undefined;
 
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
 
@@ -118,33 +113,6 @@ let pendingInsert: { direction: 'above' | 'below'; blockEl: HTMLElement } | null
 let marqueeEl: HTMLElement | null = null;
 let marqueeStart = { x: 0, y: 0 };
 let isDraggingMarquee = false;
-
-/**
- * Han.css 默认把 CJK `<em>` 渲染成着重号（text-emphasis / h-char:after）。
- * MagMark 的 Markdown `*...*` 只要斜体强调，不要每个字底下的点。
- */
-function disableHanEmphasisMarks() {
-    const locale = typeof Han !== 'undefined' ? Han.normalize : undefined;
-    if (!locale || typeof locale.renderEm !== 'function' || locale.renderEm.__magmarkDisabled) return;
-    locale.renderEm = function () { /* MagMark: keep *em* as italic, not 着重号 */ };
-    locale.renderEm.__magmarkDisabled = true;
-}
-
-/**
- * Han.css 初始化 — 对所有 .magmark 内容元素执行汉字排印处理
- * 包括：CJK↔拉丁间距修正、标点宽度压缩、引号配对
- */
-function initHanTypography() {
-    if (typeof Han === 'undefined') return;
-    disableHanEmphasisMarks();
-    previewArea.querySelectorAll('.magmark').forEach(el => {
-        try {
-            Han(el).render();
-        } catch {
-            // Han.css 在某些边缘 DOM 状态下可能抛出，安全忽略
-        }
-    });
-}
 
 /**
  * Debounce helper for expensive render calls
@@ -337,12 +305,10 @@ function renderPages(stabilized = false, existingTask?: () => boolean) {
         updatePaginationUI();
         renderPageStrip();
 
-        // Run Han.css only for the current document, retaining a visible preview throughout.
+        // Typography is already applied during measurement; never mutate it after pagination.
         requestAnimationFrame(() => {
             if (!current()) return;
-            initHanTypography();
-            // Han.css 会插入额外排印节点，初始化后高度可能变化。
-            // 对分页视图补做一次稳定化分页，避免“初始化能塞下，缩放后却换页”。
+            // Retain the existing resource stabilization pass.
             if (!stabilized && store.getState().viewMode === 'multi') {
                 requestAnimationFrame(() => { if (current()) void render(true); });
                 return;
@@ -377,8 +343,7 @@ function renderScroll(md: string) {
     });
     attachBlockListeners();
     attachFigureListeners();
-    // Han.css 排印处理
-    requestAnimationFrame(() => { if (current()) { initHanTypography(); finishPreviewUpdate(current); } });
+    requestAnimationFrame(() => { if (current()) finishPreviewUpdate(current); });
 }
 
 /**
@@ -528,7 +493,13 @@ function selectBlocksByScope(scope: BlockSelectionScope) {
     showToolbar(ordered);
 }
 
+let fontSizeStepper: ReturnType<typeof bindRangeStepper> | undefined;
+let lineHeightStepper: ReturnType<typeof bindRangeStepper> | undefined;
+let letterSpacingStepper: ReturnType<typeof bindRangeStepper> | undefined;
+let toolbarPosition: ReturnType<typeof mountToolbarPosition> | undefined;
+
 function showToolbar(els: HTMLElement | HTMLElement[]) {
+    clearTimeout(blockToolbarTimer);
     const elArray = Array.isArray(els) ? els : [els];
     if (elArray.length === 0) return;
 
@@ -561,10 +532,13 @@ function showToolbar(els: HTMLElement | HTMLElement[]) {
     };
 
     $<HTMLInputElement>('#toolbar-fontsize').value = String(over.fontSize);
+    fontSizeStepper?.sync();
     $('#toolbar-val-fontsize').textContent = over.fontSize + 'px';
     $<HTMLInputElement>('#toolbar-lineheight').value = String(over.lineHeight);
     $('#toolbar-val-lineheight').textContent = over.lineHeight.toFixed(2);
     $<HTMLInputElement>('#toolbar-letterspacing').value = String(over.letterSpacing);
+    lineHeightStepper?.sync();
+    letterSpacingStepper?.sync();
     $('#toolbar-val-letterspacing').textContent = over.letterSpacing.toFixed(2);
 
     // Show count badge if multi-select
@@ -579,15 +553,7 @@ function showToolbar(els: HTMLElement | HTMLElement[]) {
 
 function positionToolbar(el: HTMLElement) {
     if (toolbar.style.display === 'none') return;
-    const rect = el.getBoundingClientRect();
-    // Position above the element
-    const tbHeight = toolbar.offsetHeight || 48;
-    const tbWidth = toolbar.offsetWidth || 0;
-    // Keep a little extra room for the entry animation's scale interpolation.
-    const viewportPadding = 16;
-    const maxLeft = Math.max(viewportPadding, window.innerWidth - tbWidth - viewportPadding);
-    toolbar.style.top = `${rect.top - tbHeight - 10}px`;
-    toolbar.style.left = `${Math.min(maxLeft, Math.max(viewportPadding, rect.left))}px`;
+    toolbarPosition?.place(el.getBoundingClientRect());
 }
 
 /* ── Marquee (PS Box Select) ── */
@@ -976,7 +942,7 @@ function convertMarkdown(md: string, mapSource = true): string {
         if (para) blocks.push(para);
     }
 
-    return sanitizeArticleHtml(blocks.join('\n'));
+    return prepareMixedPreview(sanitizeArticleHtml(blocks.join('\n')));
 }
 
 /**
@@ -1227,10 +1193,10 @@ async function copyCurrentPageRichContent(target: ClipboardTarget = 'document') 
 }
 
 /**
- * 打印预览窗口（Paged.js + Han.css）
+ * 打印预览窗口（Paged.js + 原生 CSS 混排）
  *
  * 在独立弹出窗口中加载 Paged.js polyfill，对内容应用 CSS Paged Media
- * 规则（页边距、页眉页脚、页码），并通过 Han.css 进行 CJK 排印处理。
+ * 规则（页边距、页眉页脚、页码），排版规则与页面测量保持一致。
  */
 function openPrintPreview() {
     if (!canUseCurrentPreview()) return;
@@ -1248,7 +1214,8 @@ function openPrintPreview() {
     const userFont = rootStyle.getPropertyValue('--user-font-family').trim();
     const thFontBody = rootStyle.getPropertyValue('--th-font-body').trim();
     const mmFontFamily = rootStyle.getPropertyValue('--mm-font-family').trim() || "'Source Han Serif SC', serif";
-    const effectiveFont = userFont || thFontBody || mmFontFamily;
+    const article = previewArea.querySelector<HTMLElement>('.magmark');
+    const effectiveFont = article ? getComputedStyle(article).fontFamily : userFont || thFontBody || mmFontFamily;
     const thPrimary = rootStyle.getPropertyValue('--th-primary').trim() || '#d4af37';
     const thAccent = rootStyle.getPropertyValue('--th-accent').trim() || '#e67e22';
     const thBgPage = rootStyle.getPropertyValue('--th-bg-page').trim() || '#ffffff';
@@ -1266,8 +1233,7 @@ function openPrintPreview() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MagMark — 打印预览</title>
-<link href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- Paged.js polyfill：自动处理 CSS Paged Media @page 规则 -->
 <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
 <style>
@@ -1298,6 +1264,11 @@ body {
     font-size: ${mmFontSize};
     line-height: ${mmLineHeight};
     letter-spacing: ${mmLetterSpacing};
+    text-autospace: normal;
+    text-spacing-trim: trim-start;
+    line-break: strict;
+    overflow-wrap: anywhere;
+    hyphens: manual;
     color: ${thTextPage};
     background: ${thBgPage};
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "locl" 1;
@@ -1307,12 +1278,14 @@ body {
 
 /* ── 分页区块容器 ─────────────────────────────── */
 .mm-page-section { width: 100%; }
+a, code, pre, kbd, samp { text-autospace: no-autospace; }
+pre, code { text-spacing-trim: space-all; }
 
 /* ── 正文排版 ────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
     font-family: ${effectiveFont};
     page-break-after: avoid; break-after: avoid;
-    word-break: keep-all; overflow-wrap: break-word;
+    word-break: normal; overflow-wrap: anywhere;
     font-feature-settings: "kern" 1;
 }
 h1 {
@@ -1344,13 +1317,14 @@ h4 {
 }
 p {
     text-align: justify;
-    text-justify: inter-character;
-    hyphens: auto;
+    text-justify: auto;
+    text-align-last: left;
+    hyphens: manual;
     margin-bottom: 1em;
     word-break: normal;
     overflow-wrap: break-word;
     line-break: strict;
-    hanging-punctuation: first last;
+    hanging-punctuation: none;
     orphans: 3; widows: 3;
 }
 strong { font-weight: 700; color: ${thPrimary}; }
@@ -1401,7 +1375,9 @@ blockquote p { margin-bottom: 0.4em; }
 
 /* ── 列表 ────────────────────────────────────── */
 ul, ol { padding-left: 1.75em; margin-bottom: 1em; }
-li { margin-bottom: 0.25em; line-height: ${mmLineHeight}; word-break: normal; overflow-wrap: break-word; }
+li { margin-bottom: 0.25em; line-height: ${mmLineHeight}; word-break: normal; overflow-wrap: break-word; text-align:justify; text-justify:auto; text-align-last:left; }
+.mm-latin-run { font-size:.94em; letter-spacing:normal; line-height:inherit; vertical-align:baseline; }
+.mm-reference-run { word-break:break-all; overflow-wrap:anywhere; text-autospace:no-autospace; }
 li::marker { color: ${thPrimary}; }
 
 /* ── 表格 ────────────────────────────────────── */
@@ -1459,26 +1435,6 @@ img {
 <div class="magmark">
 ${combinedHtml}
 </div>
-<!-- Han.js — 必须在内容渲染后执行 -->
-<script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
-<script>
-// Paged.js 完成分页后再运行 Han.css，确保所有文本节点均已插入 DOM
-function disableHanEmphasisMarks() {
-    if (typeof Han !== 'function' || !Han.normalize || typeof Han.normalize.renderEm !== 'function') return;
-    Han.normalize.renderEm = function() {};
-}
-if (typeof PagedPolyfill !== 'undefined') {
-    PagedPolyfill.preview().then(function() {
-        disableHanEmphasisMarks();
-        if (typeof Han === 'function') Han(document.body).render();
-    });
-} else {
-    window.addEventListener('load', function() {
-        disableHanEmphasisMarks();
-        if (typeof Han === 'function') Han(document.body).render();
-    });
-}
-</script>
 </body>
 </html>`;
 
@@ -2558,6 +2514,7 @@ function updatePaginationUI() {
 }
 
 function initToolbar() {
+    toolbarPosition = mountToolbarPosition(toolbar, $('#toolbar-drag'));
     const debouncedApply = debounce(render, 400);
     const finalizeToolbarPagination = () => {
         debouncedApply.cancel();
@@ -2578,6 +2535,11 @@ function initToolbar() {
         debouncedApply();
     });
     $<HTMLInputElement>('#toolbar-fontsize').addEventListener('change', finalizeToolbarPagination);
+    fontSizeStepper = bindRangeStepper(
+        $<HTMLInputElement>('#toolbar-fontsize'),
+        $<HTMLButtonElement>('#toolbar-fontsize-up'),
+        $<HTMLButtonElement>('#toolbar-fontsize-down')
+    );
 
     $<HTMLInputElement>('#toolbar-lineheight').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -2586,6 +2548,7 @@ function initToolbar() {
         debouncedApply();
     });
     $<HTMLInputElement>('#toolbar-lineheight').addEventListener('change', finalizeToolbarPagination);
+    lineHeightStepper = bindRangeStepper($<HTMLInputElement>('#toolbar-lineheight'), $<HTMLButtonElement>('#toolbar-lineheight-up'), $<HTMLButtonElement>('#toolbar-lineheight-down'));
 
     $<HTMLInputElement>('#toolbar-letterspacing').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -2594,6 +2557,7 @@ function initToolbar() {
         debouncedApply();
     });
     $<HTMLInputElement>('#toolbar-letterspacing').addEventListener('change', finalizeToolbarPagination);
+    letterSpacingStepper = bindRangeStepper($<HTMLInputElement>('#toolbar-letterspacing'), $<HTMLButtonElement>('#toolbar-letterspacing-up'), $<HTMLButtonElement>('#toolbar-letterspacing-down'));
 
     $('#toolbar-close').addEventListener('click', () => {
         toolbar.style.display = 'none';
@@ -2631,9 +2595,7 @@ function updateBlockStyle(prop: keyof PageSetting, val: number) {
 
     store.setState({ blockOverrides: blockStyles });
 
-    // Reposition toolbar to primary
-    const primary = previewArea.querySelector(`[data-block-id="${bid}"]`) as HTMLElement;
-    if (primary) positionToolbar(primary);
+    // Keep the controls under the pointer while selected blocks reflow.
 }
 
 async function exportPng() {
@@ -2981,7 +2943,7 @@ function resetAll() {
         letterSpacing: a4Defaults.letterSpacing,
         fontFamily: "'Source Han Serif SC', 'Noto Serif SC', serif",
         format: 'a4' as AppState['format'],
-        viewMode: 'multi' as AppState['viewMode'],
+        viewMode: 'scroll' as AppState['viewMode'],
         manualPagination: false,
         showParagraphDividers: false,
         theme: 'elite',
@@ -3009,8 +2971,10 @@ function resetAll() {
     $<HTMLInputElement>('#chk-page-override').checked = false;
 
     // Reset mode buttons
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    $('#btn-multi').classList.add('active');
+    document.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.toggle('active', b.id === 'btn-scroll');
+        b.setAttribute('aria-pressed', String(b.id === 'btn-scroll'));
+    });
 
     // Reset user font override
     document.documentElement.style.removeProperty('--user-font-family');

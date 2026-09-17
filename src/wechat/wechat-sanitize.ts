@@ -1,4 +1,5 @@
 import { sanitizeArticleHtml } from '../security/article-html';
+import { spaceMixedHtml } from '../core/mixed-typography';
 import { parseInertHtml, serializeInertHtml } from '../security/inert-html';
 import type { Element, ElementContent, Root } from 'hast';
 /**
@@ -665,7 +666,7 @@ export function sanitizeWechatPasteHtml(html: string): string {
     out = out.replace(/text-justify\s*:\s*[^;"]+;?/gi, '');
     out = out.replace(/(?:-webkit-|-moz-)?text-emphasis(?:-style|-color|-position)?\s*:\s*(?!none\b)[^;"]+;?/gi, '');
     out = out.replace(/\sstyle="\s*"/g, '');
-    out = wrapWechatTextBlocks(out);
+    out = wrapWechatTextBlocks(spaceMixedHtml(out));
     return out;
 }
 

@@ -1,5 +1,6 @@
 import { sanitizeArticleHtml } from '../security/article-html';
 import { sanitizeWechatPasteHtml } from '../wechat/wechat-sanitize';
+import { spaceMixedHtml } from './mixed-typography';
 
 export type ClipboardTarget = 'document' | 'wechat';
 export interface RichClipboardPayload { html: string; text: string; localImages: number }
@@ -7,7 +8,7 @@ export interface RichClipboardPayload { html: string; text: string; localImages:
 const STYLE_PROPERTIES = [
     'color', 'background-color', 'font-family', 'font-size', 'font-weight', 'font-style',
     'line-height', 'letter-spacing', 'text-align', 'text-indent', 'text-decoration',
-    'white-space', 'word-break', 'overflow-wrap', 'vertical-align',
+    'white-space', 'word-break', 'overflow-wrap', 'line-break', 'text-justify', 'text-align-last', 'vertical-align',
     'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
     'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
     'border-top', 'border-right', 'border-bottom', 'border-left', 'border-radius',
@@ -111,8 +112,10 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
     }
     const section = document.createElement('section');
     section.style.cssText = clone.style.cssText;
+    section.style.setProperty('text-autospace', 'no-autospace');
     section.append(...clone.childNodes);
-    const html = target === 'wechat' ? sanitizeWechatPasteHtml(section.outerHTML) : sanitizeArticleHtml(section.outerHTML);
+    const portable = spaceMixedHtml(section.outerHTML);
+    const html = target === 'wechat' ? sanitizeWechatPasteHtml(portable) : sanitizeArticleHtml(portable);
     // Use block boundaries in the plain-text flavour as well.
     const plain = document.createElement('div');
     plain.innerHTML = html.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<\/(p|div|section|h[1-6]|li|tr|blockquote|pre)>/gi, '\n</$1>');

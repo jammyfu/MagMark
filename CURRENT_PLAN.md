@@ -10,6 +10,23 @@ Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed ver
 - Set 2.0.0-beta.1, refresh README workspace screenshot, commit and push only the independent beta branch.
 - Preserve unrelated untracked deployment experiments locally; verify the isolated release tree before pushing.
 
+### Current execution: flexible writing input (2026-09-18)
+
+- Latest follow-up: default to long-form view; add fractional line-height/letter-spacing arrows and a viewport-fixed draggable selection toolbar that does not chase reflowing multi-selected blocks.
+
+- Add ordinary-text editing presentation without rewriting existing Markdown; offer automatic rich-text/Word clipboard conversion and explicit Markdown/plain-text paste choices.
+- Preserve source transactions, selection, undo and autosave; sanitize imported HTML inertly. Test Word headings/lists, tables, code, unsafe URLs and clipboard undo. Word clipboard import is not a .doc/.docx file parser.
+- Preserve unrelated untracked experiments; verify the isolated beta source tree. No commit, push or deployment requested.
+
+### Previous execution: mixed Chinese/Latin typography (2026-09-18)
+
+- Latest follow-up: add accessible up/down font-size controls to the selected-text toolbar, preserving the slider and batch formatting; verify 1px changes and 10–64px bounds.
+
+- Research CLReq, CSS Text and Han.js behavior; remove conflicting English-only justification, CJK keep-all and post-pagination mutations.
+- Use CJK-capable theme fonts, native CSS spacing with a pre-measurement cross-inline fallback, and portable spacing for copied output. Preserve source, code, links and explicit whitespace.
+- Verify typography fixtures, WeChat/clipboard regressions and the isolated beta source tree. No new commit, push or deployment requested in this iteration.
+- User screenshot follow-up: use justified CJK prose with a ragged final line, optical Latin sizing and separate long-URL wrapping. Verify against the exact screenshot text, not only generic fixtures.
+
 This is the only current execution entry. Earlier status and complete execution history are preserved byte-for-byte in [the prior plan](docs/project-governance/archive/2026-09-14-CURRENT_PLAN.md). Earlier unpushed-local claims were not assumed recovered.
 
 ### Implemented and verified

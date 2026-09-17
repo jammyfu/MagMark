@@ -1,0 +1,31 @@
+<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8"><title>中文正文齐行修复对比</title>
+<link rel="stylesheet" href="/editor.css"><style>
+body{height:auto;overflow:auto;background:#eceeea;padding:24px;color:#30404a;display:block}
+main{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+article{width:540px;background:white;padding:24px;--mm-font-size:22px;--mm-line-height:1.8;--mm-letter-spacing:0;--user-font-family:'Songti SC','STSong','Noto Serif SC',serif;--th-primary:#30404a}
+article label{display:block;font:14px system-ui;color:#58725f;margin-bottom:24px}
+#before p{text-align:left}#before .mm-latin-run{font-size:1em}
+output{display:block;margin:20px 0;font:13px system-ui}
+</style></head><body><main><article id="before" class="magmark"><label>修复前 · 左对齐</label></article><article id="after" class="magmark"><label>修复后 · 中文两端对齐 / 末行左对齐</label></article></main><output id="checks"></output>
+<script type="module">
+import { prepareMixedPreview } from '/src/core/mixed-typography.ts';
+const html = `<p>昨天后半夜，我正盯着终端跑测试脚本，一边泡了壶浓茶顺手刷 X，结果刷到行业分析机构 SemiAnalysis 甩出来的一份底牌数据。</p><p>当场一口热茶差点没喷在屏幕上。</p><p>报告里白纸黑字写着一个极其扎眼的事实：<strong>目前全网前沿大模型的实时推理流量里，已经有超过 70% 根本不是人类在聊天框里跟 AI 问答，而是各路所谓的“自治智能体”（Agent）在后台程序之间相互调用、来回传参、死循环重试产生的“幽灵流量”！</strong></p><p>好家伙，合着全网天天吹嘘的“大模型日活破亿”、“人类正在全速迈向 AGI”，撕开底裤一看：原来白天是人类在调戏模型，后半夜全是机器人在背着人类疯狂刷单、自己给自己刷 KPI 呢！</p><p>再转头看一眼隔壁小米大模型团队（罗福莉团队）架在公网上的强化学习（RL）直播看板——半夜时分，累计训练花销正式突破了 <strong>100 万美元大关</strong>（Pro 已经烧到了 109.4 万美元，每秒钟以 5.71 美元的速度在狂跳表），而且官方日志里清清楚楚挂着一则黑色幽默公告：<strong>“紧急叫停并从后续 Pro 训练中剔除网安数据集（cyber dataset），因为在探索日志中发现了大量严重的恶劣投机作弊模式（bad patterns）。”</strong></p>`;
+for(const article of document.querySelectorAll('article')) article.insertAdjacentHTML('beforeend',prepareMixedPreview(html));
+await document.fonts.ready;
+const results = [...document.querySelectorAll('article')].map(article=>{
+ const edges=[]; const textLines=[];
+ for(const p of article.querySelectorAll('p')){
+  const rows=[]; const walker=document.createTreeWalker(p,NodeFilter.SHOW_TEXT);
+  while(walker.nextNode()){
+   const node=walker.currentNode;let offset=0;
+   for(const char of node.textContent){const r=document.createRange();r.setStart(node,offset);offset+=char.length;r.setEnd(node,offset);const box=r.getBoundingClientRect();if(!box.width)continue;
+    let row=rows.find(row=>Math.abs(row.y-box.y)<6);if(!row){row={y:box.y,right:box.right,text:''};rows.push(row);}row.right=Math.max(row.right,box.right);row.text+=char;
+   }
+  }
+  edges.push(...rows.slice(0,-1).map(row=>+(p.getBoundingClientRect().right-row.right).toFixed(2)));textLines.push(...rows.map(row=>row.text));
+ }
+ return {id:article.id,maxNonFinalRightGap:Math.max(0,...edges),overflow:article.scrollWidth>article.clientWidth,wordIntact:textLines.some(line=>line.includes('SemiAnalysis')),punctuationViolations:textLines.filter(line=>/^[，。！？、；：）》」』】]/.test(line.trim())||/[（《「『【]$/.test(line.trim()))};
+});
+document.querySelector('#checks').dataset.results=JSON.stringify(results);
+document.querySelector('#checks').textContent=results.map(r=>`${r.id==='after'?'修复后':'修复前'}：非末行最大右侧空白 ${r.maxNonFinalRightGap}px，溢出 ${r.overflow?'有':'无'}，标点禁则异常 ${r.punctuationViolations.length}`).join(' · ');
+</script></body></html>

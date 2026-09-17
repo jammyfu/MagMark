@@ -1,5 +1,39 @@
 # WORKLOG.md
 
+## 2026-09-18 — Stable multi-selection toolbar and long-view default
+
+- Added .05 line-height and .01em letter-spacing arrow controls using the existing update pipeline; default and reset view now use scroll mode. Applied frontend-design guidance to retain high contrast and wrap the toolbar within narrow viewports.
+- Removed per-input selected-block repositioning and duplicate translated entry offsets. Added pointer-captured drag handle and keyboard movement; viewport coordinates survive multi-selection and reflow. Cancel delayed single-click toolbar updates when newer selections appear.
+- Live browser: dragged toolbar, Shift-selected two paragraphs, incremented line height and spacing, and restored both. Position stayed exactly 763.997px/250.375px throughout; both paragraphs changed from 24.5px line height to 25.2px and back, with matching spacing updates. Long view was active by default.
+- Three new tests cover stable anchoring, viewport bounds and fractional steps. Isolated beta tree passed typecheck, 156 Vitest tests, 59 text checks, 6 SDK guards and production build. Governance verifier passed; unrelated untracked dependency experiments preserved/excluded as before. Existing bundle-size warning remains. No commit, push or deployment.
+
+## 2026-09-18 — Flexible writing and Word clipboard input
+
+- Added ordinary-text presentation (no Markdown syntax highlighter, proportional font) and independent automatic/Markdown/plain clipboard choices. Mode changes preserve the source byte-for-byte; this is not WYSIWYG and does not hide Markdown markers. Followed frontend-design guidance to keep the controls compact within the existing workspace.
+- Inert Office hint extraction plus shared sanitization converts headings, inline emphasis, lists, links, quotes and code; merged tables remain safe HTML. Unusable local clipboard image references are reported. No binary .doc/.docx support or external conversion service. Paste is one undoable source transaction with block boundaries; existing autosave receives the input event.
+- Added eight conversion tests and two source-editor integration tests. Browser fixture verified rich paste conversion, one-step undo, and plain-text selection from a dual-format clipboard. Live workspace verified ordinary-mode switching without replacing user content. Actual desktop Word clipboard/RTF-only sources and OS IME remain unverified.
+- Isolated source tree passed typecheck, all 153 Vitest tests, 59 text checks, 6 SDK guards, build and governance checks. Working-directory typecheck remains blocked only by the pre-existing unrelated untracked sanitize-html.ts missing dompurify/jsdom typings; excluded experiments were not changed. Large-bundle warning remains. No commit, push or deployment.
+
+## 2026-09-18 — Selected-text font-size arrows
+
+- Added labelled up/down buttons beside the existing font-size slider. Each click changes 1px through the same individual/batch style and pagination handlers; buttons disable at 10px and 64px. Applied frontend-design guidance for neutral high-contrast controls consistent with the toolbar.
+- Four new stepper tests cover repeated changes, event order, bounds and selection/slider synchronization. Live browser confirmed selected paragraph 14px → 15px → 14px after repagination, preserving the article content; restored the original size after testing.
+- Isolated beta tree passed typecheck, 143 Vitest tests, 59 text checks, 6 SDK guards, build and governance verification. Unrelated untracked dependency/deployment experiments were excluded and preserved. Existing large-bundle warning remains. No commit, push or deployment.
+
+## 2026-09-18 — Screenshot-specific CJK justification follow-up
+
+- User rejected the ragged-right result. Restored magazine paragraph/list/quote justification with a left-aligned final line, rather than returning to English-only inter-word justification. Added idempotent render-time optical Latin/digit spans (.94em) and separate breakable bare-reference spans. Kept words, code, links, pure English paragraphs and Markdown characters intact. Print uses matching styles; WeChat retains its platform-safe alignment rules.
+- Used frontend-design guidance to validate the exact screenshot text in tests/fixtures/justified-typography.html. Local browser measurement: maximum non-final right-edge gap 97.29px before versus 0.02px after; SemiAnalysis intact, no horizontal overflow or tested punctuation violations. Rechecked 345px and 560px generic fixtures with no overflow/violations. Live editor confirmed justify/left and 14px CJK versus 13.16px Latin.
+- Isolated source tree passed typecheck, 139 Vitest tests, 59 text checks, 6 SDK guard checks, production build and governance verification. Existing unrelated untracked dependency experiments remain excluded and untouched. No commit, push or deployment. Saved an actual before/after screenshot in the task visualization directory.
+
+## 2026-09-18 — Chinese/Latin mixed typography
+
+- Applied frontend-design typography guidance within the existing UI. Consulted W3C CLReq, CSS Text 3/4 and Han.js official documentation; recorded sources and tradeoffs in docs/MIXED_TYPOGRAPHY.md.
+- Confirmed the live page used inter-word justification, keep-all headings, Latin-only theme font stacks and 349 Han punctuation/spacing wrappers. Removed Web/print Han CDN execution and moved compatibility spacing before pagination; native spacing leaves preview text unchanged. Portable output uses idempotent cross-inline spacing, preserving literal code/links and existing whitespace.
+- A visual fixture exposed large justified gaps before a long URL even with auto justification, so reading-first paragraphs/lists/quotes now default left-aligned. This is a deliberate compromise, not a claim of full CLReq print-grid justification. Fonts have CJK fallbacks; print uses the actual article's computed family.
+- Browser checks at 345px and 560px: no horizontal overflow and zero tested line-start/end punctuation violations. Live editor: no Han wrapper nodes, normal CJK wrapping, left alignment and CJK font stack. User article was not replaced by test content. Screenshot saved outside the repository in the task visualization directory.
+- Isolated source tree (excluding pre-existing unrelated untracked sanitize-html/deployment experiments) passed strict typecheck, all 138 Vitest tests, 59 text checks, 6 SDK guard cases, production build and governance verification. Working-directory typecheck remains blocked only by those pre-existing missing dompurify/jsdom imports. Real WeChat save/reload, Firefox/WebKit and font-load timing remain acceptance gaps. No commit, push or deployment in this iteration.
+
 ## 2026-09-18 — 2.0 beta release preparation and preview editing repair
 
 - User confirmed an independent 2.0 branch; created codex/2.0.0-beta and set package/lockfile/UI/README version to 2.0.0-beta.1. Fetched origin and confirmed main remains 7020c3b, version 1.6.0; no main mutation or deployment.

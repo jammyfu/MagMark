@@ -27,10 +27,21 @@ try {
     onFocus: workspace.showSource,
     onSave: () => document.getElementById('btn-save')!.click(),
     report: workspace.report,
+    pasteMode: () => (document.getElementById('writing-paste-mode') as HTMLSelectElement).value as 'auto' | 'markdown' | 'plain',
     onHistoryChange: (canUndo, canRedo) => { undoButton.disabled = !canUndo; redoButton.disabled = !canRedo; },
   });
   undoButton.addEventListener('click', sourceEditor.undo);
   redoButton.addEventListener('click', sourceEditor.redo);
+  const writingMode = document.getElementById('writing-mode') as HTMLSelectElement;
+  let activeWritingMode: 'plain' | 'markdown' = 'markdown';
+  writingMode.addEventListener('change', () => {
+    const mode = writingMode.value as 'plain' | 'markdown';
+    if (!sourceEditor.setWritingMode(mode)) { writingMode.value = activeWritingMode; return; }
+    activeWritingMode = mode;
+    document.getElementById('writing-hint')!.textContent = mode === 'plain'
+      ? '直接输入段落即可；转换后的 Markdown 标记保留，可继续修改'
+      : 'Word 标题、加粗、列表自动转换 · 可撤销';
+  });
 } catch (error) {
   // A usable textarea is preferable to a blank editor on unsupported runtimes.
   input.hidden = false;

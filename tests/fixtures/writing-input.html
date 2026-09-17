@@ -1,0 +1,13 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Writing input test</title>
+<label>粘贴<select id="mode"><option value="auto">自动识别</option><option value="plain">纯文本</option></select></label>
+<button id="undo">撤销</button><textarea id="source"></textarea><div id="editor"></div><pre id="result"></pre><p role="status"></p>
+<script type="module">
+import { mountSourceEditor } from '/src/workspace/source-editor.ts';
+const source = document.querySelector('#source');
+const editor = mountSourceEditor(source, document.querySelector('#editor'), {
+  pasteMode: () => document.querySelector('#mode').value,
+  report: message => document.querySelector('[role=status]').textContent = message,
+});
+source.addEventListener('input', () => document.querySelector('#result').textContent = source.value);
+document.querySelector('#undo').onclick = editor.undo;
+</script></html>
