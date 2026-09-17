@@ -6,7 +6,10 @@ import { mountWorkspace } from './src/workspace/workspace';
 import { mountSourceEditor } from './src/workspace/source-editor';
 import { STARTER_MARKDOWN } from './src/workspace/starter';
 import { mountPreviewEdit } from './src/workspace/preview-edit';
+import { mountWorkspaceIcons } from './src/workspace/icons';
 
+// Decoration only: retain existing controls, handlers and article markup.
+mountWorkspaceIcons();
 const input = document.getElementById('markdown-input') as HTMLTextAreaElement;
 // Replace only the exact legacy first-run demo, never an imported/user document.
 if (input.value.startsWith('# MagMark 1.6.0 🎨✨\n')) {

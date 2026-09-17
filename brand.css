@@ -1,0 +1,32 @@
+/* Folio brand and Lucide chrome. Never target article typography or exports. */
+.brand-lockup .brand-mark {
+  display: block; width: 34px; height: 34px; flex: 0 0 34px;
+  color: var(--ws-ink); letter-spacing: 0; line-height: 1;
+}
+.brand-lockup .brand-mark svg { display: block; width: 100%; height: 100%; }
+.mm-ui-icon {
+  display: inline-block; width: 16px; height: 16px; flex: 0 0 16px;
+  vertical-align: -3px; pointer-events: none;
+}
+.mm-ui-icon-flip { transform: rotate(180deg); }
+.mm-has-icon > .mm-ui-icon { margin-inline-end: 6px; }
+.mm-icon-only > .mm-ui-icon { margin-inline-end: 0; }
+.workspace-tabs button.mm-has-icon,
+.insert-actions button.mm-has-icon,
+.preview-toolbar button.mm-has-icon,
+.workspace-actions .primary-action.mm-has-icon,
+.mm-icon-only {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0;
+}
+.insert-actions button.mm-icon-only { min-width: 32px; min-height: 32px; padding: 6px; }
+.file-popover button.mm-has-icon { justify-content: flex-start; gap: 0; }
+.file-popover button.mm-has-icon > .mm-ui-icon { margin-inline-end: 10px; }
+.file-popover button.mm-has-icon > span,
+.file-popover button.mm-has-icon > kbd { margin-inline-start: auto; }
+.export-choice button.mm-has-icon { justify-content: flex-start; }
+.export-file-grid button.mm-has-icon { line-height: 1.6; }
+.mm-ip-layout-btn.mm-has-icon { white-space: nowrap; }
+@media (max-width: 800px) {
+  .workspace-tabs button.mm-has-icon > .mm-ui-icon { display: none; }
+  .insert-actions button.mm-has-icon > .mm-ui-icon { width: 14px; height: 14px; flex-basis: 14px; }
+}
