@@ -90,6 +90,12 @@ Integration is restricted to the approved feature branch. One-time write-enabled
 
 ## Inherited decisions
 
+### 2026-09-18 — Wide table layout
+
+Follow-up supersedes scaling: landscape sheets repeat the first identifying column with up to two data columns, repeat headers, and pack rows to the measured paper bounds without transforms that reduce font size. Oversized rows are sliced into text fragments retaining inline markup; short identifiers repeat on continuations. Each sheet reserves actual rotated dimensions. Content length can require more than two lines or multiple pages; readability takes priority over a fixed page count.
+
+Magazine tables use fixed layout and wrapping identifiers. A session-only inspector setting selects normal tables, vertical two-column records, or clockwise rotation. Rotation measures sanitized content before pagination and reserves transformed dimensions; very large rotated tables scale down, for which vertical records offer a readable alternative. Markdown source stays unchanged.
+
 ### 2026-09-18 — README theme-aware monochrome mark
 
 GitHub README pages use a `picture` element with explicit dark/light SVG sources. The original supplied black artwork remains the light source; a derived white monochrome source serves dark mode. This avoids relying on CSS filters in GitHub's Markdown renderer and preserves a transparent logo background.

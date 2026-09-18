@@ -4,6 +4,7 @@ import { bindRangeStepper } from './src/workspace/range-stepper';
 import { mountToolbarPosition } from './src/workspace/toolbar-position';
 import { trackMouseGesture } from './src/workspace/mouse-gesture';
 import { prepareMixedPreview } from './src/core/mixed-typography';
+import { layoutTableSheets } from './src/workspace/table-sheets';
 import { deleteSelectedSource } from './src/workspace/delete-selection';
 import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
@@ -795,6 +796,18 @@ function convertMarkdown(md: string, mapSource = true): string {
         });
         const dataRows = tableLines.slice(2);
 
+        // Produce ordinary two-column tables before pagination/export measurement.
+        // Repeat field headings for each record so long prose stays readable.
+        if (document.querySelector<HTMLSelectElement>('#ctrl-table-layout')?.value === 'vertical' && dataRows.length) {
+            return dataRows.map(row => {
+                const cells = parseCells(row);
+                const count = Math.max(headerCells.length, cells.length);
+                return `<table class="mm-table-record"><tbody>${Array.from({ length: count }, (_, j) =>
+                    `<tr><th scope="row">${inlineMarkdown(headerCells[j] || `列 ${j + 1}`)}</th><td>${inlineMarkdown(cells[j] || '')}</td></tr>`
+                ).join('')}</tbody></table>`;
+            }).join('\n');
+        }
+
         const alignAttr = (idx: number) => {
             const a = aligns[idx];
             return a && a !== 'left' ? ` style="text-align:${a}"` : '';
@@ -957,7 +970,16 @@ function convertMarkdown(md: string, mapSource = true): string {
         if (para) blocks.push(para);
     }
 
-    return prepareMixedPreview(sanitizeArticleHtml(blocks.join('\n')));
+    const result = prepareMixedPreview(sanitizeArticleHtml(blocks.join('\n')));
+    if (!mapSource || document.querySelector<HTMLSelectElement>('#ctrl-table-layout')?.value !== 'rotate') return result;
+    const settings = store.getState();
+    const page = getPageDimensions(settings.format);
+    return layoutTableSheets(result, {
+        width: page.w - page.pl - page.pr - 8,
+        height: page.h - page.pt - page.pb - 64 - page.safetyMargin,
+        fontSize: Math.max(14, settings.fontSize), lineHeight: settings.lineHeight,
+        fontFamily: settings.fontFamily,
+    });
 }
 
 /**
@@ -1839,6 +1861,7 @@ function init() {
     });
     $<HTMLInputElement>('#ctrl-letterspacing').addEventListener('change', finalizePaginationUpdate);
 
+    document.querySelector('#ctrl-table-layout')?.addEventListener('change', () => render());
     $<HTMLSelectElement>('#ctrl-format').addEventListener('change', (e) => {
         const fmt = (e.target as HTMLSelectElement).value as AppState['format'];
         const formatSetting = getFormatDefaultSetting(fmt);

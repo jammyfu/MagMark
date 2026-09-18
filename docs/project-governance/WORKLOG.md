@@ -124,6 +124,16 @@ Current details: [QUIET_WORKSPACE.md](QUIET_WORKSPACE.md) and [remote evidence](
 
 ## Prior execution history
 
+## 2026-09-18 — Readable table groups and sheets
+
+- Replaced whole-table scaling with at most three columns per group, repeated keys/headers, row packing and long-cell continuation preserving code and emphasis. Added group/sheet captions and actual print-area sizing.
+- Browser verification on the current article: 20 table sheets across 35 total article pages, all tables at 14px, no scale transforms, sheet widths 241–483px and height 666px inside the A4 content area. Earlier long-view measurement confirmed no table-to-wrapper overflow. Regression test verifies complete long formatted text reconstruction, keys and column limits; isolated strict typecheck passed. Physical printing and PDF export are not verified.
+
+## 2026-09-18 — Wide table overflow
+
+- Constrained table cells and nested inline code/links to paper width. Added session-only magazine layout choices: fitting, vertical records and measured 90-degree rotation with explicit occupied width/height.
+- Isolated TypeScript checking passed. Live browser rotation/export verification remains outstanding; source and existing unrelated experiments were preserved.
+
 ## 2026-09-18 — README dark-mode logo contrast
 
 - The black supplied monochrome SVG disappeared against GitHub's dark README background. Added a white derived SVG and a theme-aware `picture` source to each localized README.

@@ -12,6 +12,9 @@ Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed ver
 
 ### Current execution: adaptive multilayer covers (2026-09-18)
 
+- Table overflow: constrain cells and long identifiers to paper width; add vertical record layout and measured clockwise 90-degree rotation before pagination.
+- Follow-up: replace whole-table scaling with column groups and measured row sheets at readable font size, repeating headers and record keys; split overlong cell content without losing inline formatting.
+
 - README brand follow-up: use GitHub theme-aware dark/light logo sources so the supplied monochrome mark remains visible in both README color schemes.
 
 - Direct editing now presents formatted content instead of Markdown syntax, converting edited HTML back into the mapped source range and preserving unchanged source exactly.

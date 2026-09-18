@@ -1090,6 +1090,8 @@ input:checked+.slider:before {
 }
 
 .magmark table {
+    table-layout: fixed;
+    max-width: 100%;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -1102,6 +1104,9 @@ input:checked+.slider:before {
 
 .magmark th,
 .magmark td {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
     border: 1px solid #e8e8ee;
     padding: 10px 14px;
     text-align: left;
@@ -1113,6 +1118,11 @@ input:checked+.slider:before {
     color: #333;
     letter-spacing: 0.2px;
 }
+
+/* Long identifiers must participate in cell sizing instead of widening paper. */
+.magmark :is(th, td) :is(code, a, span) { white-space: normal; overflow-wrap: anywhere; word-break: normal; }
+.magmark .mm-table-record { margin: 1em 0; }
+.magmark .mm-table-record th { width: 25%; }
 
 .magmark tr:nth-child(even) {
     background: #fafaff;
