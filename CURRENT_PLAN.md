@@ -12,6 +12,8 @@ Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed ver
 
 ### Current execution: adaptive multilayer covers (2026-09-18)
 
+- Current follow-up: independent workspace auto/light/dark preference plus neutral/sand/sage/slate palettes, and matching article-style picker chrome. Preserve article styles and existing saved preferences.
+
 - Follow-up: five text alignment modes (including justified/distributed last line), selection-aware state and consistent shared line icons for cover controls; verify undo, media propagation and sanitized output.
 
 - Replace shared fixed layouts with aspect-aware safe-area composition for every output ratio and thumbnail.

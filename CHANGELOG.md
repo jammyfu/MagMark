@@ -51,3 +51,7 @@
 
 - Add left/center/right, justified and last-line-distributed alignment for cover text layers. Preserve alignment through undo, media adaptation and export.
 - Unify cover alignment, layer actions, resizing and history buttons with the workspace's accessible thin-line icon system.
+# Workspace appearance — 2026-09-18
+
+- Add live system-following appearance and three low-saturation workspace palettes (sand, sage, slate), with independent persisted mode/palette preferences.
+- Match article-style dropdown surfaces and selected items to workspace colors; improve native text selection, CodeMirror selection and block/marquee selection visibility.

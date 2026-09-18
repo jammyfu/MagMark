@@ -99,3 +99,6 @@ Layer history includes addition, deletion, visibility and ordering, not only tex
 ## 2026-09-18 — Cover title justification and icons
 
 Distinguish normal justification (natural final line) from distributed alignment (final line justified too). Use CSS text-align/text-align-last and CJK inter-character justification rather than inserting spacing characters into source text. Alignment is layer-local and undoable, and disabled for image selections. Reuse the workspace icon decorator with matching project-authored alignment geometry, accessible labels, tooltips and pressed states.
+## 2026-09-18 — Workspace palettes and selection contrast
+
+Workspace appearance has independent auto/light/dark and neutral/sand/sage/slate preferences. Existing explicit light/dark values remain valid; new users default to system-following. Only workspace CSS tokens change, not article variables or source. Native customizable selects progressively enhance the article-style picker; fallback retains native keyboard behavior and paired colors. Text selection uses paired workspace ink/background while preview block selection emphasizes outlines instead of tinting article text.

@@ -144,3 +144,9 @@ The complete earlier worklog is preserved unchanged, using its original Git blob
 - Added five alignment modes and synchronized pressed state with selected layer, undo/redo and media switching. Reused shared SVG decoration for cover and layer buttons; frontend-design guided the compact segmented controls and existing visual style.
 - Browser checked distributed title alignment, measured no overflow and confirmed active icon state. Added regression coverage for all five modes, icon rendering, undo/redo and cross-media preservation. Tests run in the existing isolated beta tree to exclude unrelated untracked experiments.
 - Validation: strict typecheck, 20 targeted cover/icon regression tests, production build, governance verification and whitespace checks passed. Existing bundle-size warning remains. No publication or remote push performed.
+## 2026-09-18 — Workspace appearance and selection
+
+- Added live OS appearance following, explicit light/dark overrides and three muted palette families with separate local preferences and listener cleanup.
+- Matched article-style picker surfaces/selected items and native/CodeMirror/block/marquee selection to workspace tokens. Article content/theme remains independent.
+- Strict typecheck, seven appearance/workspace tests and isolated production build passed before the final CSS-only selection refinement; governance and browser checks follow.
+- Governance and whitespace checks passed. Restored the stopped local Vite service; browser verified dark slate selection uses light ink rgb(224,230,237) over rgb(57,79,104), and article-style selected options use the same paired colors. Restored the user's light/slate choice after checking. Existing build chunk-size warning remains.
