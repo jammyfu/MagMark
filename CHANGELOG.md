@@ -1,5 +1,11 @@
 # CHANGELOG
 
+- 手机工作区改为写作／预览／排版单面板切换，底部固定导航、44px 顶部设置、安全区适配；首屏展示加载状态，封面及 PNG 导出模块按需加载，手机不请求远程字体，默认介绍图由 1.58 MB PNG 优化为 57 KB WebP。
+
+- 新增专注文案宣传的 PROMOTION.md，采用 jammyfu「老登体」并设为简中工作区默认启动文字，重点宣传搜索匹配工具专属 Icon 装饰功能、杂志级 CJK 排印、智能分页与多平台高质量导出。保留原 README.md 规范说明。
+
+- 预览文字编辑中的链接改为不可点击的 URL 标记；离开编辑器的链接会显示目标地址并要求确认，页内锚点不受影响。
+
 - 统一顶部语言、明暗与配色选择器的圆角、内嵌图标和箭头，改善长标签空间并适配窄窗口。
 
 - 语言、界面明暗、配色与文章风格选择器增加统一线性图标。
@@ -70,6 +76,7 @@
 
 - 修复暗色及低饱和工作区中图片比例文字过暗的问题：方向按钮、全部比例刻度、当前比例及重置操作使用主题配色；刻度由 7.5px 提升到 10px，非选中项不再呈现为禁用状态。
 - 修复预览中双击列表时编辑框只显示第一项的问题；现在选中整块列表会载入全部 Markdown 列表项、标记及行内格式。
+- 为 2.0 beta 建立独立的 `/tools/magmark2/` 发布入口，补齐搜索摘要、canonical、社交分享卡片、WebApplication 与面包屑结构化数据、Web App 清单、站点地图及 `llms.txt`；网页构建基路径可通过 `MAGMARK_BASE_PATH` 配置。
 
 
 ## 2026-09-03 · 主站工具部署
@@ -88,3 +95,8 @@
 
 - Add live system-following appearance and three low-saturation workspace palettes (sand, sage, slate), with independent persisted mode/palette preferences.
 - Match article-style dropdown surfaces and selected items to workspace colors; improve native text selection, CodeMirror selection and block/marquee selection visibility.
+
+
+## 2026-09-18 — Disable browser install promotion
+
+User requested a normal website without the Chrome install promotion. Removed the manifest link and installable web manifest. Preserve canonical, JSON-LD, share metadata, favicon and editor behavior. Production update is limited to removing the manifest link/file; no browser data or drafts are cleared. Browser-owned manual install menus cannot be disabled by the website.

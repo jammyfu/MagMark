@@ -1,5 +1,17 @@
 # DECISIONS.md
 
+## 2026-09-18 — Phone workspace
+
+At <=800px, use mutually exclusive writing, preview and layout panels with persistent bottom navigation. Keep native language/appearance/palette selects with visible SVG icons and 44px hit targets. Bootstrap icons and progress independently of the editing engine; defer cover editing and PNG-export modules. Optional remote article fonts load after desktop startup only; phones use installed font fallbacks. Preserve drafts, desktop compare mode, stable deployment and non-installable website behavior.
+
+## 2026-09-18 — Dedicated promotional document PROMOTION.md with QR code
+
+Create a dedicated PROMOTION.md containing the premium Apple-style promotional edition with bubufu-url.svg QR code for mobile scanning, and bind it in starter.ts as the default workspace starter document for Simplified Chinese locale, while keeping README.md as the clean official technical documentation. The promotional text highlights tool icon search matching decoration (pairing tech stack and tool mentions with precision vector icons), magazine-grade CJK typesetting, Paged.js pagination, 3x PNG export, and WeChat rich text copy. Required brand hero artwork and monochrome dark/light logo tags are preserved.
+
+## 2026-09-18 — Link navigation during editing
+
+Rich-text editing retains links for Markdown round-trip but disables pointer activation and uses a readable non-default token style. A document-capture guard stops navigations that leave the current document, presents the full resolved destination, and only navigates after an explicit dialog action. In-page anchors, downloads and intentional new-window links retain native behavior.
+
 ## 2026-09-18 — Workspace locales and compact controls
 
 Persist one UI locale independent of article styling. Translate known chrome strings and dynamic panels while excluding source editors, article previews, editable content and history excerpts. Unmodified bundled README examples follow locale; edited drafts require explicit README loading. Primary controls use the existing licensed icons with localized accessible names and tooltips. Unknown strings retain source wording rather than guessing translations.
@@ -149,6 +161,15 @@ Layer history includes addition, deletion, visibility and ordering, not only tex
 ## 2026-09-18 — Cover title justification and icons
 
 Distinguish normal justification (natural final line) from distributed alignment (final line justified too). Use CSS text-align/text-align-last and CJK inter-character justification rather than inserting spacing characters into source text. Alignment is layer-local and undoable, and disabled for image selections. Reuse the workspace icon decorator with matching project-authored alignment geometry, accessible labels, tooltips and pressed states.
+
+## 2026-09-18 — Independent beta discovery URL
+
+Publish the 2.0 beta under `/tools/magmark2/` while retaining the stable `/tools/magmark/` editor. The beta owns a self-canonical URL and release-specific metadata; it must not canonicalize to the stable editor. Use a configurable Vite base path so all bundled and public assets remain inside the beta subtree. Describe only verified browser features and mark the software version as beta in human, social and machine-readable metadata.
 ## 2026-09-18 — Workspace palettes and selection contrast
 
 Workspace appearance has independent auto/light/dark and neutral/sand/sage/slate preferences. Existing explicit light/dark values remain valid; new users default to system-following. Only workspace CSS tokens change, not article variables or source. Native customizable selects progressively enhance the article-style picker; fallback retains native keyboard behavior and paired colors. Text selection uses paired workspace ink/background while preview block selection emphasizes outlines instead of tinting article text.
+
+
+## 2026-09-18 — Disable browser install promotion
+
+User requested a normal website without the Chrome install promotion. Removed the manifest link and installable web manifest. Preserve canonical, JSON-LD, share metadata, favicon and editor behavior. Production update is limited to removing the manifest link/file; no browser data or drafts are cleared. Browser-owned manual install menus cannot be disabled by the website.

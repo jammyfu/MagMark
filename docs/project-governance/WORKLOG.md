@@ -1,5 +1,18 @@
 # WORKLOG.md
 
+## 2026-09-18 — Mobile beta optimization
+
+- Added phone-only single-panel navigation, persistent full-width bottom actions, visible header icons, 44px touch targets, safe-area spacing, compact writing options and constrained dialogs.
+- Bootstrap now paints icons/loading status before the editing engine; mobile no longer requests Google Fonts. Cover editing and PNG export load on demand. Starter hero converted from 1,576,400 bytes to 56,662 bytes WebP; original retained.
+- Typecheck, deep verifier (203 tests) and production build passed. Headless Chrome tested 320/390/430/768/1280 widths, header and navigation icon visibility, no horizontal overflow, mutually exclusive preview/layout panels, appearance/palette/locale switching. This is viewport emulation, not physical-device testing.
+
+## 2026-09-18 — Dedicated promotional document PROMOTION.md with QR code
+
+- Refactored PROMOTION.md into concise, premium Apple-style copywriting focusing purely on substance, craftsmanship, and economic delivery without excessive slang.
+- Added bubufu-url.svg QR code to public/brand and web-public/brand, embedded at the bottom of PROMOTION.md with "扫码查看" and bound in starter.ts for bundled URL resolution.
+- Featured tool icon search decoration matching, CJK typography, smart pagination, 3x supersampled PNG export, and lossless WeChat rich text copy.
+- Preserved mandatory brand hero and dark/light SVG picture tags; passed strict typecheck, all 203 Vitest tests across 38 suites, and deep governance verification.
+
 ## 2026-09-18 — Cover title readability and direct manipulation
 
 - Researched official Canva double-click text editing and Adobe Express resizing/text layout documentation (links in DECISIONS). Applied frontend-design guidance to expand the canvas, consolidate text controls, collapse optional ratio settings and put media previews in a horizontal strip.
@@ -228,3 +241,21 @@ The complete earlier worklog is preserved unchanged, using its original Git blob
 # 2026-09-18 — Header selector styling
 
 - Consolidated header selector styling in workspace.css with contained icons, 36px controls, uniform corners and chevrons. Narrow windows retain native menus behind icon-sized controls.
+# 2026-09-18 — Confirmed link navigation
+
+- Added an inert, high-contrast link token style to direct rich-text editing and a dialog guard for preview links that leave the current editor. The dialog exposes the resolved address and provides stay/open actions.
+- Added regression checks for external-link interception, anchor preservation and edit-session reporting.
+
+# 2026-09-18 — MagMark 2.0 beta SEO and production deployment
+
+- Added a dedicated canonical, search snippet controls, Open Graph/Twitter metadata, WebApplication and breadcrumb JSON-LD for `https://bubufu.com/tools/magmark2/`.
+- Added a scoped web manifest, beta sitemap and concise `llms.txt`; parameterized the standalone Vite base path and bundled beta-owned brand, favicon and social preview assets.
+- Kept the existing stable `/tools/magmark/` route outside the beta deployment boundary.
+- Pinned DOMPurify 3.4.15 and completed the deep verifier: typecheck plus 203 tests passed. The production Vite build completed with `/tools/magmark2/` as its base.
+- Published the static beta to `/opt/sites/bubufu.com/public/tools/magmark2`; public HTML, bundled CSS/JS, manifest, sitemap, `llms.txt` and 1200×630 share image return HTTP 200. A browser smoke test confirmed the initialized editor and dynamic beta title.
+- Added the beta URL to the main `https://bubufu.com/sitemap.xml` while preserving the stable URL. The portal container remained healthy and unchanged; the sitemap was installed as an exact Nginx-served XML generated from the verified portal build because full-image upload bandwidth was unsuitable for a one-file SEO update.
+
+
+## 2026-09-18 — Disable browser install promotion
+
+User requested a normal website without the Chrome install promotion. Removed the manifest link and installable web manifest. Preserve canonical, JSON-LD, share metadata, favicon and editor behavior. Production update is limited to removing the manifest link/file; no browser data or drafts are cleared. Browser-owned manual install menus cannot be disabled by the website.

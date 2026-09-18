@@ -2,15 +2,21 @@
 
 ## Active: quiet workspace and CJK publishing upgrade (2026-09-15)
 
-Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed verified `afb7dca`. On 2026-09-18 the user authorized committing and synchronizing the current upgrade on an independent 2.0 beta branch. Remote main stays at 1.6.0. No main update, merge, force-push, deployment or WeChat account action is authorized.
+Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed verified `afb7dca`. On 2026-09-18 the user authorized committing and synchronizing the current upgrade on an independent 2.0 beta branch, then explicitly authorized deploying that beta at `https://bubufu.com/tools/magmark2/`. Remote main and the existing `/tools/magmark/` release stay unchanged. No main update, merge, force-push or WeChat account action is authorized.
 
 ### Current release preparation (2026-09-18)
 
+- Mobile beta follow-up: single panel with persistent Write / Preview / Layout navigation at <=800px; visible 44px header settings; deferred editor features and fonts; responsive verification before updating only the beta static deployment.
+
+- Update default starter text and README with jammyfu '老登体' promotional edition, featuring tool icon search decoration matching and magazine-grade CJK publishing.
 - Fix preview double-click source mapping using renderer-owned ranges; verify list titles, repeated text and paginated blocks.
 - Set 2.0.0-beta.1, refresh README workspace screenshot, commit and push only the independent beta branch.
 - Preserve unrelated untracked deployment experiments locally; verify the isolated release tree before pushing.
+- Give the beta its own canonical URL, social metadata, structured data, manifest, sitemap and machine-readable description; build with `/tools/magmark2/` as the asset base and deploy without replacing the stable editor.
 
 ### Current execution: adaptive multilayer covers (2026-09-18)
+
+- Link safety: render links in rich-text editing as inert readable tokens; require a visible destination confirmation before preview links leave the editor, retaining in-page anchors.
 
 - Selector icon follow-up: add consistent language, appearance and palette symbols beside native selectors, including article style, preserving keyboard and locale behavior.
 - Refine header selectors with contained icons, matched 36px height, custom chevrons, localized label space and compact icon presentation on narrow windows.
@@ -111,3 +117,8 @@ Details and reproduction: [CONTINUATION_2026-09-15.md](docs/project-governance/C
 - [ ] Reproducible Paged.js/Vivliostyle comparison, dependency advisory triage and SDK distribution packaging. Keep the current print backend until measured evidence supports changing it.
 
 The UI milestone does not complete the publishing upgrade. Keep PR #7 draft and the live site unchanged.
+
+
+## 2026-09-18 — Disable browser install promotion
+
+User requested a normal website without the Chrome install promotion. Removed the manifest link and installable web manifest. Preserve canonical, JSON-LD, share metadata, favicon and editor behavior. Production update is limited to removing the manifest link/file; no browser data or drafts are cleared. Browser-owned manual install menus cannot be disabled by the website.

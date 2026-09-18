@@ -1,17 +1,19 @@
 /// <reference types="vite/client" />
-import readme from '../../README.md?raw';
+import promo from '../../PROMOTION.md?raw';
 import traditionalReadme from '../../README.zh-Hant.md?raw';
 import japaneseReadme from '../../README.ja.md?raw';
 import englishReadme from '../../README.en.md?raw';
 import { savedLocale, type Locale } from './locale';
-import hero from '../../screenshots/magmark-brand-hero.png?url';
+import hero from '../../screenshots/magmark-brand-hero.webp?url';
 import logo from '../../public/brand/magmark-monochrome.svg?url';
+import qr from '../../public/brand/bubufu-url.svg?url';
 
 /** Bundle README artwork for first run, including deployments below a URL prefix. */
 export function starterForLocale(locale: Locale): string {
-  return ({'zh-Hans': readme, 'zh-Hant': traditionalReadme, ja: japaneseReadme, en: englishReadme})[locale]
+  return ({'zh-Hans': promo, 'zh-Hant': traditionalReadme, ja: japaneseReadme, en: englishReadme})[locale]
     .replace(/<picture>[\s\S]*?<\/picture>/g, `<img src="${logo}" width="220" alt="MagMark 标志">`)
-    .replaceAll('screenshots/magmark-brand-hero.png', hero);
+    .replaceAll('screenshots/magmark-brand-hero.png', hero)
+    .replaceAll('public/brand/bubufu-url.svg', qr);
 }
 export const STARTER_MARKDOWN = starterForLocale(savedLocale());
 
