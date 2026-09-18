@@ -203,3 +203,28 @@ The complete earlier worklog is preserved unchanged, using its original Git blob
 - Traced the incomplete editor to a semantic mismatch: the selection outline belonged to the top-level list while double-click source lookup chose the nearest list item.
 - Added a complete renderer-owned source range to ordered/unordered lists and promote child double-clicks to that range. The dialog label now explicitly says it edits the complete list; item markers, inline Markdown, nested lines and undoable source replacement are preserved.
 - Eleven focused preview/selection tests and isolated strict typecheck pass. Live verification against the reported three-item “Bot 名 / 角色” list loaded all three source lines and both later labels; the dialog was cancelled without changing article content.
+# 2026-09-18 — Image appearance controls and README startup
+
+- Added image-panel ink/background controls with preview and PNG export; retained original source until applying changes.
+- Bundled README and brand assets as the first-run document; saved drafts remain preserved. Removed system-theme picture selection from starter artwork.
+- Full typecheck still reports pre-existing missing dompurify/jsdom declarations in untracked src/core/sanitize-html.ts; validating tracked application separately.
+- Validation: 12 focused image tests pass, isolated tracked-source typecheck passes, Vite production build includes README hero and logo, governance verification and diff checks pass. Native browser visual inspection was not performed in this turn.
+# 2026-09-18 — Picture source identity repair
+
+- Fixed theme-selected currentSrc being mistaken for Markdown source identity. Added regression coverage for picture fallback differing from the displayed source.
+- Browser verification on the user's existing README: double-click opened image editor; automatic ink preview produced PNG; applying closed the dialog and article displayed the saved PNG successfully.
+# 2026-09-18 — SVG-only appearance UI
+
+- Compact appearance card with conditional custom swatch and background swatch. SVG detection hides ink controls for raster images and clears stale settings when replacing assets. Preview uses article paper color.
+- Added regression coverage for SVG-to-PNG switching, conditional swatches and paper preview color.
+# 2026-09-18 — Four workspace languages
+
+- Added persistent locale selector, localized chrome and panel strings, four bundled README starters, and explicit README loading for edited drafts. Localized README headers now share hero-first order.
+- Converted primary writing/compare/preview, pagination, image/cover/layout, file and export actions to icon buttons with accessible labels.
+- Regression tests cover all four language changes, dynamic dialogs, article/source exclusion, counters and distinct localized README content. Browser verified English labels, accessible icon names and translated layout inspector without replacing the current draft.
+# 2026-09-18 — Selector icons
+
+- Added decorative language, appearance and palette icons beside native selects, including article style. Icons use currentColor, ignore pointer events and preserve native accessible controls.
+# 2026-09-18 — Header selector styling
+
+- Consolidated header selector styling in workspace.css with contained icons, 36px controls, uniform corners and chevrons. Narrow windows retain native menus behind icon-sized controls.

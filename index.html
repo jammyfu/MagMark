@@ -26,6 +26,9 @@
       <button type="button" data-workspace-view="preview" aria-pressed="false">预览</button>
     </nav>
     <div class="workspace-actions">
+      <select id="workspace-language" aria-label="Language / 语言" title="Language / 语言">
+        <option value="zh-Hans">简</option><option value="zh-Hant">繁</option><option value="ja">日</option><option value="en">EN</option>
+      </select>
       <select id="workspace-appearance" aria-label="工作区外观" title="工作区外观（不影响文章）">
         <option value="auto">自动 · 跟随系统</option>
         <option value="light">亮色</option>
@@ -41,6 +44,7 @@
         <summary>文件 <span aria-hidden="true">⌄</span></summary>
         <div class="file-popover" aria-label="文件操作">
 <button type="button" id="file-upload-label" data-open-input="file-input">打开文本 <span>.md / .txt</span></button>
+          <button type="button" id="btn-readme">载入 README</button>
           <button type="button" data-open-input="article-directory-input">导入文章目录 <span>含图片</span></button>
           <button type="button" data-open-input="asset-directory-input">关联图片目录 <span>补全缺图</span></button>
           <div class="menu-separator" role="separator"></div>

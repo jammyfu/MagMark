@@ -1,5 +1,17 @@
 # DECISIONS.md
 
+## 2026-09-18 — Workspace locales and compact controls
+
+Persist one UI locale independent of article styling. Translate known chrome strings and dynamic panels while excluding source editors, article previews, editable content and history excerpts. Unmodified bundled README examples follow locale; edited drafts require explicit README loading. Primary controls use the existing licensed icons with localized accessible names and tooltips. Unknown strings retain source wording rather than guessing translations.
+
+Image ink controls are gated by SVG source type (SVG URL/data MIME or blob MIME). Raster images expose backing only, including previously baked logo PNGs. Replacing assets resets color controls to prevent stale tint. The preview backing uses the article background independently of workspace appearance.
+
+Image source mapping uses the img fallback src (or missing-image original src), independently from the currentSrc variant used for display and color conversion. This keeps responsive/theme pictures editable without guessing the source occurrence.
+
+## 2026-09-18 — Image appearance and README starter
+
+Image appearance is explicitly applied as PNG pixels for stable clipboard/export output. Automatic ink uses the current article or chosen backing at edit time, not OS appearance; later theme changes do not recolor saved pixels. Tint is intended for transparent monochrome artwork. External images require CORS or local upload. Editing picture fallback replaces its enclosing picture to prevent source overrides. The bundled README is the first-run document; draft restoration remains authoritative.
+
 ## 2026-09-18 — Cover text canvas interaction
 
 Use direct manipulation with separate proportional font scaling and text-box width controls, following Canva double-click editing and Adobe Express text sizing patterns. Preserve independent/shared media scope. Use explicit opaque ink/backing pairs (#172033 / #ffffff) for title and subtitle to avoid unpredictable gradient/image contrast; read theme variables from body. Keep selection chrome outside artwork and strip editing metadata before exports. Font sizes use em and widths use percentages for media adaptation; movement retains the existing pixel offsets. Undo/redo is bounded to 50 changes in the current canvas and resets on template/media rebuild, not persisted draft history.

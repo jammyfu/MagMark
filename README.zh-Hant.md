@@ -1,9 +1,9 @@
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark 標誌"></picture></p>
+<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="MagMark 品牌頭圖：金色光影中的書頁與品牌字標"></p>
 <h1 align="center">MagMark</h1>
 <p align="center">寫 Markdown，讓版面像雜誌。</p>
 <p align="center"><a href="README.md">简体中文</a> · 繁體中文 · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>
 
-<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="MagMark 品牌頭圖：金色光影中的書頁與品牌字標"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark 標誌"></picture></p>
 
 MagMark 是面向中文與中英混排的 Markdown 編輯、排版與匯出工具。保留可編輯的原文，預覽並調整版面，再將同一篇文章帶到分頁雜誌、PNG、瀏覽器列印 PDF 或微信公眾號。
 

@@ -1,4 +1,5 @@
 import { createPanelDialog } from '../workspace/panel-dialog';
+import { colorizeImage, contrastingInk, isSvgSource } from './image-colors';
 import { isSafeImageSource } from '../security/article-html';
 /**
  * MagMark Image Panel — v2.0 Smart Single-Window
@@ -23,6 +24,7 @@ export interface ImageInsertOptions {
 export type ImageInsertCallback = (opts: ImageInsertOptions) => void;
 
 export interface EditPreset {
+    paperBackground?: string;
     layout: ImageInsertOptions['layout'];
     width: number;
     alt: string;
@@ -64,6 +66,7 @@ export class ImagePanel {
     private currentRatioIdx = 4;
     private mode: InputMode = 'empty';
     private editAlt: string | null = null;
+    private paperBackground = '#ffffff';
 
     constructor(onInsert: ImageInsertCallback) {
         this.onInsert = onInsert;
@@ -76,6 +79,7 @@ export class ImagePanel {
 
     openWithSrc(src: string, preset: EditPreset) {
         if (this.overlay) this.destroy();
+        this.paperBackground = preset.paperBackground || '#ffffff';
         this.createPanel();
         this.setPreviewImage(src, preset.alt || '图片');
         this.applyPreset(preset);
@@ -126,6 +130,12 @@ export class ImagePanel {
     position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
     display:flex;align-items:center;justify-content:center;z-index:99999;
 }
+.mm-ip-appearance{padding:14px;border:1px solid rgba(128,128,128,.25);border-radius:10px}
+.mm-ip-appearance [hidden],.mm-ip-appearance[hidden]{display:none!important}
+.mm-ip-color-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+.mm-ip-color-row label{display:flex;align-items:center;gap:8px;margin:0}
+.mm-ip-color-row input[type=color]{width:36px;height:28px;padding:2px;border:1px solid #7b8390;border-radius:6px;cursor:pointer;background:transparent}
+.mm-ip-color-note{font-size:11px;line-height:1.6;opacity:.75;margin:8px 0 0}
 #mm-image-panel {
     background:#1a1a22;border:1px solid rgba(255,255,255,.12);border-radius:16px;
     width:520px;max-width:calc(100vw - 32px);max-height:calc(100vh - 48px);
@@ -399,6 +409,24 @@ input#mm-ip-file-hidden{display:none}
   </div>
 
   <!-- Layout -->
+  <div class="mm-ip-caption-row mm-ip-appearance" id="mm-ip-appearance" hidden>
+    <div id="mm-ip-svg-controls" hidden>
+    <label for="mm-ip-ink-mode">SVG 配色</label>
+    <select id="mm-ip-ink-mode" class="mm-ip-caption-input">
+      <option value="original">保留原色</option>
+      <option value="auto">按当前文章背景配色</option>
+      <option value="custom">自定义颜色</option>
+    </select>
+    <label class="mm-ip-color-row" id="mm-ip-ink-row" hidden>自定义颜色 <input type="color" id="mm-ip-ink" value="#24352d"></label>
+    <p class="mm-ip-color-note">单色着色会统一 SVG 中的颜色。</p>
+    </div>
+    <div class="mm-ip-color-row">
+    <label><input type="checkbox" id="mm-ip-bg-enabled"> 图片底色</label>
+    <input type="color" aria-label="图片底色" id="mm-ip-bg" value="#ffffff" hidden>
+    </div>
+    <button type="button" class="mm-ip-md-btn" id="mm-ip-color-preview">预览配色</button>
+    <p class="mm-ip-color-note">修改后保存为 PNG · 预览采用文章背景</p>
+  </div>
   <div class="mm-ip-layout-section">
     <label>图文混排</label>
     <div class="mm-ip-layout-btns">
@@ -533,7 +561,20 @@ input#mm-ip-file-hidden{display:none}
         });
 
         // ── Footer ──
+        q<HTMLSelectElement>('#mm-ip-ink-mode').addEventListener('change', () => {
+            q<HTMLElement>('#mm-ip-ink-row').hidden = q<HTMLSelectElement>('#mm-ip-ink-mode').value !== 'custom';
+        });
+        q<HTMLInputElement>('#mm-ip-bg-enabled').addEventListener('change', () => {
+            q<HTMLInputElement>('#mm-ip-bg').hidden = !q<HTMLInputElement>('#mm-ip-bg-enabled').checked;
+        });
         q<HTMLButtonElement>('#mm-ip-insert-btn').addEventListener('click', () => this.handleInsert());
+        q<HTMLButtonElement>('#mm-ip-color-preview').addEventListener('click', async () => {
+            try {
+                const src = await this.coloredSource();
+                const image = this.overlay?.querySelector<HTMLImageElement>('#mm-ip-preview-area img');
+                if (image) image.src = src;
+            } catch { this.colorError(); }
+        });
         q<HTMLButtonElement>('#mm-ip-md-btn').addEventListener('click', () => this.handleCopyMarkdown());
     }
 
@@ -611,6 +652,7 @@ input#mm-ip-file-hidden{display:none}
 
     private clearImage() {
         this.currentImageSrc = '';
+        this.syncAppearance();
         this.mode = 'empty';
         const preview = this.overlay?.querySelector<HTMLElement>('#mm-ip-preview-area');
         if (preview) { preview.innerHTML = '<button class="mm-ip-preview-clear" id="mm-ip-preview-clear" title="清除图片">✕</button>'; preview.style.display = 'none'; }
@@ -788,10 +830,12 @@ input#mm-ip-file-hidden{display:none}
 
     private setPreviewImage(src: string, alt: string) {
         this.currentImageSrc = isSafeImageSource(src) ? src : '';
+        this.syncAppearance();
         this.mode = this.currentImageSrc ? 'image' : 'empty';
         this.updateModeTag();
         const area = this.overlay?.querySelector<HTMLElement>('#mm-ip-preview-area');
         if (!area) return;
+        area.style.backgroundColor = this.paperBackground;
         const image = document.createElement('img');
         if (this.currentImageSrc) image.src = this.currentImageSrc;
         image.alt = alt;
@@ -804,6 +848,23 @@ input#mm-ip-file-hidden{display:none}
         area.style.display = 'flex';
         // Re-attach clear
         area.querySelector('#mm-ip-preview-clear')?.addEventListener('click', () => this.clearImage());
+    }
+
+    private syncAppearance() {
+        if (!this.overlay) return;
+        const src = this.currentImageSrc;
+        this.overlay.querySelector<HTMLElement>('#mm-ip-appearance')!.hidden = !src;
+        this.overlay.querySelector<HTMLElement>('#mm-ip-svg-controls')!.hidden = !isSvgSource(src);
+        this.overlay.querySelector<HTMLSelectElement>('#mm-ip-ink-mode')!.value = 'original';
+        this.overlay.querySelector<HTMLElement>('#mm-ip-ink-row')!.hidden = true;
+        this.overlay.querySelector<HTMLInputElement>('#mm-ip-bg-enabled')!.checked = false;
+        this.overlay.querySelector<HTMLInputElement>('#mm-ip-bg')!.hidden = true;
+        // Blob URLs have no extension; check their declared media type, never file names/alt text.
+        if (src.startsWith('blob:')) void fetch(src).then(response => response.blob()).then(blob => {
+            if (this.overlay && this.currentImageSrc === src) {
+                this.overlay.querySelector<HTMLElement>('#mm-ip-svg-controls')!.hidden = blob.type !== 'image/svg+xml';
+            }
+        }).catch(() => {});
     }
 
     private updateModeTag() {
@@ -856,15 +917,41 @@ input#mm-ip-file-hidden{display:none}
         return { src, alt: this.editAlt ?? (caption || '图片'), caption, layout, width };
     }
 
-    private handleInsert() {
-        if (!this.currentImageSrc && this.mode !== 'url' && this.mode !== 'empty') return;
-        this.onInsert(this.buildInsertOptions());
-        this.close();
+    private colorError() {
+        const error = this.overlay?.querySelector<HTMLElement>('#mm-ip-error');
+        if (error) { error.style.display = 'block'; error.textContent = '无法处理图片配色。外链可能不允许读取，请下载图片后上传再试。'; }
     }
 
-    private handleCopyMarkdown() {
+    private async coloredSource() {
+        const q = (id: string) => this.overlay!.querySelector<HTMLInputElement>(id)!;
+        const mode = q('#mm-ip-ink-mode').value;
+        const background = q('#mm-ip-bg-enabled').checked ? q('#mm-ip-bg').value : '';
+        const paper = background ? `rgb(${[1, 3, 5].map(i => parseInt(background.slice(i, i + 2), 16)).join(',')})` : this.paperBackground;
+        const svg = !this.overlay!.querySelector<HTMLElement>('#mm-ip-svg-controls')!.hidden;
+        const ink = !svg ? '' : mode === 'auto' ? contrastingInk(paper) : mode === 'custom' ? q('#mm-ip-ink').value : '';
+        return colorizeImage(this.buildInsertOptions().src, ink, background);
+    }
+
+    private async handleInsert() {
         if (!this.currentImageSrc && this.mode !== 'url' && this.mode !== 'empty') return;
-        const md = buildImageMarkdown(this.buildInsertOptions());
+        const button = this.overlay!.querySelector<HTMLButtonElement>('#mm-ip-insert-btn')!;
+        button.disabled = true;
+        try {
+            const opts = this.buildInsertOptions();
+            const mode = this.overlay!.querySelector<HTMLSelectElement>('#mm-ip-ink-mode')!.value;
+            const backing = this.overlay!.querySelector<HTMLInputElement>('#mm-ip-bg-enabled')!.checked;
+            if (mode !== 'original' || backing) opts.src = await this.coloredSource();
+            this.onInsert(opts);
+            this.close();
+        } catch { this.colorError(); }
+        finally { button.disabled = false; }
+    }
+
+    private async handleCopyMarkdown() {
+        if (!this.currentImageSrc && this.mode !== 'url' && this.mode !== 'empty') return;
+        let md: string;
+        try { md = buildImageMarkdown({...this.buildInsertOptions(), src: await this.coloredSource()}); }
+        catch { this.colorError(); return; }
         navigator.clipboard?.writeText(md).then(() => {
             const btn = this.overlay?.querySelector<HTMLButtonElement>('#mm-ip-md-btn');
             if (btn) { const o = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = o; }, 1800); }

@@ -54,6 +54,13 @@ export function findImageReferences(markdown: string): ImageReference[] {
 
 export function replaceImageReference(markdown: string, ref: ImageReference, replacement: string): string {
     if (markdown.slice(ref.start, ref.end) !== ref.raw) throw new Error('文章已变化，请重新右键选择图片。');
+    // An edited picture must use the chosen image, not a system-theme source override.
+    const opening = markdown.lastIndexOf('<picture', ref.start);
+    const closing = markdown.indexOf('</picture>', ref.end);
+    if (opening >= 0 && closing >= 0 && markdown.lastIndexOf('</picture>', ref.start) < opening
+        && !markdown.slice(ref.end, closing).includes('<img')) {
+        return markdown.slice(0, opening) + replacement + markdown.slice(closing + 10);
+    }
     return markdown.slice(0, ref.start) + replacement + markdown.slice(ref.end);
 }
 
@@ -100,11 +107,13 @@ export function installImageContextMenu(options: ContextOptions) {
     let selected: {ref: ImageReference; snapshot: string; image: HTMLImageElement} | null = null;
     const close = () => { menu.hidden = true; };
     const absolute = (src: string) => { try { return new URL(resolve(src), document.baseURI).href; } catch { return src; } };
+    // Source identity is the img fallback, while currentSrc may be a picture/srcset variant.
+    const sourceIdentity = (image: HTMLImageElement) => absolute(image.dataset.mmOriginalSrc || image.getAttribute('src') || '');
     const select = (image: HTMLImageElement) => {
         const snapshot = input.value;
-        const url = imageSourceForEditing(image);
+        const url = sourceIdentity(image);
         const candidates = findImageReferences(snapshot).filter(ref => absolute(ref.src) === url);
-        const rendered = [...preview.querySelectorAll<HTMLImageElement>('img')].filter(img => imageSourceForEditing(img) === url);
+        const rendered = [...preview.querySelectorAll<HTMLImageElement>('img')].filter(img => sourceIdentity(img) === url);
         const ref = candidates.length === rendered.length ? candidates[rendered.indexOf(image)] : undefined;
         if (!ref) { report('无法唯一定位这张图片的源码，请在 Markdown 中编辑。'); return false; }
         selected = {ref, snapshot, image};
@@ -120,7 +129,12 @@ export function installImageContextMenu(options: ContextOptions) {
         const widthStyle = (figure as HTMLElement | null)?.style.width || image.style.width;
         const width = widthStyle?.endsWith('%') ? parseFloat(widthStyle) :
             image.offsetWidth / Math.max(1, (figure?.parentElement || image.parentElement)!.clientWidth) * 100;
-        return {layout, width: Math.max(1, Math.min(100, Math.round(width || 100))), alt: ref.alt,
+        let paperBackground = 'rgb(255,255,255)';
+        for (let parent: HTMLElement | null = image; parent; parent = parent.parentElement) {
+            const bg = getComputedStyle(parent).backgroundColor;
+            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') { paperBackground = bg; break; }
+        }
+        return {paperBackground, layout, width: Math.max(1, Math.min(100, Math.round(width || 100))), alt: ref.alt,
             caption: figure?.querySelector('figcaption')?.textContent || (image.dataset.mmMissing ? '' : image.title) || ''};
     };
     const commit = (replacement: string) => {

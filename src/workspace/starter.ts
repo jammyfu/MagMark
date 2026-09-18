@@ -1,5 +1,21 @@
-/** Self-contained first-run example; no remote images or missing assets. */
-export const STARTER_MARKDOWN = `# 让内容，自然成形。
+/// <reference types="vite/client" />
+import readme from '../../README.md?raw';
+import traditionalReadme from '../../README.zh-Hant.md?raw';
+import japaneseReadme from '../../README.ja.md?raw';
+import englishReadme from '../../README.en.md?raw';
+import { savedLocale, type Locale } from './locale';
+import hero from '../../screenshots/magmark-brand-hero.png?url';
+import logo from '../../public/brand/magmark-monochrome.svg?url';
+
+/** Bundle README artwork for first run, including deployments below a URL prefix. */
+export function starterForLocale(locale: Locale): string {
+  return ({'zh-Hans': readme, 'zh-Hant': traditionalReadme, ja: japaneseReadme, en: englishReadme})[locale]
+    .replace(/<picture>[\s\S]*?<\/picture>/g, `<img src="${logo}" width="220" alt="MagMark 标志">`)
+    .replaceAll('screenshots/magmark-brand-hero.png', hero);
+}
+export const STARTER_MARKDOWN = starterForLocale(savedLocale());
+
+export const LEGACY_STARTER_MARKDOWN = `# 让内容，自然成形。
 
 Writing, with room to breathe.
 

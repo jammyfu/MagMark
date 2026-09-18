@@ -12,6 +12,15 @@ Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed ver
 
 ### Current execution: adaptive multilayer covers (2026-09-18)
 
+- Selector icon follow-up: add consistent language, appearance and palette symbols beside native selectors, including article style, preserving keyboard and locale behavior.
+- Refine header selectors with contained icons, matched 36px height, custom chevrons, localized label space and compact icon presentation on narrow windows.
+
+- Workspace localization: persist Simplified Chinese, Traditional Chinese, Japanese and English UI selection; bundle corresponding README starters and offer explicit localized README loading; convert primary view/action controls to accessible icon buttons.
+
+- Image appearance: edit monochrome logo ink and image backing in the image panel; bake appearance for export, load bundled README on first run while preserving saved drafts.
+- Follow-up: match image edits by fallback src identity rather than theme-selected currentSrc; validate the user's existing picture-based README in browser.
+- Image-panel refinement: SVG-only ink controls, compact background controls and article-background preview; reset appearance settings on asset replacement.
+
 - Table overflow: constrain cells and long identifiers to paper width; add vertical record layout and measured clockwise 90-degree rotation before pagination.
 - Follow-up: replace whole-table scaling with column groups and measured row sheets at readable font size, repeating headers and record keys; split overlong cell content without losing inline formatting.
 

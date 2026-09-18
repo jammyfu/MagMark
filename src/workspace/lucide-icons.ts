@@ -4,6 +4,10 @@
  * Keep this subset local: no icon font, CDN request or runtime package dependency.
  */
 export const ICONS = {
+  // Project-authored selector symbols on the same 24px stroke grid.
+  'language-select': '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>',
+  'appearance-select': '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',
+  'palette-select': '<circle cx="8" cy="8" r="4"/><circle cx="16" cy="8" r="4"/><circle cx="12" cy="16" r="4"/>',
   // Project-authored text alignment geometry, matching the shared 24px stroke grid.
   'text-left': '<path d="M4 5h16M4 10h10M4 15h16M4 20h10"/>',
   'text-center': '<path d="M4 5h16M7 10h10M4 15h16M7 20h10"/>',

@@ -22,10 +22,11 @@ export const ICON_BINDINGS: readonly Binding[] = [
   { selector: '#mm-cp-size-up', icon: 'plus', only: true, label: '封面字号增大' },
   { selector: '#mm-cp-text-undo', icon: 'undo-2', only: true, label: '撤销封面文字调整' },
   { selector: '#mm-cp-text-redo', icon: 'redo-2', only: true, label: '重做封面文字调整' },
-  { selector: '[data-workspace-view="write"]', icon: 'pencil-line' },
-  { selector: '[data-workspace-view="compare"]', icon: 'columns-2' },
-  { selector: '[data-workspace-view="preview"]', icon: 'eye' },
-  { selector: '#file-menu > summary', icon: 'folder-open' },
+  { selector: '[data-workspace-view="write"]', icon: 'pencil-line', only: true, label: '写作' },
+  { selector: '[data-workspace-view="compare"]', icon: 'columns-2', only: true, label: '对照' },
+  { selector: '[data-workspace-view="preview"]', icon: 'eye', only: true, label: '预览' },
+  { selector: '#file-menu > summary', icon: 'folder-open', only: true, label: '文件' },
+  { selector: '#btn-readme', icon: 'file-up' },
   { selector: '#file-upload-label', icon: 'file-up' },
   { selector: '[data-open-input="article-directory-input"]', icon: 'folder-input' },
   { selector: '[data-open-input="asset-directory-input"]', icon: 'folder-search' },
@@ -33,12 +34,12 @@ export const ICON_BINDINGS: readonly Binding[] = [
   { selector: '#btn-undo', icon: 'undo-2', only: true, label: '撤销' },
   { selector: '#btn-redo', icon: 'redo-2', only: true, label: '重做' },
   { selector: '#btn-history', icon: 'clock', only: true, label: '历史记录' },
-  { selector: '#btn-image', icon: 'image-plus' },
-  { selector: '#btn-cover', icon: 'panels-top-left' },
-  { selector: '#btn-layout', icon: 'sliders-horizontal' },
-  { selector: '#btn-multi', icon: 'files' },
-  { selector: '#btn-scroll', icon: 'scroll-text' },
-  { selector: '#btn-publish', icon: 'download' },
+  { selector: '#btn-image', icon: 'image-plus', only: true, label: '图片' },
+  { selector: '#btn-cover', icon: 'panels-top-left', only: true, label: '封面' },
+  { selector: '#btn-layout', icon: 'sliders-horizontal', only: true, label: '排版' },
+  { selector: '#btn-multi', icon: 'files', only: true, label: '分页' },
+  { selector: '#btn-scroll', icon: 'scroll-text', only: true, label: '长文' },
+  { selector: '#btn-publish', icon: 'download', only: true, label: '导出' },
   { selector: '#btn-copy-page-wechat, #btn-wc-copy, #btn-copy-page-rich', icon: 'clipboard-copy' },
   { selector: '#btn-export', icon: 'image-down' },
   { selector: '#btn-export-all', icon: 'images' },
@@ -114,6 +115,20 @@ function decorate(element: HTMLElement, binding: Binding): void {
 
 /** Observe application chrome only; article/CodeMirror trees are never watched. */
 export function mountWorkspaceIcons(doc: Document = document): () => void {
+  const selectors: Array<[string, IconName]> = [
+    ['workspace-language', 'language-select'],
+    ['workspace-appearance', 'appearance-select'],
+    ['workspace-palette', 'palette-select'],
+    ['ctrl-theme', 'palette-select'],
+  ];
+  for (const [id, icon] of selectors) {
+    const select = doc.getElementById(id);
+    if (!select || select.parentElement?.classList.contains('mm-select-icon')) continue;
+    const wrapper = doc.createElement('span');
+    wrapper.className = 'mm-select-icon';
+    select.before(wrapper);
+    wrapper.append(makeIcon(doc, {selector: '', icon}), select);
+  }
   const observed = new Map<Element, MutationObserver>();
   let disposed = false;
   const apply = (root: Element) => {

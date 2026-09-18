@@ -2775,3 +2775,10 @@ i:lang(ja) {
 .scroll-container figure.mm-figure .mm-fig-handles {
     display: none !important;
 }
+#workspace-language { min-width: 48px; max-width: 66px; padding: 6px; color: var(--ui-text, inherit); background: var(--ui-surface, transparent); border: 1px solid var(--ui-border, #818896); border-radius: 7px; }
+#workspace-tabs .mm-icon-only, .preview-mode .mm-icon-only { min-width: 38px; min-height: 36px; padding: 8px; }
+.mm-select-icon { position: relative; display: inline-flex; align-items: center; min-width: 0; }
+.mm-select-icon > .mm-ui-icon { position: absolute; left: 9px; width: 15px; height: 15px; pointer-events: none; z-index: 1; color: inherit; }
+.mm-select-icon > select { padding-left: 31px !important; width: 100%; }
+.mm-select-icon:has(#ctrl-theme) { display: flex; width: 100%; }
+.mm-select-icon #workspace-language { min-width: 74px; max-width: 80px; }

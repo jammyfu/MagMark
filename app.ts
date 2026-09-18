@@ -4,7 +4,8 @@ import { captureSavedImages, restoreSavedImages, imageSaveKey } from './editor';
 import { mountDraftHistory } from './src/workspace/draft-history';
 import { mountWorkspace } from './src/workspace/workspace';
 import { mountSourceEditor } from './src/workspace/source-editor';
-import { STARTER_MARKDOWN } from './src/workspace/starter';
+import { STARTER_MARKDOWN, starterForLocale } from './src/workspace/starter';
+import { mountLocale, savedLocale, LOCALES, translate } from './src/workspace/locale';
 import { mountPreviewEdit } from './src/workspace/preview-edit';
 import { mountWorkspaceIcons } from './src/workspace/icons';
 
@@ -52,3 +53,17 @@ try {
 workspace.refreshDocument();
 mountPreviewEdit(document.getElementById('preview-area')!, input, workspace.report);
 mountDraftHistory(input, { key: imageSaveKey, capture: captureSavedImages, restore: restoreSavedImages }, workspace.report);
+mountLocale(locale => {
+  if (LOCALES.some(candidate => input.value === starterForLocale(candidate))) {
+    input.value = starterForLocale(locale);
+    input.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+});
+document.getElementById('btn-readme')!.addEventListener('click', () => {
+  const locale = savedLocale();
+  if (input.value.trim() && !LOCALES.some(candidate => input.value === starterForLocale(candidate)) &&
+      !confirm(translate('载入当前语言的 README？当前内容可通过撤销恢复。', locale))) return;
+  input.value = starterForLocale(locale);
+  input.dispatchEvent(new Event('input', {bubbles: true}));
+  (document.getElementById('file-menu') as HTMLDetailsElement).open = false;
+});
