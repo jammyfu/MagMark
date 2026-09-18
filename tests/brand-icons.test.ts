@@ -8,19 +8,25 @@ let dispose: (() => void) | undefined;
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 afterEach(() => { dispose?.(); document.body.replaceChildren(); });
 
-describe('Folio brand and functional icons', () => {
-  it('uses the approved Folio paths in the entry and matching public SVG', () => {
+describe('Monochrome brand and functional icons', () => {
+  it('uses the supplied monochrome logo in the entry and matching public SVG', () => {
     const html = readFileSync('index.html', 'utf8');
-    const svg = readFileSync('public/brand/magmark-folio.svg', 'utf8');
+    const svg = readFileSync('public/brand/magmark-monochrome.svg', 'utf8');
     document.body.innerHTML = html;
-    const mark = document.querySelector('[data-brand="folio"]');
+    const mark = document.querySelector('[data-brand="monochrome"]');
     expect(mark).not.toBeNull();
     expect(mark?.getAttribute('aria-hidden')).toBe('true');
-    const paths = [...mark!.querySelectorAll('path')].map(p => p.getAttribute('d'));
-    expect(paths).toHaveLength(2);
-    paths.forEach(path => expect(svg).toContain(`d="${path}"`));
-    expect(html).not.toContain('>M<span>·</span>');
+    expect(mark?.querySelector('img')?.getAttribute('src')).toBe('/brand/magmark-monochrome.svg');
+    expect(svg).toContain('MagMark — monochrome vector logo');
+    expect(svg).toContain('fill="#000000"');
     expect(html).toContain('href="/favicon.svg"');
+  });
+  it('uses the supplied hero in every localized README', () => {
+    for (const file of ['README.md', 'README.en.md', 'README.zh-Hant.md', 'README.ja.md']) {
+      const readme = readFileSync(file, 'utf8');
+      expect(readme).toContain('public/brand/magmark-monochrome.svg');
+      expect(readme).toContain('screenshots/magmark-brand-hero.png');
+    }
   });
   it('maps every slot to a real vendored Lucide icon', () => {
     expect(ICON_BINDINGS.length).toBeGreaterThan(35);

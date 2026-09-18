@@ -1,9 +1,13 @@
 /* Folio brand and Lucide chrome. Never target article typography or exports. */
 .brand-lockup .brand-mark {
-  display: block; width: 34px; height: 34px; flex: 0 0 34px;
-  color: var(--ws-ink); letter-spacing: 0; line-height: 1;
+  display: block; width: 116px; height: 41px; flex: 0 0 116px;
+  line-height: 1;
 }
-.brand-lockup .brand-mark svg { display: block; width: 100%; height: 100%; }
+.brand-lockup .brand-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
+body[data-workspace-theme='dark'] .brand-lockup .brand-mark img { filter: invert(1); }
+@media (max-width: 600px) {
+  .brand-lockup .brand-mark { width: 96px; height: 34px; flex-basis: 96px; }
+}
 .mm-ui-icon {
   display: inline-block; width: 16px; height: 16px; flex: 0 0 16px;
   vertical-align: -3px; pointer-events: none;

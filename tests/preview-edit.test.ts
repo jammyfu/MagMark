@@ -44,6 +44,40 @@ function fixture() {
   return { input, report, dispose, field: document.querySelector<HTMLTextAreaElement>('#preview-text-input')! };
 }
 describe('preview editing interaction', () => {
+  it('edits the complete list selected by the outer block instead of only the clicked item', () => {
+    const source = '- **第一项**：说明\n- 第二项\n- 第三项';
+    document.body.innerHTML = `<textarea></textarea><div id="preview"><div class="magmark"><ul${markEditableSource(source, 0, source.length)}><li>第一项：说明</li><li>第二项</li><li>第三项</li></ul></div></div>`;
+    const input = document.querySelector('textarea')!;
+    input.value = source;
+    const dispose = mountPreviewEdit(document.querySelector('#preview')!, input, vi.fn());
+    document.querySelector('li')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    const field = document.querySelector<HTMLTextAreaElement>('#preview-text-input')!;
+    expect(field.querySelectorAll('li')).toHaveLength(3);
+    expect(field.querySelector('strong')?.textContent).toBe('第一项');
+    expect(field.textContent).not.toContain('**');
+    expect(document.querySelector('label')!.textContent).toBe('编辑完整列表');
+    field.innerHTML = '<ul><li><strong>第一项</strong>：已更新</li><li>第二项</li><li>第三项</li></ul>';
+    document.querySelector<HTMLButtonElement>('.preview-text-save')!.click();
+    expect(input.value).toBe('- **第一项**：已更新\n- 第二项\n- 第三项');
+    dispose();
+  });
+  it('edits exactly the fenced code body and preserves its fences', () => {
+    const source = '```text\n第一行\n第二行\n```\n\n后文';
+    const from = source.indexOf('第一行');
+    const to = source.indexOf('\n```');
+    document.body.innerHTML = `<textarea></textarea><div id="preview"><div class="magmark"><pre${markEditableSource(source, from, to)}><code>第一行\n第二行</code></pre></div></div>`;
+    const input = document.querySelector('textarea')!;
+    input.value = source;
+    const dispose = mountPreviewEdit(document.querySelector('#preview')!, input, vi.fn());
+    document.querySelector('code')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    const field = document.querySelector<HTMLTextAreaElement>('#preview-text-input')!;
+    expect(field.value).toBe('第一行\n第二行');
+    expect(document.querySelector('label')!.textContent).toBe('编辑代码块内容');
+    field.value = '更新内容';
+    document.querySelector<HTMLButtonElement>('.preview-text-save')!.click();
+    expect(input.value).toBe('```text\n更新内容\n```\n\n后文');
+    dispose();
+  });
   it('edits a paginated fragment using the full renderer-owned source range', () => {
     const source = '完整的跨页段落';
     document.body.innerHTML = `<textarea></textarea><div id="preview"><div class="magmark"><p${markEditableSource(source, 0, source.length)}>跨页段落</p></div></div>`;
@@ -51,13 +85,13 @@ describe('preview editing interaction', () => {
     input.value = source;
     const dispose = mountPreviewEdit(document.querySelector('#preview')!, input, vi.fn());
     document.querySelector('p')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-    expect(document.querySelector<HTMLTextAreaElement>('#preview-text-input')!.value).toBe(source);
+    expect(document.querySelector('#preview-text-input')!.textContent).toBe(source);
     dispose();
   });
   it('commits only the mapped range and emits input', () => {
     const { input, field, dispose } = fixture();
     const onInput = vi.fn(); input.addEventListener('input', onInput);
-    field.value = '新标题';
+    field.textContent = '新标题';
     document.querySelector<HTMLButtonElement>('.preview-text-save')!.click();
     expect(input.value).toBe('# 新标题\n\n不变');
     expect(onInput).toHaveBeenCalledOnce();
@@ -65,7 +99,7 @@ describe('preview editing interaction', () => {
     dispose();
   });
   it('ignores IME Enter and cancels without changing source', () => {
-    const { input, field, dispose } = fixture(); field.value = '未保存';
+    const { input, field, dispose } = fixture(); field.textContent = '未保存';
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, isComposing: true, bubbles: true }));
     expect(input.value).toBe('# 标题\n\n不变');
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -74,7 +108,7 @@ describe('preview editing interaction', () => {
   });
   it('does not overwrite concurrent source changes', () => {
     const { input, field, report, dispose } = fixture();
-    input.value = '# 其他修改'; field.value = '旧编辑';
+    input.value = '# 其他修改'; field.textContent = '旧编辑';
     document.querySelector<HTMLButtonElement>('.preview-text-save')!.click();
     expect(input.value).toBe('# 其他修改');
     expect(report).toHaveBeenCalled(); dispose();

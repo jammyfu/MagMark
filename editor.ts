@@ -2,6 +2,7 @@ import { sanitizeArticleHtml } from './src/security/article-html';
 import { markEditableSource } from './src/workspace/preview-edit';
 import { bindRangeStepper } from './src/workspace/range-stepper';
 import { mountToolbarPosition } from './src/workspace/toolbar-position';
+import { trackMouseGesture } from './src/workspace/mouse-gesture';
 import { prepareMixedPreview } from './src/core/mixed-typography';
 import { deleteSelectedSource } from './src/workspace/delete-selection';
 import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
@@ -558,8 +559,10 @@ function positionToolbar(el: HTMLElement) {
 
 /* ── Marquee (PS Box Select) ── */
 let justFinishedMarquee = false;
+let cancelMarquee: (() => void) | undefined;
 
 function onMarqueeStart(e: MouseEvent) {
+    cancelMarquee?.();
     // Only start marquee if clicking on the preview background (not on a block)
     const target = e.target as HTMLElement;
     if (target.closest('.magmark > *') || target.closest('.floating-toolbar')) return;
@@ -570,6 +573,7 @@ function onMarqueeStart(e: MouseEvent) {
 
     isDraggingMarquee = false;
     marqueeStart = { x: e.clientX, y: e.clientY };
+    const previousUserSelect = document.body.style.userSelect;
 
     const onMove = (ev: MouseEvent) => {
         const dx = ev.clientX - marqueeStart.x;
@@ -594,25 +598,25 @@ function onMarqueeStart(e: MouseEvent) {
             `position:fixed;z-index:3000;left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
     };
 
-    const onUp = (ev: MouseEvent) => {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-        // Re-enable text selection
-        document.body.style.userSelect = '';
-
-        if (isDraggingMarquee && marqueeEl) {
-            applyMarqueeSelection(ev);
+    const onUp = (ev?: MouseEvent) => {
+        const completed = isDraggingMarquee && marqueeEl && ev;
+        // Clean up before applying selection: a render failure must not leave an overlay.
+        document.body.style.userSelect = previousUserSelect;
+        if (marqueeEl) {
             marqueeEl.remove();
             marqueeEl = null;
+        }
+        isDraggingMarquee = false;
+        cancelMarquee = undefined;
+        if (completed) {
             // Signal to the click handler not to clear selection
             justFinishedMarquee = true;
             setTimeout(() => { justFinishedMarquee = false; }, 50);
+            applyMarqueeSelection(ev!);
         }
-        isDraggingMarquee = false;
     };
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    cancelMarquee = trackMouseGesture(onMove, onUp);
 }
 
 function applyMarqueeSelection(endEvent: MouseEvent) {
@@ -735,13 +739,20 @@ function convertMarkdown(md: string, mapSource = true): string {
         const lang = opener.slice(fence.length).trim().split(/\s+/)[0] || '';
         const codeLines: string[] = [];
         i++;
+        const contentStart = i;
         while (i < lines.length && !lines[i].trimEnd().startsWith(fence)) {
             codeLines.push(escapeHtml(lines[i]));
             i++;
         }
-        i++; // skip closing fence
+        const contentEnd = i - 1;
+        const from = contentStart < offsets.length ? offsets[contentStart] : md.length;
+        const to = contentEnd >= contentStart
+            ? offsets[contentEnd] + lines[contentEnd].length
+            : from;
+        const sourceMark = mapSource ? markEditableSource(md, from, to) : '';
+        if (i < lines.length) i++; // skip closing fence when present
         const cls = lang ? ` class="language-${escapeHtml(lang)}"` : '';
-        return `<pre><code${cls}>${codeLines.join('\n')}</code></pre>`;
+        return `<pre${sourceMark}><code${cls}>${codeLines.join('\n')}</code></pre>`;
     }
 
     // ── Blockquote ────────────────────────────────────────
@@ -803,6 +814,8 @@ function convertMarkdown(md: string, mapSource = true): string {
 
     // ── List (ul / ol with nesting) ───────────────────────
     function parseList(isOrdered: boolean): string {
+        const listStart = i;
+        let lastItemLine = i;
         function getIndent(l: string): number {
             return l.match(/^(\s*)/)?.[1].length ?? 0;
         }
@@ -834,6 +847,7 @@ function convertMarkdown(md: string, mapSource = true): string {
                     content = inlineMarkdown(content);
                 }
 
+                lastItemLine = i;
                 i++;
 
                 // Check for nested list
@@ -855,7 +869,8 @@ function convertMarkdown(md: string, mapSource = true): string {
 
         const baseIndent = getIndent(lines[i]);
         const inner = buildItems(baseIndent, isOrdered);
-        return isOrdered ? `<ol>${inner}</ol>` : `<ul>${inner}</ul>`;
+        const sourceMark = editable(listStart, lastItemLine);
+        return isOrdered ? `<ol${sourceMark}>${inner}</ol>` : `<ul${sourceMark}>${inner}</ul>`;
     }
 
     // ── Figure (standalone image line → block <figure>) ───

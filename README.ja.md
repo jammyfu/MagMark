@@ -1,7 +1,9 @@
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-folio-white.svg"><img src="public/brand/magmark-folio.svg" width="80" height="80" alt="MagMark Folio ロゴ"></picture></p>
+<p align="center"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark ロゴ"></p>
 <h1 align="center">MagMark</h1>
 <p align="center">Markdown で書き、雑誌のように整える。</p>
 <p align="center"><a href="README.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.en.md">English</a> · 日本語</p>
+
+<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="光る本のシンボルと MagMark のブランドビジュアル"></p>
 
 MagMark は、中国語と中国語・英語混在文書を主な対象とした Markdown 編集・組版・書き出しツールです。原文を編集可能なまま保持し、レイアウトを確認して、ページ分割された記事、PNG、ブラウザー印刷による PDF、WeChat 向けリッチテキストに出力します。
 

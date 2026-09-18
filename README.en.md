@@ -1,7 +1,9 @@
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-folio-white.svg"><img src="public/brand/magmark-folio.svg" width="80" height="80" alt="MagMark Folio logo"></picture></p>
+<p align="center"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark logo"></p>
 <h1 align="center">MagMark</h1>
 <p align="center">Write in Markdown. Shape it into a magazine.</p>
 <p align="center"><a href="README.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · English · <a href="README.ja.md">日本語</a></p>
+
+<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="MagMark brand artwork with a luminous open-page emblem"></p>
 
 MagMark is a Markdown editing, typesetting and export workspace for Chinese and mixed Chinese–English writing. Keep the source editable, inspect the layout, and take the same article to paginated pages, PNG, browser-printed PDF or WeChat-compatible rich text.
 

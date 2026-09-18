@@ -1,5 +1,9 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkRehype from 'remark-rehype';
+import rehypeStringify from 'rehype-stringify';
+import { sanitizeArticleHtml } from '../security/article-html';
+import { richTextToMarkdown } from './writing-import';
 import { visit } from 'unist-util-visit';
 import type { Root, PhrasingContent } from 'mdast';
 
@@ -57,9 +61,11 @@ export function findEditableText(source: string, text: string, tag: string) {
 export function mountPreviewEdit(preview: HTMLElement, input: HTMLTextAreaElement, report: (message: string) => void) {
   let close: (() => void) | undefined;
   const edit = (event: MouseEvent) => {
-    if (!(event.target instanceof Element) || event.target.closest('img, figure, pre, button')) return;
-    const block = event.target.closest<HTMLElement>('h1,h2,h3,h4,h5,h6,p,li');
-    if (!block || !block.closest('.magmark, .wc-content') || block.querySelector('img, ul, ol')) return;
+    if (!(event.target instanceof Element) || event.target.closest('img, figure, button')) return;
+    let block = event.target.closest<HTMLElement>('h1,h2,h3,h4,h5,h6,p,li,pre');
+    const list = block?.closest<HTMLElement>('ul[data-mm-edit],ol[data-mm-edit]');
+    if (list) block = list;
+    if (!block || !block.closest('.magmark, .wc-content') || block.querySelector('img')) return;
     event.preventDefault(); event.stopPropagation();
     if (close) { report('请先保存或取消当前文字编辑。'); return; }
     const original = input.value;
@@ -72,11 +78,26 @@ export function mountPreviewEdit(preview: HTMLElement, input: HTMLTextAreaElemen
     panel.setAttribute('aria-label', '编辑预览文字');
     const label = document.createElement('label');
     label.htmlFor = 'preview-text-input';
-    label.textContent = '编辑文字 · 保留 Markdown 格式';
-    const field = document.createElement('textarea');
-    field.id = 'preview-text-input'; field.value = range.value;
+    label.textContent = block.tagName === 'PRE'
+      ? '编辑代码块内容'
+      : /^(UL|OL)$/.test(block.tagName)
+        ? '编辑完整列表'
+        : '编辑文字';
+    const isCode = block.tagName === 'PRE';
+    const field = document.createElement(isCode ? 'textarea' : 'div');
+    field.id = 'preview-text-input';
+    if (field instanceof HTMLTextAreaElement) field.value = range.value;
+    else {
+      field.contentEditable = 'true';
+      field.className = 'preview-rich-input';
+      field.setAttribute('role', 'textbox');
+      field.setAttribute('aria-multiline', 'true');
+      field.setAttribute('aria-label', label.textContent);
+      field.innerHTML = sanitizeArticleHtml(String(unified().use(remarkParse).use(remarkRehype).use(rehypeStringify).processSync(range.value)));
+    }
+    const initialHtml = field.innerHTML;
     const hint = document.createElement('p');
-    hint.textContent = '⌘ / Ctrl + Enter 保存 · Esc 取消；编辑完整原文块，跨页内容也会一起更新。';
+    hint.textContent = '直接编辑带格式的内容 · ⌘ / Ctrl + Enter 保存 · Esc 取消';
     const actions = document.createElement('div');
     const cancel = document.createElement('button');
     cancel.type = 'button'; cancel.textContent = '取消';
@@ -95,9 +116,11 @@ export function mountPreviewEdit(preview: HTMLElement, input: HTMLTextAreaElemen
     cancel.addEventListener('click', () => close?.());
     save.addEventListener('click', () => {
       if (input.value !== original) { report('原文已发生变化，请取消后重新双击编辑，避免覆盖新内容。'); return; }
-      if (field.value === range.value) { close?.(); return; }
+      const value = field instanceof HTMLTextAreaElement ? field.value
+        : field.innerHTML === initialHtml ? range.value : richTextToMarkdown(field.innerHTML).text;
+      if (value === range.value) { close?.(); return; }
       try {
-        input.value = original.slice(0, range.from) + field.value + original.slice(range.to);
+        input.value = original.slice(0, range.from) + value + original.slice(range.to);
       } catch { report('请先完成正在进行的中文输入，再保存。'); return; }
       close?.();
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -110,7 +133,13 @@ export function mountPreviewEdit(preview: HTMLElement, input: HTMLTextAreaElemen
       if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); save.click(); }
     });
     field.focus();
-    field.setSelectionRange(field.value.length, field.value.length);
+    if (field instanceof HTMLTextAreaElement) field.setSelectionRange(0, 0);
+    else {
+      const caret = document.createRange();
+      caret.selectNodeContents(field); caret.collapse(true);
+      const selection = window.getSelection();
+      selection?.removeAllRanges(); selection?.addRange(caret);
+    }
   };
   preview.addEventListener('dblclick', edit);
   return () => { close?.(); preview.removeEventListener('dblclick', edit); };

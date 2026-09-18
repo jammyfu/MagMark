@@ -1,15 +1,15 @@
-# Folio 品牌与功能图标
+# MagMark 单色品牌与功能图标
 
-本次选择由用户确认：采用方案 01「折页 / Folio」。作者展示名统一为 `jammyfu`。
+本次选择由用户确认：采用提供的「MagMark Monochrome」横向字标。作者展示名统一为 `jammyfu`。
 
 ## 品牌源文件
 
-- `public/brand/magmark-folio.svg`：浅色背景使用。
-- `public/brand/magmark-folio-white.svg`：深色背景使用。
+- `public/brand/magmark-monochrome.svg`：应用页头与 README 使用的横向单色字标；暗色工作区在 CSS 中反相显示。
+- `screenshots/magmark-brand-hero.png`：README 顶部品牌头图。
 - `public/favicon.svg`：浏览器图标，依据系统明暗偏好选择前景色。
-- `index.html`：页头内联同一组 SVG 路径，颜色使用 `currentColor`。
+- `index.html`：页头引用单色字标，不内联或重新描摹路径。
 
-两个路径及其 transform 均来自本轮已选定的原始 SVG；不重新描摹、不改比例。颜色适配与画布尺寸不改变标志的几何结构。不使用通用书本图标代替品牌。
+字标原样随应用打包，不重新描摹、不改比例；仅在暗色工作区进行视觉反相。不使用通用书本图标代替品牌。
 
 ## 功能图标来源
 

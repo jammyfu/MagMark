@@ -12,6 +12,20 @@ Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed ver
 
 ### Current execution: adaptive multilayer covers (2026-09-18)
 
+- Direct editing now presents formatted content instead of Markdown syntax, converting edited HTML back into the mapped source range and preserving unchanged source exactly.
+
+- Preview-edit follow-up: align list selection and direct editing so a selected list opens its complete Markdown source, including every item, marker, inline style and nested line.
+
+- Image-panel follow-up: restore readable hierarchy for the custom ratio selector across light, dark and low-chroma workspace palettes. Inactive values remain legible; accent is reserved for the active direction/ratio.
+
+- Selection/direct-edit follow-up: preserve rich-block backgrounds, strengthen selection without recoloring text, and map fenced-code double-click editing to its exact inner source range while preserving fences/language.
+
+- Brand follow-up: replace the workspace mark with the supplied monochrome SVG and refresh every localized README header with its companion artwork; preserve accessible alternative text and dark-workspace contrast.
+
+- Splitter follow-up: replace full-height offset focus outline with a single solid focus bar, preserving keyboard controls and the enlarged pointer hit area.
+
+- Current bug fix: terminate marquee gestures on outside-window release, leave, blur, resize, visibility change and Escape; remove listeners and overlay before applying selection. Regression-test interruption and restart.
+
 - Current follow-up: independent workspace auto/light/dark preference plus neutral/sand/sage/slate palettes, and matching article-style picker chrome. Preserve article styles and existing saved preferences.
 
 - Follow-up: five text alignment modes (including justified/distributed last line), selection-aware state and consistent shared line icons for cover controls; verify undo, media propagation and sanitized output.

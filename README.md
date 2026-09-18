@@ -1,13 +1,10 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-folio-white.svg">
-    <img src="public/brand/magmark-folio.svg" width="80" height="80" alt="MagMark · Folio 折页标志">
-  </picture>
-</p>
+<p align="center"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark 标志"></p>
 
 <h1 align="center">MagMark</h1>
 <p align="center">写 Markdown，让版面像杂志。</p>
 <p align="center">简体中文 · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>
+
+<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="MagMark 品牌头图：金色光影中的书页与品牌字标"></p>
 
 MagMark 是面向中文与中英混排的 Markdown 编辑、排版与导出工具。你在左侧写原文，在右侧调整版面，再把同一篇内容带到杂志页、PDF、长图或微信公众号。
 

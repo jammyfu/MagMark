@@ -124,6 +124,12 @@ Current details: [QUIET_WORKSPACE.md](QUIET_WORKSPACE.md) and [remote evidence](
 
 ## Prior execution history
 
+## 2026-09-18 — Formatted direct editing
+
+- Replaced the Markdown textarea for prose/lists with formatted editable content rendered from the complete mapped source. Lists, emphasis, links and inline code are visible as formatting; code blocks retain literal text editing.
+- Save reuses the safe rich-text conversion path, unchanged content preserves original source, and cancel/concurrent-edit checks remain. Opening starts at the beginning instead of scrolling to the last character.
+- All 18 focused preview-edit and writing-import tests passed; governance verification passed.
+
 ## 2026-09-17 — Double-click preview text editing
 
 - Added a source-preserving contextual editor for uniquely matched Markdown headings/paragraphs/list text. Save updates the existing source bridge; cancel leaves source untouched. Ambiguous/unsupported mapping and concurrent changes fail closed.
@@ -150,3 +156,35 @@ The complete earlier worklog is preserved unchanged, using its original Git blob
 - Matched article-style picker surfaces/selected items and native/CodeMirror/block/marquee selection to workspace tokens. Article content/theme remains independent.
 - Strict typecheck, seven appearance/workspace tests and isolated production build passed before the final CSS-only selection refinement; governance and browser checks follow.
 - Governance and whitespace checks passed. Restored the stopped local Vite service; browser verified dark slate selection uses light ink rgb(224,230,237) over rgb(57,79,104), and article-style selected options use the same paired colors. Restored the user's light/slate choice after checking. Existing build chunk-size warning remains.
+# 2026-09-18 — Marquee overlay cleanup
+
+- User screenshot confirms a transient selection rectangle remains after leaving/resizing the window. Existing code only disposed it on document mouseup and allowed overlapping gesture listeners.
+- Added single-use mouse gesture lifecycle: window-capture mouseup, cancel on leave/blur/resize/visibility/Escape/new press and missing left-button state. Restore prior user-select; remove overlay before applying selection. Interrupted gestures preserve the previous selection.
+- Validation: 7 focused Vitest cases pass; isolated tracked-source strict typecheck passes; git diff --check and governance-only tools/verify.py pass. Working-tree typecheck remains blocked by pre-existing untracked sanitize-html.ts missing dompurify/jsdom types. No live outside-window browser reproduction performed; no Git commit/push in this fix.
+# 2026-09-18 — Splitter double-line fix
+
+- Live browser confirmed the focused 1px splitter inherited the generic offset focus outline, producing parallel rails. Replaced only its outline with a contiguous solid accent focus bar; preserved keyboard resizing and 13px pointer target.
+- Live browser after CSS hot update: focus-visible true, outline none, accent pseudo-element extends 1px each side, hit target approximately 13px. Both splitter pointer/keyboard tests pass; governance-only verification and diff whitespace checks pass. No source content or saved preferences changed.
+# 2026-09-18 — Supplied monochrome brand and README hero
+
+- Packaged the user-provided SVG unchanged as `public/brand/magmark-monochrome.svg` and its companion PNG as `screenshots/magmark-brand-hero.png`.
+- Replaced the application header mark and all localized README marks/head images. Dark workspace uses a visual inversion only; document images retain localized alternative text.
+- Live browser verified the header at desktop size in dark workspace: the horizontal logo is visible, proportionate, and does not displace the document title. Brand regression test now also checks all README asset references.
+# 2026-09-18 — Selected rich-block contrast
+
+- User screenshot exposed a selected code block with pale code foreground on an incorrectly transparent surface. Live computed styles identified the cause: workspace selection chrome overrode `.magmark pre`'s `#0f111a` background but not its `#e2e4f0` text.
+- Limited transparent selection fill to plain blocks; pre/table/figure selections retain their own surface while sharing the workspace outline/ring.
+- Validation: focused contrast and brand suites pass (8 tests); live browser confirms selected pre foreground `rgb(226, 228, 240)` on preserved `rgb(15, 17, 26)` surface; governance-only verification and whitespace checks pass.
+- Follow-up after user rejection: strengthened primary/secondary selection indicators without changing foreground colors. Added renderer-owned source ranges to fenced code bodies and enabled code double-click editing. Live browser confirms the code block has a visible blue solid/inset selection ring and its editor contains the exact visible code body; cancel left source unchanged. Focused preview/selection/marquee suites pass (17 tests).
+
+# 2026-09-18 — Image ratio panel readability
+
+- Replaced inherited fixed light selected fills with palette-aware surfaces and restored full-opacity workspace text colors for direction choices, aspect ticks, current value and reset.
+- Raised direction labels to 11px and ratio ticks from 7.5px to 10px; inactive options remain visibly available while accent identifies only the active value.
+- Focused image-panel suites pass (5 tests). Live dark-workspace verification confirms inactive text `rgb(173,180,193)`, active text `rgb(231,233,238)`, 10px ticks, 11px direction/reset controls and an accent badge with dark readable ink.
+
+# 2026-09-18 — Complete list direct editing
+
+- Traced the incomplete editor to a semantic mismatch: the selection outline belonged to the top-level list while double-click source lookup chose the nearest list item.
+- Added a complete renderer-owned source range to ordered/unordered lists and promote child double-clicks to that range. The dialog label now explicitly says it edits the complete list; item markers, inline Markdown, nested lines and undoable source replacement are preserved.
+- Eleven focused preview/selection tests and isolated strict typecheck pass. Live verification against the reported three-item “Bot 名 / 角色” list loaded all three source lines and both later labels; the dialog was cancelled without changing article content.

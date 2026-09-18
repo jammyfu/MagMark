@@ -90,6 +90,34 @@ Integration is restricted to the approved feature branch. One-time write-enabled
 
 ## Inherited decisions
 
+### 2026-09-18 — Formatted preview editing
+
+Preview text editing displays sanitized Markdown rendered as editable HTML. Save converts changed content through the existing rich-text importer; an unchanged DOM retains the exact source slice. Fenced code stays a literal text editor. Full source ranges keep paginated list content available.
+
+### 2026-09-18 — Selection contrast preserves rich-block surfaces
+
+Selection chrome may remove the fill only from plain content blocks. Code, tables and figures retain their authored surface because foreground color can depend on that surface. All selected blocks use the same high-contrast workspace outline and external ring; this does not alter article output or copied content.
+
+Primary block selection uses a solid 3px outline plus an inset accent ring; additional selections use a dashed outline. Fenced code double-click editing maps only the code body, excluding opening/closing fences and language metadata, so editing cannot silently corrupt the Markdown structure.
+
+Top-level lists own an additional renderer source range spanning the complete list. Because preview selection treats the list as one block, double-clicking any child item edits that full Markdown range rather than presenting one item inside a whole-list selection outline. Per-item ranges remain available for other source-aware operations.
+
+### 2026-09-18 — Ratio controls remain readable in every workspace palette
+
+Treat direction choices and aspect-ratio ticks as available interactive values, not subdued helper copy. They use the workspace muted color at full opacity and a 10–11px minimum size; the active direction, tick and preview badge alone receive the workspace accent. Selected surfaces derive from workspace tokens instead of retaining fixed light-theme fills.
+
+### 2026-09-18 — Supplied monochrome brand assets
+
+The supplied `MagMark_Monochrome.svg` is packaged unchanged as the application and README mark. The companion rendered PNG is the README hero in every language. Because the mark is black on transparent, use a CSS visual inversion exclusively for the dark workspace. Retain text alternatives on documentation images and keep the page-header image decorative because the lockup names the product.
+
+### 2026-09-18 — Splitter focus indicator
+
+Override the generic offset focus ring only for the workspace splitter. Show focus as a contiguous 3px accent bar using a non-interactive pseudo-element; keep the 1px layout width and 13px hit area unchanged. Other controls retain their focus outlines.
+
+### 2026-09-18 — Interrupted marquee gestures
+
+Cancel rather than commit an interrupted selection on window leave/blur/resize, visibility change, Escape or missing left-button state. Observe mouseup in window capture phase and dispose listeners exactly once. Remove the transient overlay before applying selection so rendering errors cannot retain it. Keep viewport coordinates paired with getBoundingClientRect; no zoom multiplier is needed.
+
 The complete earlier decisions are preserved byte-for-byte in [2026-09-14-DECISIONS.md](archive/2026-09-14-DECISIONS.md). In particular retain exact-range image editing, local-directory permission boundaries, native WeChat tables, 24px/20px paper insets, separate Word/WeChat output paths and the existing emphasis fix. Later entries in that historical document supersede its earlier workarounds.
 ## 2026-09-18 — Aspect-aware layer canvas
 
