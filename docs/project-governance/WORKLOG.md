@@ -2,6 +2,8 @@
 
 ## 2026-09-18 — Mobile beta optimization
 
+- Deployed verified static HTML/assets to the beta URL after SHA-256 validation and backup at `/opt/stack/backups/magmark2-before-mobile-20260918`. Old hashed assets retained for open browser sessions. Online Chrome checks passed at 320/390/430/768/1280px; stable MagMark and other sites unchanged. Local additional checks passed for lazy cover dialog, export dialog, unchanged draft text after switching, and desktop compare mode after resize.
+
 - Added phone-only single-panel navigation, persistent full-width bottom actions, visible header icons, 44px touch targets, safe-area spacing, compact writing options and constrained dialogs.
 - Bootstrap now paints icons/loading status before the editing engine; mobile no longer requests Google Fonts. Cover editing and PNG export load on demand. Starter hero converted from 1,576,400 bytes to 56,662 bytes WebP; original retained.
 - Typecheck, deep verifier (203 tests) and production build passed. Headless Chrome tested 320/390/430/768/1280 widths, header and navigation icon visibility, no horizontal overflow, mutually exclusive preview/layout panels, appearance/palette/locale switching. This is viewport emulation, not physical-device testing.
