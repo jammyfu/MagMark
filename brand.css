@@ -31,6 +31,6 @@ body[data-workspace-theme='dark'] .brand-lockup .brand-mark img { filter: invert
 .export-file-grid button.mm-has-icon { line-height: 1.6; }
 .mm-ip-layout-btn.mm-has-icon { white-space: nowrap; }
 @media (max-width: 800px) {
-  .workspace-tabs button.mm-has-icon > .mm-ui-icon { display: none; }
+  .workspace-tabs button.mm-has-icon > .mm-ui-icon { display: inline-block; width: 20px; height: 20px; flex-basis: 20px; }
   .insert-actions button.mm-has-icon > .mm-ui-icon { width: 14px; height: 14px; flex-basis: 14px; }
 }

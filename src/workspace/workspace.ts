@@ -25,6 +25,11 @@ export function mountWorkspace() {
   const preview = required('preview-area');
   const status = required('workspace-status');
   const media = window.matchMedia('(max-width: 800px)');
+  const layoutHome = layoutButton.parentElement!;
+  const placeLayoutButton = () => {
+    (media.matches ? required('workspace-tabs') : layoutHome).append(layoutButton);
+  };
+  placeLayoutButton();
   let currentView: WorkspaceView = media.matches ? 'write' : 'compare';
   let previousExportView: WorkspaceView = currentView;
   let autoFit = true;
@@ -120,10 +125,10 @@ export function mountWorkspace() {
     try {
       if (body.dataset.output === 'wechat') {
         const device = required<HTMLSelectElement>('ctrl-wc-device').value as keyof typeof WECHAT_DEVICE_OPTIONS;
-        applyWechatZoom(Math.floor((preview.clientWidth - 64) / WECHAT_DEVICE_OPTIONS[device].width * 20) / 20);
+        applyWechatZoom(Math.floor((preview.clientWidth - (media.matches ? 24 : 64)) / WECHAT_DEVICE_OPTIONS[device].width * 20) / 20);
       } else {
         const s = store.getState(), dim = getPageDimensions(s.format);
-        const scale = Math.max(.25, Math.min(1, Math.floor((preview.clientWidth - 64) / dim.w * 20) / 20));
+        const scale = Math.max(.25, Math.min(1, Math.floor((preview.clientWidth - (media.matches ? 24 : 64)) / dim.w * 20) / 20));
         if (Math.abs(s.scale - scale) < .001) return;
         required<HTMLInputElement>('zoom-value').value = String(Math.round(scale * 100));
         required('zoom-value').dispatchEvent(new Event('change', { bubbles: true }));
@@ -228,7 +233,7 @@ export function mountWorkspace() {
   }, true);
   const resize = required('resize-handle');
   const disposeSplitter = mountSplitter(resize, required('editor-panel'), scheduleFit);
-  const mediaChanged = () => { closeInspector(false); setView(media.matches ? (currentView === 'preview' ? 'preview' : 'write') : 'compare'); };
+  const mediaChanged = () => { placeLayoutButton(); closeInspector(false); setView(media.matches ? (currentView === 'preview' ? 'preview' : 'write') : 'compare'); };
   media.addEventListener('change', mediaChanged);
   const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(scheduleFit) : undefined;
   observer?.observe(preview);

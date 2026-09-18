@@ -7,10 +7,9 @@ import { mountSourceEditor } from './src/workspace/source-editor';
 import { STARTER_MARKDOWN, starterForLocale } from './src/workspace/starter';
 import { mountLocale, savedLocale, LOCALES, translate } from './src/workspace/locale';
 import { mountPreviewEdit } from './src/workspace/preview-edit';
-import { mountWorkspaceIcons } from './src/workspace/icons';
+import { mountLinkNavigationGuard } from './src/workspace/link-navigation';
 
 // Decoration only: retain existing controls, handlers and article markup.
-mountWorkspaceIcons();
 const input = document.getElementById('markdown-input') as HTMLTextAreaElement;
 // Replace only the exact legacy first-run demo, never an imported/user document.
 if (input.value.startsWith('# MagMark 1.6.0 🎨✨\n')) {
@@ -52,6 +51,7 @@ try {
 }
 workspace.refreshDocument();
 mountPreviewEdit(document.getElementById('preview-area')!, input, workspace.report);
+mountLinkNavigationGuard(workspace.report);
 mountDraftHistory(input, { key: imageSaveKey, capture: captureSavedImages, restore: restoreSavedImages }, workspace.report);
 mountLocale(locale => {
   if (LOCALES.some(candidate => input.value === starterForLocale(candidate))) {

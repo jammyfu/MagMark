@@ -7,7 +7,7 @@
 
 MagMark 是面向中文與中英混排的 Markdown 編輯、排版與匯出工具。保留可編輯的原文，預覽並調整版面，再將同一篇文章帶到分頁雜誌、PNG、瀏覽器列印 PDF 或微信公眾號。
 
-> **2.0.0-beta.1 / `codex/2.0.0-beta` 是測試分支。** `main` 維持 1.6.0；[線上編輯器](https://bubufu.com/tools/magmark/)不代表本分支已部署。重要稿件請另外保存 Markdown 原檔。
+> **2.0.0-beta.1 / `codex/2.0.0-beta` 是測試分支。** [2.0 beta 線上版](https://bubufu.com/tools/magmark2/)已獨立發布；`main` 與[穩定版編輯器](https://bubufu.com/tools/magmark/)維持 1.6.0。重要稿件請另外保存 Markdown 原檔。
 
 ## 開始使用
 

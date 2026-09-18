@@ -8,12 +8,11 @@ import { layoutTableSheets } from './src/workspace/table-sheets';
 import { deleteSelectedSource } from './src/workspace/delete-selection';
 import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
-import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
 import { installImageContextMenu, findImageReferences } from './src/image/image-context-menu';
 import { installMissingImagePlaceholders } from './src/image/missing-images';
 import { chooseDirectoryArticle, resolveDirectoryImage } from './src/image/local-image-directory';
-import { CoverPanel } from './src/cover/cover-panel';
+import type { CoverPanel } from './src/cover/cover-panel';
 import { version } from './package.json';
 import { WECHAT_THEMES, WECHAT_DEVICE_OPTIONS } from './src/wechat/wechat-themes';
 import { renderWechatHtml, copyWechatHtml } from './src/wechat/wechat-renderer';
@@ -89,7 +88,7 @@ const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
  * Update UI version strings from package.json
  */
 function updateUIVersion() {
-    document.title = `MagMark ${version} — Ultra-Precision Magazine Markdown Editor`;
+    document.title = `MagMark ${version} — Markdown 杂志排版与公众号编辑器`;
     const logoVersion = $('.logo-version');
     if (logoVersion) logoVersion.textContent = version;
     
@@ -2091,18 +2090,37 @@ function init() {
     initToolbar();
 
     // Cover Panel
-    const coverPanel = new CoverPanel((html) => {
-        coverHtml = html;
-        updateCoverBtn();
-        render();
-    });
+    let coverPanel: CoverPanel | undefined;
+    let coverLoading = false;
 
-    $('#btn-cover').addEventListener('click', () => {
+    $('#btn-cover').addEventListener('click', async () => {
+        if (coverLoading) return;
+        const button = $<HTMLButtonElement>('#btn-cover');
+        coverLoading = true;
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        try {
+        if (!coverPanel) {
+            const { CoverPanel } = await import('./src/cover/cover-panel');
+            coverPanel = new CoverPanel((html) => {
+                coverHtml = html;
+                updateCoverBtn();
+                render();
+            });
+        }
         // Auto-extract title from first H1 in markdown
         const md = markdownInput.value;
         const titleMatch = md.match(/^#\s+(.+)/m);
         const title = titleMatch ? titleMatch[1].trim() : '';
         coverPanel.open(title);
+        } catch {
+            const status = document.getElementById('workspace-status');
+            if (status) { status.hidden = false; status.textContent = '封面工具加载失败，请再次点击重试。'; }
+        } finally {
+            coverLoading = false;
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
     });
 
     // Image Panel — data URLs 自动存储为 mm-img://uuid 短引用
@@ -2656,6 +2674,7 @@ async function exportPng() {
     btn.disabled = true;
 
     try {
+        const htmlToImage = await import('html-to-image');
         const dataUrl = await htmlToImage.toPng(activePage, {
             pixelRatio: 3,
             backgroundColor: getComputedStyle(activePage).backgroundColor || '#ffffff'
@@ -2699,6 +2718,7 @@ async function exportAllPng() {
     const links: HTMLAnchorElement[] = [];
     for (let i = 0; i < allPages.length; i++) {
         try {
+            const htmlToImage = await import('html-to-image');
             const dataUrl = await htmlToImage.toPng(allPages[i], {
                 pixelRatio: 3,
                 backgroundColor: getComputedStyle(allPages[i]).backgroundColor || '#ffffff',

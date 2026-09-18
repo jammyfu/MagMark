@@ -7,7 +7,7 @@
 
 MagMark is a Markdown editing, typesetting and export workspace for Chinese and mixed Chinese–English writing. Keep the source editable, inspect the layout, and take the same article to paginated pages, PNG, browser-printed PDF or WeChat-compatible rich text.
 
-> **2.0.0-beta.1 — `codex/2.0.0-beta`** is a testing branch. `main` remains at 1.6.0. The [hosted editor](https://bubufu.com/tools/magmark/) is not evidence that this beta has been deployed. Keep separate Markdown backups.
+> **2.0.0-beta.1 — `codex/2.0.0-beta`** is a testing branch with an independently published [2.0 beta editor](https://bubufu.com/tools/magmark2/). `main` and the [stable editor](https://bubufu.com/tools/magmark/) remain at 1.6.0. Keep separate Markdown backups.
 
 ## Run the beta
 

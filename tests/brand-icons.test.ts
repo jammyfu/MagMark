@@ -16,10 +16,10 @@ describe('Monochrome brand and functional icons', () => {
     const mark = document.querySelector('[data-brand="monochrome"]');
     expect(mark).not.toBeNull();
     expect(mark?.getAttribute('aria-hidden')).toBe('true');
-    expect(mark?.querySelector('img')?.getAttribute('src')).toBe('/brand/magmark-monochrome.svg');
+    expect(mark?.querySelector('img')?.getAttribute('src')).toBe('%BASE_URL%brand/magmark-monochrome.svg');
     expect(svg).toContain('MagMark — monochrome vector logo');
     expect(svg).toContain('fill="#000000"');
-    expect(html).toContain('href="/favicon.svg"');
+    expect(html).toContain('href="%BASE_URL%favicon.svg"');
   });
   it('uses the supplied hero in every localized README', () => {
     for (const file of ['README.md', 'README.en.md', 'README.zh-Hant.md', 'README.ja.md']) {

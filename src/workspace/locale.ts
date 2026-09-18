@@ -264,7 +264,12 @@ AI 生成|AI 生成|AI 生成|AI generation
 按文字层级批量选取|依文字層級批次選取|文字階層で選択|Select by text level
 删除选中内容|刪除選取內容|選択内容を削除|Delete selection
 在此块上方插入图片|在此區塊上方插入圖片|このブロックの前に画像を挿入|Insert image above this block
-在此块下方插入图片|在此區塊下方插入圖片|このブロックの後に画像を挿入|Insert image below this block`;
+在此块下方插入图片|在此區塊下方插入圖片|このブロックの後に画像を挿入|Insert image below this block
+打开链接？|開啟連結？|リンクを開きますか？|Open link?
+你将离开当前编辑器并打开：|你將離開目前編輯器並開啟：|エディターを離れて開きます：|You will leave the editor and open:
+留在编辑器|留在編輯器|エディターに留まる|Stay in editor
+继续打开|繼續開啟|開く|Open link
+编辑文字时不会打开链接。保存或取消后，可在预览中确认打开。|編輯文字時不會開啟連結。儲存或取消後，可在預覽中確認開啟。|テキスト編集中はリンクを開けません。保存またはキャンセル後、プレビューで確認してください。|Links do not open while editing text. Save or cancel, then confirm from preview.`;
 const dictionary = new Map(rows.split('\n').map(row => { const cells = row.split('|'); return [cells[0], cells]; }));
 const reverse = new Map<string, string>();
 for (const [source, cells] of dictionary) for (const cell of cells) reverse.set(cell, source);

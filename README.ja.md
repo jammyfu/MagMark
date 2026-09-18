@@ -7,7 +7,7 @@
 
 MagMark は、中国語と中国語・英語混在文書を主な対象とした Markdown 編集・組版・書き出しツールです。原文を編集可能なまま保持し、レイアウトを確認して、ページ分割された記事、PNG、ブラウザー印刷による PDF、WeChat 向けリッチテキストに出力します。
 
-> **2.0.0-beta.1 / `codex/2.0.0-beta` はテスト用ブランチです。** `main` は 1.6.0 のままです。[オンライン版](https://bubufu.com/tools/magmark/)に、この beta がデプロイされているとは限りません。重要な原稿は Markdown ファイルとして別途保存してください。
+> **2.0.0-beta.1 / `codex/2.0.0-beta` はテスト用ブランチです。** [2.0 beta オンライン版](https://bubufu.com/tools/magmark2/)は独立して公開されています。`main` と[安定版エディター](https://bubufu.com/tools/magmark/)は 1.6.0 のままです。重要な原稿は Markdown ファイルとして別途保存してください。
 
 ## ローカルで起動
 

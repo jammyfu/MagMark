@@ -2,20 +2,89 @@
 <html lang="zh-Hans">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>MagMark — 写作与排版</title>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
-<meta content="MagMark，将 Markdown 排成易读的文章、杂志页面与公众号内容。" name="description"/>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&amp;family=Noto+Sans+SC:wght@300;400;500;600&amp;family=LXGW+WenKai:wght@300;400;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>MagMark 2.0 Beta — Markdown 杂志排版与公众号编辑器</title>
+<meta content="MagMark 2.0 Beta 是面向中文写作的免费 Markdown 排版工具，支持杂志级分页、公众号富文本、图片编排、高精度 PNG 与打印级 PDF 导出。基础编辑在浏览器本地完成。" name="description"/>
+<meta content="MagMark,Markdown 编辑器,Markdown 排版,公众号排版,中文排版,杂志排版,Markdown 转图片,Markdown 转 PDF,小红书排版" name="keywords"/>
+<meta content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" name="robots"/>
+<meta content="Fu Jam" name="author"/>
+<meta content="MagMark" name="application-name"/>
+<meta content="telephone=no" name="format-detection"/>
+<meta content="#f6f4ef" name="theme-color" media="(prefers-color-scheme: light)"/>
+<meta content="#171817" name="theme-color" media="(prefers-color-scheme: dark)"/>
+<link rel="canonical" href="https://bubufu.com/tools/magmark2/"/>
+<link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml"/>
+
+<meta content="website" property="og:type"/>
+<meta content="zh_CN" property="og:locale"/>
+<meta content="MagMark 2.0 Beta — Markdown 杂志排版与公众号编辑器" property="og:title"/>
+<meta content="把 Markdown 排成杂志页面、公众号内容与高精度图片。支持中文排版、本地编辑、PNG 和打印级 PDF 导出。" property="og:description"/>
+<meta content="https://bubufu.com/tools/magmark2/" property="og:url"/>
+<meta content="MagMark" property="og:site_name"/>
+<meta content="https://bubufu.com/tools/magmark2/og/magmark2-beta.png" property="og:image"/>
+<meta content="MagMark 2.0 Beta 中文 Markdown 排版工作区" property="og:image:alt"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="MagMark 2.0 Beta — Markdown 杂志排版与公众号编辑器" name="twitter:title"/>
+<meta content="中文 Markdown 杂志排版、公众号富文本、高精度 PNG 与打印级 PDF 导出。" name="twitter:description"/>
+<meta content="https://bubufu.com/tools/magmark2/og/magmark2-beta.png" name="twitter:image"/>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "MagMark 2.0 Beta",
+  "alternateName": "MagMark Markdown 排版工具",
+  "url": "https://bubufu.com/tools/magmark2/",
+  "image": "https://bubufu.com/tools/magmark2/og/magmark2-beta.png",
+  "description": "面向中文写作的 Markdown 杂志排版与公众号编辑器，支持分页预览、图片编排、高精度 PNG 和打印级 PDF 导出。",
+  "applicationCategory": "DesignApplication",
+  "applicationSubCategory": "Markdown editor and publishing tool",
+  "operatingSystem": "Any modern web browser",
+  "browserRequirements": "Requires JavaScript and a modern browser",
+  "softwareVersion": "2.0.0-beta.1",
+  "inLanguage": ["zh-Hans", "zh-Hant", "ja", "en"],
+  "isAccessibleForFree": true,
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CNY"},
+  "featureList": [
+    "Markdown 实时编辑与预览",
+    "中文杂志级分页排版",
+    "微信公众号富文本复制",
+    "高精度 PNG 导出",
+    "打印级 PDF 导出",
+    "本地文件与图片编排"
+  ],
+  "author": {"@type": "Person", "name": "Fu Jam", "url": "https://github.com/jammyfu"},
+  "publisher": {"@type": "Organization", "name": "步步福", "url": "https://bubufu.com/"},
+  "sameAs": "https://github.com/jammyfu/MagMark"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "步步福", "item": "https://bubufu.com/"},
+    {"@type": "ListItem", "position": 2, "name": "在线工具", "item": "https://bubufu.com/zh/tools"},
+    {"@type": "ListItem", "position": 3, "name": "MagMark 2.0 Beta", "item": "https://bubufu.com/tools/magmark2/"}
+  ]
+}
+</script>
 <link href="/editor.css" rel="stylesheet"/>
     <link rel="stylesheet" href="/workspace.css">
     <link rel="stylesheet" href="/brand.css">
 </head>
 <body data-workspace="compare">
+  <noscript>
+    <main>
+      <h1>MagMark 2.0 Beta：Markdown 杂志排版与公众号编辑器</h1>
+      <p>MagMark 支持中文 Markdown 实时排版、杂志级分页、公众号富文本、高精度 PNG 与打印级 PDF 导出。编辑器需要启用 JavaScript 才能运行。</p>
+      <p><a href="https://github.com/jammyfu/MagMark">查看 MagMark 开源项目与使用说明</a></p>
+    </main>
+  </noscript>
   <a class="skip-link" href="#source-editor">跳到编辑器</a>
   <header id="app-header" class="workspace-header">
     <div class="brand-lockup" aria-label="MagMark 写作与排版">
-      <span class="brand-mark" data-brand="monochrome" aria-hidden="true"><img src="/brand/magmark-monochrome.svg" alt="" width="2048" height="720"></span>
+      <span class="brand-mark" data-brand="monochrome" aria-hidden="true"><img src="%BASE_URL%brand/magmark-monochrome.svg" alt="" width="2048" height="720"></span>
       <span class="brand-divider" aria-hidden="true"></span>
       <span id="document-title" class="document-title">未命名文章</span>
       <span class="logo-version" hidden>2.0.0-beta.1</span>
@@ -289,6 +358,6 @@
 </button>
 <button class="toolbar-btn" id="toolbar-close">✕</button>
 </div>
-  <script type="module" src="/app.ts"></script>
+  <script type="module" src="/src/workspace/bootstrap.ts"></script>
 </body>
 </html>
