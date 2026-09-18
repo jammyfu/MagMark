@@ -4,6 +4,12 @@
  * Keep this subset local: no icon font, CDN request or runtime package dependency.
  */
 export const ICONS = {
+  // Project-authored text alignment geometry, matching the shared 24px stroke grid.
+  'text-left': '<path d="M4 5h16M4 10h10M4 15h16M4 20h10"/>',
+  'text-center': '<path d="M4 5h16M7 10h10M4 15h16M7 20h10"/>',
+  'text-right': '<path d="M4 5h16M10 10h10M4 15h16M10 20h10"/>',
+  'text-justify': '<path d="M4 5h16M4 10h16M4 15h16M4 20h9"/>',
+  'text-distributed': '<path d="M4 5h16M4 10h16M4 15h16M4 20h16"/>',
   'pencil-line': '<path d="M13 21h8"/><path d="m15 5 4 4"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>',
   'columns-2': '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/>',
   eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',

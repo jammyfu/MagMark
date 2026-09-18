@@ -44,6 +44,7 @@ const styleProperties = new Set([
   'text-emphasis', '-webkit-text-emphasis',
 ]);
 const coverProperties = new Set([
+  'object-fit', 'object-position',
   'position', 'top', 'right', 'bottom', 'left', 'inset', 'transform', 'transform-origin', 'z-index',
   'overflow', 'flex', 'flex-direction', 'flex-wrap', 'justify-content', 'align-items', 'align-self',
   'gap', 'row-gap', 'column-gap', 'grid-template-columns', 'grid-template-rows',

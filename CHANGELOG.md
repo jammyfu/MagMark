@@ -2,6 +2,8 @@
 
 ## 2026-09-18
 
+- 封面文字新增画布直接编辑、拖动移动、角点字号缩放、侧点换行宽度调整、数值微调及当前画布撤销／重做。主副标题使用高对比衬底，修复主题变量读取，长标题初始适配画布；导出移除编辑控件。
+
 - 默认长文预览；选中文字的行高与字距新增微调箭头。工具栏增加拖动手柄，位置独立于文字重排，修复多选调参时跳动及重复偏移。
 
 - 写作新增普通文本模式（关闭语法高亮、不改写原文），粘贴可选自动识别、保留 Markdown、仅纯文本。Word/网页富文本结构转换为 Markdown；表格保留安全 HTML，不可用图片提示重新插入。转换沿用撤销及自动保存，不包含 .doc/.docx 文件解析。
@@ -40,3 +42,12 @@
 ## 2026-09-03 · 主站工具部署
 
 新增子路径网页构建、安全过滤、同站排版资源、移动端布局与主站返回入口。已部署到 https://bubufu.com/tools/ ，保持免费可直接使用。完整验收、限制和回滚见 /Users/jammyfu/works/AI/Global/bubufu-server/deployment-reviews/20260903-tools-v1/README.md。
+# Adaptive cover layers — 2026-09-18
+
+- Recompose portrait, square and landscape covers with separate safe areas for images and text; normalize geometry and adapt synchronized media drafts and thumbnails independently.
+- Add multiple editable text/image layers, local PNG/JPEG/WebP import, stacking, duplication, visibility, deletion and undo/redo. Keep imported layers when changing templates.
+- Add image contain/cover fitting, text color/backing/alignment and one-click automatic layout. Cover layers remain session-only, explicitly indicated in the panel.
+# Cover alignment controls — 2026-09-18
+
+- Add left/center/right, justified and last-line-distributed alignment for cover text layers. Preserve alignment through undo, media adaptation and export.
+- Unify cover alignment, layer actions, resizing and history buttons with the workspace's accessible thin-line icon system.

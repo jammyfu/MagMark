@@ -1,5 +1,11 @@
 # DECISIONS.md
 
+## 2026-09-18 — Cover text canvas interaction
+
+Use direct manipulation with separate proportional font scaling and text-box width controls, following Canva double-click editing and Adobe Express text sizing patterns. Preserve independent/shared media scope. Use explicit opaque ink/backing pairs (#172033 / #ffffff) for title and subtitle to avoid unpredictable gradient/image contrast; read theme variables from body. Keep selection chrome outside artwork and strip editing metadata before exports. Font sizes use em and widths use percentages for media adaptation; movement retains the existing pixel offsets. Undo/redo is bounded to 50 changes in the current canvas and resets on template/media rebuild, not persisted draft history.
+
+References: https://www.canva.com/help/add-and-edit-text/ ; https://developer.adobe.com/express/add-ons/docs/guides/learn/how-to/resize-elements ; https://www.adobe.com/learn/express/web/edit-text-express .
+
 ## 2026-09-18 — Stable typography controls
 
 Default to scroll view in initial state and reset defaults. Use the existing range steps (font 1px, line height .05, letter spacing .01em) for explicit arrow controls. Store toolbar viewport position independently from selected blocks; initialize once near the first selection and retain it across selection changes/reflow. Dedicated pointer-captured handle supports dragging and keyboard movement; viewport resize clamps position. Remove transformed entry positioning and cancel delayed single-click toolbar updates when a newer multi-selection is shown.
@@ -85,3 +91,11 @@ Integration is restricted to the approved feature branch. One-time write-enabled
 ## Inherited decisions
 
 The complete earlier decisions are preserved byte-for-byte in [2026-09-14-DECISIONS.md](archive/2026-09-14-DECISIONS.md). In particular retain exact-range image editing, local-directory permission boundaries, native WeChat tables, 24px/20px paper insets, separate Word/WeChat output paths and the existing emphasis fix. Later entries in that historical document supersede its earlier workarounds.
+## 2026-09-18 — Aspect-aware layer canvas
+
+Cover templates supply background and theme; their former nested text layouts are normalized into individually editable absolute layers. Percentage geometry and relative type preserve manual positions within an aspect ratio. Shared edits deliberately recompose other media into safe regions (wide: image beside text; square/portrait: image above text), whereas individual edits stay local. Conservative line estimation supports detached thumbnails, with actual font overflow checks in the editor. A user-invoked auto-layout is undoable.
+
+Layer history includes addition, deletion, visibility and ordering, not only text/styles. Imports accept decoded local PNG/JPEG/WebP up to 10MB each and embed data URLs; no external image upload occurs. Object-fit/object-position are allowed only in the cover sanitization profile. This is a session-local editor, not persisted cover storage; switching media/templates resets local undo history. New text/image layers survive template switching.
+## 2026-09-18 — Cover title justification and icons
+
+Distinguish normal justification (natural final line) from distributed alignment (final line justified too). Use CSS text-align/text-align-last and CJK inter-character justification rather than inserting spacing characters into source text. Alignment is layer-local and undoable, and disabled for image selections. Reuse the workspace icon decorator with matching project-authored alignment geometry, accessible labels, tooltips and pressed states.

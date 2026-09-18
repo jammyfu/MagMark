@@ -10,7 +10,20 @@ Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed ver
 - Set 2.0.0-beta.1, refresh README workspace screenshot, commit and push only the independent beta branch.
 - Preserve unrelated untracked deployment experiments locally; verify the isolated release tree before pushing.
 
-### Current execution: flexible writing input (2026-09-18)
+### Current execution: adaptive multilayer covers (2026-09-18)
+
+- Follow-up: five text alignment modes (including justified/distributed last line), selection-aware state and consistent shared line icons for cover controls; verify undo, media propagation and sanitized output.
+
+- Replace shared fixed layouts with aspect-aware safe-area composition for every output ratio and thumbnail.
+- Add editable text/image layers, selection, stacking, visibility, duplication/deletion and local undo; preserve per-media editing and sanitized export.
+- Verify long text, portrait/square/wide layouts, layer operations and actual browser interactions.
+
+### Previous execution: cover text editing (2026-09-18)
+
+- Research Canva/Adobe Express text editing; implement readable title fields and artwork text, direct editing, pointer-captured move/resize, numeric controls and local undo/redo.
+- Verify built-in templates, media switching and clean exports. Existing requested beta push remains pending explicit destination approval after automatic approval review rejection.
+
+### Previous execution: flexible writing input (2026-09-18)
 
 - Latest follow-up: default to long-form view; add fractional line-height/letter-spacing arrows and a viewport-fixed draggable selection toolbar that does not chase reflowing multi-selected blocks.
 

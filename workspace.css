@@ -323,6 +323,28 @@ body[data-workspace] select :is(option, optgroup) {
 .mm-cp-media-card[aria-pressed='true'] { border-color: var(--ws-accent); box-shadow: 0 0 0 1px var(--ws-accent); }
 .mm-cp-media-card span { display: block; font: 10px/1.5 var(--ws-ui); margin-top: 6px; }
 body[data-workspace] .mm-cp-controls .mm-cp-input { background: var(--ws-ground); color: var(--ws-ink); border-color: var(--ws-line); }
+body[data-workspace] .mm-cp-controls textarea.mm-cp-input { resize: vertical; min-height: 64px; font: 14px/1.6 var(--ws-ui); caret-color: var(--ws-ink); -webkit-text-fill-color: var(--ws-ink); }
+body[data-workspace] .mm-cp-controls .mm-cp-input::placeholder { color: var(--ws-muted); opacity: 1; }
+.mm-cp-controls > label { font: 12px/1.6 var(--ws-ui); color: var(--ws-ink); }
+.mm-cp-type-tools { margin: 12px 0; padding: 12px; border: 1px solid var(--ws-line); border-radius: 10px; color: var(--ws-ink); }
+.mm-cp-type-tools legend { padding: 0 6px; font: 600 12px var(--ws-ui); }
+.mm-cp-text-row, .mm-cp-text-actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.mm-cp-text-row label { flex: 1; font-size: 12px; }
+.mm-cp-text-row input { width: 72px; padding: 6px; color: var(--ws-ink); background: var(--ws-ground); border: 1px solid var(--ws-line); border-radius: 5px; color-scheme: var(--ws-scheme); }
+.mm-cp-type-tools button { min-height: 30px; padding: 5px 8px; border: 1px solid var(--ws-line); border-radius: 5px; background: var(--ws-ground); color: var(--ws-ink); cursor: pointer; }
+.mm-cp-type-tools button:disabled { opacity: .4; cursor: default; }
+.mm-cp-type-tools :is(button,input,select):focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; }
+.mm-cp-type-tools p { margin: 10px 0 0; font: 11px/1.6 var(--ws-ui); color: var(--ws-muted); }
+body[data-workspace] .mm-cp-panel { width: min(1120px, 96vw); }
+body[data-workspace] .mm-cp-body { min-height: 0; max-height: calc(90vh - 60px); }
+body[data-workspace] .mm-cp-controls { width: 320px; min-width: 280px; overflow-y: auto; }
+body[data-workspace] .mm-cp-preview-wrap { min-width: 0; overflow-y: auto; }
+body[data-workspace] .mm-cp-preview-container { flex: 0 0 auto; min-height: 300px; padding: 16px; }
+body[data-workspace] .mm-cp-media-overview { display: grid; grid-auto-flow: column; grid-auto-columns: 130px; grid-template-columns: none; overflow-x: auto; flex-shrink: 0; }
+.mm-cp-ratio-section > summary { padding: 8px 0; font: 12px var(--ws-ui); cursor: pointer; color: var(--ws-ink); }
+.mm-cp-text-actions { flex-wrap: wrap; }
+.mm-cp-text-actions button { white-space: nowrap; }
+@media(max-width:720px) { body[data-workspace] .mm-cp-body { overflow: auto; flex-direction: column; } body[data-workspace] .mm-cp-controls { width: 100%; overflow: visible; } body[data-workspace] .mm-cp-preview-wrap { overflow: visible; flex-shrink: 0; } }
 @media(max-width:640px) { .mm-cp-media-overview { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .floating-toolbar .toolbar-btn:not(.toolbar-delete) { color: #d1d5df; }
 .floating-toolbar input[type='range'] { accent-color: #8bbfff; }
@@ -353,3 +375,13 @@ body[data-workspace-theme='dark'] :is(.workspace-actions .primary-action, .mm-ip
     .brand-name { display: none; }
     .workspace-actions .primary-action { padding: 8px 12px; }
 }
+.mm-cp-layer-item { display:block; width:100%; text-align:left; padding:8px 10px; margin:3px 0; border:1px solid var(--ws-line,#555); border-radius:6px; background:var(--ws-ground,#24262b); color:var(--ws-ink,#eee); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+.mm-cp-type-tools { min-width:0; }
+.mm-cp-controls { overflow-x:hidden; }
+.mm-cp-layer-item[aria-pressed="true"] { border-color:#448aff; box-shadow:inset 3px 0 #448aff; }
+#mm-cp-layers { max-height:160px; overflow:auto; }
+.mm-cp-align-tools { display:flex; gap:4px; margin:8px 0; }
+body[data-workspace] .mm-cp-align-tools button { flex:1; min-height:34px; border:1px solid var(--ws-line); border-radius:5px; background:var(--ws-ground); color:var(--ws-ink); cursor:pointer; }
+body[data-workspace] .mm-cp-align-tools button[aria-pressed="true"] { color:var(--ws-ink); background:var(--ws-surface); border-color:#448aff; box-shadow:inset 0 -2px #448aff; }
+.mm-cp-align-tools button:focus-visible { outline:2px solid #448aff; outline-offset:2px; }
+.mm-cp-align-tools button:disabled { opacity:.35; cursor:default; }

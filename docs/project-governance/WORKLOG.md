@@ -1,5 +1,12 @@
 # WORKLOG.md
 
+## 2026-09-18 — Cover title readability and direct manipulation
+
+- Researched official Canva double-click text editing and Adobe Express resizing/text layout documentation (links in DECISIONS). Applied frontend-design guidance to expand the canvas, consolidate text controls, collapse optional ratio settings and put media previews in a horizontal strip.
+- Fixed theme-variable lookup to body; explicit opaque title/subtitle surfaces use #172033/#ffffff pairs and render above template decorations. Text input colors follow workspace appearance. Long initial titles shrink to fit the output viewport. Added direct plaintext editing with IME guards, pointer-captured movement and corner scaling, side width control, numeric adjustments, position reset, current-canvas undo/redo and keyboard movement. Editor chrome is excluded from exported HTML.
+- Browser verified rich title double-click edit/commit/undo, real corner drag changing font and width, size restoration, wide WeChat bounds and both workspace appearances. Main article content was preserved. Built-in template contrast/export cleanup and history integration tests passed; isolated tree passed typecheck, 164 Vitest tests, 59 text and 6 SDK checks, production build and governance. Existing unrelated untracked dependency experiments stayed excluded; bundle warning remains. Real downloaded PNG inspection, OS IME and non-Chromium engines remain unverified.
+- Previous Git push remains blocked by the recorded automatic approval rejection; no attempt to bypass it or publish these new changes.
+
 ## 2026-09-18 — Stable multi-selection toolbar and long-view default
 
 - Added .05 line-height and .01em letter-spacing arrow controls using the existing update pipeline; default and reset view now use scroll mode. Applied frontend-design guidance to retain high contrast and wrap the toolbar within narrow viewports.
@@ -125,3 +132,15 @@ Current details: [QUIET_WORKSPACE.md](QUIET_WORKSPACE.md) and [remote evidence](
 - Governance-only verifier and diff whitespace checks passed. Typecheck still reports only the existing untracked sanitize-html missing dompurify/jsdom types. No deployment.
 
 The complete earlier worklog is preserved unchanged, using its original Git blob, in [2026-09-14-WORKLOG.md](archive/2026-09-14-WORKLOG.md). Historical test scopes and earlier platform checks are not reclassified as tests of this UI iteration.
+## 2026-09-18 — Adaptive multilayer cover follow-up
+
+- Replaced fixed shared cover positioning with normalized layer geometry and aspect-aware image/text safe areas; all media thumbnails and synchronized drafts are recomposed for their own ratio.
+- Added editable text layers and decoded local image imports, selection list, stacking, visibility, duplication/deletion, numeric size/width, colors/alignment and contain/cover image fitting. Template changes retain added layers; each canvas has reversible layer operations.
+- Used frontend-design to retain the quiet editor with a compact layer list and explicit session/history limitations, rather than adding unrelated visual decoration.
+- Browser verification: imported the user-provided sample PNG locally, confirmed loaded images and no measured title overflow across all nine media presets. Checked responsive preview dimensions, added-text composition, double-click multiline editing and undo back to the original layers. Test-only cover drafts were cleared by development reload; article source was preserved.
+- Validation: isolated beta source tree passed strict typecheck, all 174 Vitest tests, 59 text checks, 6 SDK guards and production build. Workspace governance verification and diff whitespace check passed. Build retains the existing large-chunk/CJS warnings. Unrelated untracked deployment/sanitizer experiments remain excluded and untouched. Actual PNG visual export and non-Chromium/OS IME remain unverified; no push/deployment performed.
+## 2026-09-18 — Cover alignment follow-up
+
+- Added five alignment modes and synchronized pressed state with selected layer, undo/redo and media switching. Reused shared SVG decoration for cover and layer buttons; frontend-design guided the compact segmented controls and existing visual style.
+- Browser checked distributed title alignment, measured no overflow and confirmed active icon state. Added regression coverage for all five modes, icon rendering, undo/redo and cross-media preservation. Tests run in the existing isolated beta tree to exclude unrelated untracked experiments.
+- Validation: strict typecheck, 20 targeted cover/icon regression tests, production build, governance verification and whitespace checks passed. Existing bundle-size warning remains. No publication or remote push performed.

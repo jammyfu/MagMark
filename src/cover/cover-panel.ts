@@ -2,6 +2,8 @@ import { createPanelDialog } from '../workspace/panel-dialog';
 import { sanitizeArticleHtml } from '../security/article-html';
 import { MEDIA_PRESETS, updateMediaDrafts, type MediaDraft } from './media-presets';
 import { toPng } from 'html-to-image';
+import { mountCoverTextEditor } from './layer-editor';
+import { adaptiveLayout, prepareCover, LAYER_SELECTOR, fitRenderedText } from './layer-layout';
 /**
  * CoverPanel — 封面生成面板 v2.0
  *
@@ -185,14 +187,20 @@ export class CoverPanel {
     private currentRatioIdx = 3; // 默认 4:5，适合封面
     private mediaId: string = MEDIA_PRESETS[0].id;
     private drafts: Record<string, MediaDraft> = {};
+    private textEditor?: ReturnType<typeof mountCoverTextEditor>;
+    private previewObserver?: ResizeObserver;
 
     constructor(onInsert: OnInsert) {
         this.onInsert = onInsert;
         this.buildDom();
         this.injectStyles();
+        if (typeof ResizeObserver !== 'undefined') {
+            this.previewObserver = new ResizeObserver(() => { if (this.overlay.open) this.updatePreviewBoxSize(); });
+            this.previewObserver.observe(this.overlay.querySelector('.mm-cp-preview-wrap')!);
+        }
     }
 
-    destroy() { this.dialog.destroy(); }
+    destroy() { this.previewObserver?.disconnect(); this.textEditor?.destroy(); this.dialog.destroy(); }
 
     // ─── DOM Construction ────────────────────────────────────────────────────
 
@@ -221,10 +229,29 @@ export class CoverPanel {
       <select class="mm-cp-input" id="mm-cp-media">${MEDIA_PRESETS.map(p => `<option value="${p.id}">${p.name} · ${p.ratio}</option>`).join('')}</select>
       <select class="mm-cp-input" id="mm-cp-scope" aria-label="封面编辑范围"><option value="all">统一编辑所有版本</option><option value="one">仅编辑当前版本</option></select>
       <p class="mm-cp-media-note" id="mm-cp-media-note"></p>
-      <p class="mm-cp-media-note">统一编辑会同步文字、模板和位置到所有版本，保留各自比例；单独调整请先切换编辑范围。本次面板内保留版本，尚未纳入草稿历史。</p>
+      <p class="mm-cp-media-note">统一编辑同步内容和图层，各比例重新适配布局。独立微调请选“仅编辑当前版本”。封面暂存在本次会话，刷新会丢失，请及时下载。</p>
+      <fieldset class="mm-cp-type-tools"><legend>图层 / LAYERS</legend>
+        <div class="mm-cp-text-actions"><button type="button" id="mm-cp-add-text">＋ 文字</button><button type="button" id="mm-cp-add-image">＋ 图片</button><button type="button" id="mm-cp-auto-layout">自适应排版</button></div>
+        <input id="mm-cp-image-file" type="file" accept="image/png,image/jpeg,image/webp" hidden multiple>
+        <p id="mm-cp-layer-status" role="status">点击图层选择；列表从上到下对应前景到背景。</p>
+        <div id="mm-cp-layers" aria-label="封面图层"></div>
+        <div class="mm-cp-text-actions" id="mm-cp-layer-actions"><button type="button" data-layer-action="up" aria-label="图层上移">↑ 上移</button><button type="button" data-layer-action="down" aria-label="图层下移">↓ 下移</button><button type="button" data-layer-action="duplicate">复制</button><button type="button" data-layer-action="hide">显示 / 隐藏</button><button type="button" data-layer-action="delete" aria-label="删除选中图层">删除</button></div>
+      </fieldset>
       <div class="mm-cp-section-label">文字内容</div>
-      <input class="mm-cp-input" id="mm-cp-title-input" placeholder="标题（留空则自动提取）" type="text">
-      <input class="mm-cp-input" id="mm-cp-subtitle-input" placeholder="副标题 / 简介" type="text">
+      <label for="mm-cp-title-input">主标题</label>
+      <textarea class="mm-cp-input" id="mm-cp-title-input" placeholder="输入封面标题" rows="3"></textarea>
+      <label for="mm-cp-subtitle-input">副标题</label>
+      <textarea class="mm-cp-input" id="mm-cp-subtitle-input" placeholder="副标题 / 简介" rows="2"></textarea>
+      <fieldset class="mm-cp-type-tools"><legend>文字设计</legend>
+        <select class="mm-cp-input" id="mm-cp-text-target" aria-label="编辑文字图层"><option value="title">主标题</option><option value="subtitle">副标题</option></select>
+        <div class="mm-cp-text-row"><label for="mm-cp-text-size">字号 px</label><input id="mm-cp-text-size" type="number" min="8" max="600" step="1" value="60"><button type="button" id="mm-cp-size-down" aria-label="封面字号减小">−</button><button type="button" id="mm-cp-size-up" aria-label="封面字号增大">＋</button></div>
+        <div class="mm-cp-text-row"><label for="mm-cp-text-width">文本框宽度 %</label><input id="mm-cp-text-width" type="number" min="10" max="100" step="1" value="100"></div>
+        <div class="mm-cp-text-row"><label for="mm-cp-layer-color">文字颜色</label><input id="mm-cp-layer-color" type="color" value="#172033"><label for="mm-cp-layer-bg">衬底</label><input id="mm-cp-layer-bg" type="color" value="#ffffff"></div>
+        <div class="mm-cp-align-tools" id="mm-cp-layer-align" role="group" aria-label="文字对齐">${[['left','左对齐'],['center','居中对齐'],['right','右对齐'],['justify','两端对齐'],['distributed','分散对齐（末行也齐行）']].map(([value,label]) => `<button type="button" data-cover-align="${value}" aria-label="${label}" title="${label}" aria-pressed="false">${label}</button>`).join('')}</div>
+        <select class="mm-cp-input" id="mm-cp-image-fit" aria-label="图片适配方式"><option value="contain">完整显示图片</option><option value="cover">填满图框（裁切）</option></select>
+        <div class="mm-cp-text-actions"><button type="button" id="mm-cp-edit-text">编辑文字</button><button type="button" id="mm-cp-reset-text">复位位置</button><button type="button" id="mm-cp-text-undo" aria-label="撤销封面文字调整">↶</button><button type="button" id="mm-cp-text-redo" aria-label="重做封面文字调整">↷</button></div>
+        <p>角点缩放文字 · 侧点调整换行<br>双击编辑 · Esc 取消 · ⌘/Ctrl Enter 完成<br>撤销记录仅限当前画布，切换媒体或模板后重置。</p>
+      </fieldset>
 
       <div class="mm-cp-section-label" style="margin-top:16px">选择模板</div>
       <div class="mm-cp-template-grid" id="mm-cp-template-grid"></div>
@@ -254,7 +281,7 @@ export class CoverPanel {
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:3px">
             <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>
           </svg>
-          拖拽标题/副标题可调整位置
+          拖动移动 · 双击编辑 · 控制点缩放
         </span>
       </div>
 
@@ -266,7 +293,7 @@ export class CoverPanel {
       </div>
 
       <!-- Ratio Section (mirrors image-panel) -->
-      <div class="mm-cp-ratio-section">
+      <details class="mm-cp-ratio-section"><summary>自定义出图比例</summary>
         <div class="mm-cp-ratio-header">
           <label class="mm-cp-ratio-label">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--primary,#d4af37)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px">
@@ -309,7 +336,7 @@ export class CoverPanel {
             </div>
           </div>
         </div>
-      </div>
+      </details>
 
       <div id="mm-cp-media-overview" class="mm-cp-media-overview" aria-label="各媒体封面预览"></div>
       <button class="mm-cp-insert-btn" id="mm-cp-download">下载当前版本 PNG</button>
@@ -564,7 +591,9 @@ export class CoverPanel {
                 grid.querySelectorAll('.mm-cp-tpl-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedTemplate = parseInt((btn as HTMLElement).dataset.idx || '0');
-                this.fullRebuildPreview(COVER_TEMPLATES[this.selectedTemplate].html);
+                const template = document.createElement('div'); template.innerHTML = COVER_TEMPLATES[this.selectedTemplate].html;
+                this.previewFrame.contentDocument?.querySelectorAll('.mm-cover-text,.mm-cover-image').forEach(el => template.querySelector('.mm-cover')!.append(el.cloneNode(true)));
+                this.fullRebuildPreview(template.innerHTML);
                 this.rememberMedia(true);
             });
         });
@@ -573,6 +602,38 @@ export class CoverPanel {
     // ─── Events ──────────────────────────────────────────────────────────────
 
     private bindEvents() {
+        this.overlay.querySelector('#mm-cp-add-text')!.addEventListener('click', () => this.textEditor?.addText());
+        this.overlay.querySelector('#mm-cp-auto-layout')!.addEventListener('click', () => this.textEditor?.layout());
+        const file = this.overlay.querySelector<HTMLInputElement>('#mm-cp-image-file')!;
+        this.overlay.querySelector('#mm-cp-add-image')!.addEventListener('click', () => file.click());
+        file.addEventListener('change', async () => {
+            const editor = this.textEditor;
+            const status = this.overlay.querySelector('#mm-cp-layer-status')!;
+            for (const image of Array.from(file.files || [])) {
+                if (!['image/png','image/jpeg','image/webp'].includes(image.type) || image.size > 10 * 1024 * 1024) { status.textContent = '仅支持 10MB 以内的 PNG、JPEG、WebP 图片。'; continue; }
+                try {
+                    const src = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(image); });
+                    const decoded = new Image(); decoded.src = src; await decoded.decode();
+                    if (editor !== this.textEditor || !this.overlay.open) break;
+                    editor?.addImage(src, image.name); status.textContent = '图片已添加，可拖动、缩放或选择完整显示 / 裁切。';
+                } catch { status.textContent = '图片无法读取，请换一张图片重试。'; }
+            }
+            file.value = '';
+        });
+        this.overlay.querySelector('#mm-cp-layer-actions')!.addEventListener('click', e => { const action = (e.target as HTMLElement).closest<HTMLElement>('[data-layer-action]')?.dataset.layerAction; if (action) this.textEditor?.action(action); });
+        for (const [id, property] of [['color','color'],['bg','backgroundColor']] as const) this.overlay.querySelector(`#mm-cp-layer-${id}`)!.addEventListener('change', e => this.textEditor?.style(property, (e.target as HTMLInputElement).value));
+        this.overlay.querySelector('#mm-cp-layer-align')!.addEventListener('click', e => { const value = (e.target as Element).closest<HTMLElement>('[data-cover-align]')?.dataset.coverAlign; if (value) this.textEditor?.align(value); });
+        this.overlay.querySelector('#mm-cp-image-fit')!.addEventListener('change', e => this.textEditor?.style('objectFit', (e.target as HTMLSelectElement).value));
+        const size = this.overlay.querySelector<HTMLInputElement>('#mm-cp-text-size')!;
+        this.overlay.querySelector('#mm-cp-text-target')!.addEventListener('change', e => this.textEditor?.select((e.target as HTMLSelectElement).value));
+        size.addEventListener('change', () => this.textEditor?.size(size.valueAsNumber));
+        this.overlay.querySelector('#mm-cp-size-down')!.addEventListener('click', () => this.textEditor?.size(size.valueAsNumber - 1));
+        this.overlay.querySelector('#mm-cp-size-up')!.addEventListener('click', () => this.textEditor?.size(size.valueAsNumber + 1));
+        this.overlay.querySelector('#mm-cp-text-width')!.addEventListener('change', e => this.textEditor?.width((e.target as HTMLInputElement).valueAsNumber));
+        this.overlay.querySelector('#mm-cp-edit-text')!.addEventListener('click', () => this.textEditor?.edit());
+        this.overlay.querySelector('#mm-cp-reset-text')!.addEventListener('click', () => this.textEditor?.resetPosition());
+        this.overlay.querySelector('#mm-cp-text-undo')!.addEventListener('click', () => this.textEditor?.undo());
+        this.overlay.querySelector('#mm-cp-text-redo')!.addEventListener('click', () => this.textEditor?.redo());
         this.overlay.querySelector('#mm-cp-media')!.addEventListener('change', event => this.switchMedia((event.target as HTMLSelectElement).value));
         this.overlay.querySelector('#mm-cp-download')!.addEventListener('click', () => { void this.downloadMedia(); });
         this.overlay.querySelector('.mm-cp-close')!.addEventListener('click', () => this.close());
@@ -586,13 +647,11 @@ export class CoverPanel {
 
         titleInput.addEventListener('input', () => {
             this.currentTitle = titleInput.value;
-            this.updateTextInFrame();
-            this.rememberMedia(true);
+            this.textEditor?.text('title', titleInput.value);
         });
         subtitleInput.addEventListener('input', () => {
             this.currentSubtitle = subtitleInput.value;
-            this.updateTextInFrame();
-            this.rememberMedia(true);
+            this.textEditor?.text('subtitle', subtitleInput.value);
         });
 
         // AI generate
@@ -673,13 +732,16 @@ export class CoverPanel {
 
         // Resize preview box (no iframe rebuild needed)
         this.updatePreviewBoxSize();
+        const cover = this.previewFrame.contentDocument?.querySelector<HTMLElement>('.mm-cover');
+        if (cover) { const size = this.mediaSize(); adaptiveLayout(cover, size.width, size.height); this.textEditor?.refresh(); }
         this.rememberMedia(false);
     }
 
     /** 根据比例计算并更新预览框尺寸（最大 300px 高 / 380px 宽） */
     private updatePreviewBoxSize() {
         const r = ASPECT_RATIOS[this.currentRatioIdx];
-        const MAX_H = 300, MAX_W = 380;
+        const available = this.overlay.querySelector<HTMLElement>('.mm-cp-preview-wrap')?.clientWidth || 560;
+        const MAX_H = Math.max(240, Math.min(440, window.innerHeight * .48)), MAX_W = Math.max(200, available - 48);
         let w: number, h: number;
         if (r.rw >= r.rh) {
             // 横向 or 方形
@@ -690,6 +752,7 @@ export class CoverPanel {
             h = MAX_H;
             w = Math.round(MAX_H * r.rw / r.rh);
         }
+        const fitScale = Math.min(1, MAX_W / w, MAX_H / h); w *= fitScale; h *= fitScale;
         const box = this.overlay.querySelector<HTMLElement>('#mm-cp-preview-box')!;
         const frame = this.previewFrame;
         box.style.width = w + 'px';
@@ -700,16 +763,19 @@ export class CoverPanel {
         frame.style.transformOrigin = 'top left';
         frame.style.transform = `scale(${w / size.width})`;
         if (frame.contentDocument?.body) frame.contentDocument.body.style.fontSize = `${Math.min(size.width, size.height) / 22}px`;
+        this.textEditor?.refresh();
     }
 
     // ─── Preview ──────────────────────────────────────────────────────────────
 
     /** 完全重建 iframe（切换模板 / AI 生成时调用）*/
     private fullRebuildPreview(rawHtml: string) {
+        this.textEditor?.destroy();
+        this.textEditor = undefined;
         const injected = this.injectTextIntoHtml(rawHtml);
 
         // 收集宿主页面的 CSS 变量，注入到 iframe :root
-        const s = getComputedStyle(document.documentElement);
+        const s = getComputedStyle(document.body);
         const cssVarKeys = ['--th-bg-page','--th-text-page','--th-primary','--th-accent','--mm-font-family','--user-font-family'];
         const rootVarsStr = cssVarKeys
             .map(k => { const v = s.getPropertyValue(k).trim(); return v ? `${k}:${v}` : ''; })
@@ -726,6 +792,7 @@ export class CoverPanel {
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
     body { width: 100%; height: 100%; }
+    .mm-cover-title,.mm-cover-subtitle { color:#172033; background-color:#fff; opacity:1; white-space:pre-wrap; word-break:normal; overflow-wrap:anywhere; }
   </style>
 </head>
 <body>${injected}</body>
@@ -737,20 +804,8 @@ export class CoverPanel {
         doc.close();
 
         this.updatePreviewBoxSize();
-        // 延迟挂载拖拽，等 iframe 完全渲染
-        setTimeout(() => this.makeDraggable(), 150);
-    }
-
-    /** 仅更新 iframe 中的文字（输入时调用，不影响拖拽位置）*/
-    private updateTextInFrame() {
-        const doc = this.previewFrame?.contentDocument;
-        if (!doc) return;
-        const titleEl = doc.querySelector('.mm-cover-title') as HTMLElement | null;
-        const subtitleEl = doc.querySelector('.mm-cover-subtitle') as HTMLElement | null;
-        const dateEl = doc.querySelector('.mm-cover-date') as HTMLElement | null;
-        if (titleEl) titleEl.textContent = this.currentTitle;
-        if (subtitleEl) subtitleEl.textContent = this.currentSubtitle;
-        if (dateEl) dateEl.textContent = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+        this.makeDraggable();
+        void doc.fonts?.ready.then(() => { if (this.previewFrame.contentDocument === doc) { const root = doc.querySelector<HTMLElement>('.mm-cover'); if (root) fitRenderedText(root); this.textEditor?.refresh(); } });
     }
 
     private injectTextIntoHtml(html: string): string {
@@ -771,67 +826,44 @@ export class CoverPanel {
     private makeDraggable() {
         const doc = this.previewFrame?.contentDocument;
         if (!doc) return;
-
-        const titleEl   = doc.querySelector<HTMLElement>('.mm-cover-title');
-        const subtitleEl = doc.querySelector<HTMLElement>('.mm-cover-subtitle');
-
-        [titleEl, subtitleEl].forEach(el => {
-            if (el) this.setupDrag(el, doc);
+        const cover = doc.querySelector<HTMLElement>('.mm-cover');
+        if (!cover) return;
+        const fresh = !cover.classList.contains('mm-layer-canvas');
+        prepareCover(doc, cover);
+        const dark = !!cover?.classList.contains('mm-cover-dark');
+        const background = dark ? '#172033' : '#ffffff';
+        const ink = dark ? '#ffffff' : '#172033';
+        doc.querySelectorAll<HTMLElement>('.mm-cover-title,.mm-cover-subtitle').forEach(el => {
+            // Opaque paired surfaces keep text readable even over custom gradients/images.
+            if (fresh) { el.style.color = ink; el.style.backgroundColor = background; el.style.opacity = '1'; }
+            el.style.borderRadius = '.08em';
+            el.style.wordBreak = 'normal'; el.style.overflowWrap = 'anywhere';
         });
-    }
-
-    /**
-     * 使用 CSS transform: translate() 实现拖拽。
-     * 不改变元素原始布局（flex/position），只叠加偏移量。
-     */
-    private setupDrag(el: HTMLElement, doc: Document) {
-        // 视觉提示：虚线轮廓
-        el.style.cursor = 'move';
-        el.style.userSelect = 'none';
-        el.style.outline = '1.5px dashed rgba(212,175,55,0.45)';
-        el.style.outlineOffset = '3px';
-        el.style.transition = 'outline-color 0.15s';
-        el.style.borderRadius = '2px';
-        el.setAttribute('title', '拖拽可调整位置');
-
-        let isDragging = false;
-        let currentX = 0, currentY = 0;
-        let startMouseX = 0, startMouseY = 0;
-
-        // 读取已有 transform（重新挂载时恢复）
-        const existing = el.style.transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
-        if (existing) {
-            currentX = parseFloat(existing[1]);
-            currentY = parseFloat(existing[2]);
-        }
-
-        const onMouseDown = (e: MouseEvent) => {
-            isDragging = true;
-            startMouseX = e.clientX - currentX;
-            startMouseY = e.clientY - currentY;
-            el.style.outline = '1.5px dashed rgba(212,175,55,0.9)';
-            el.style.zIndex = '9999';
-            e.preventDefault();
-        };
-
-        const onMouseMove = (e: MouseEvent) => {
-            if (!isDragging) return;
-            currentX = e.clientX - startMouseX;
-            currentY = e.clientY - startMouseY;
-            el.style.transform = `translate(${currentX}px, ${currentY}px)`;
-        };
-
-        const onMouseUp = () => {
-            if (!isDragging) return;
-            isDragging = false;
-            el.style.outline = '1.5px dashed rgba(212,175,55,0.45)';
-            el.style.zIndex = '';
-            this.rememberMedia(true);
-        };
-
-        el.addEventListener('mousedown', onMouseDown);
-        doc.addEventListener('mousemove', onMouseMove);
-        doc.addEventListener('mouseup', onMouseUp);
+        const size = this.mediaSize(); adaptiveLayout(cover, size.width, size.height); fitRenderedText(cover);
+        this.textEditor = mountCoverTextEditor(doc, {
+            dimensions: () => this.mediaSize(),
+            scale: () => this.previewFrame.getBoundingClientRect().width / (parseFloat(this.previewFrame.style.width) || 1),
+            changed: () => {
+                this.currentTitle = doc.querySelector('.mm-cover-title')?.textContent || '';
+                this.currentSubtitle = doc.querySelector('.mm-cover-subtitle')?.textContent || '';
+                this.overlay.querySelector<HTMLTextAreaElement>('#mm-cp-title-input')!.value = this.currentTitle;
+                this.overlay.querySelector<HTMLTextAreaElement>('#mm-cp-subtitle-input')!.value = this.currentSubtitle;
+                this.rememberMedia(true);
+            },
+            selected: state => {
+                this.overlay.querySelectorAll<HTMLButtonElement>('[data-cover-align]').forEach(button => { button.disabled = state.image || !state.kind; button.setAttribute('aria-pressed', String(!state.image && button.dataset.coverAlign === state.alignment)); });
+                const target = this.overlay.querySelector<HTMLSelectElement>('#mm-cp-text-target')!;
+                target.replaceChildren(...state.layers.map(layer => { const option = document.createElement('option'); option.value = layer.id; option.textContent = layer.name; return option; })); target.value = state.kind;
+                const list = this.overlay.querySelector('#mm-cp-layers')!;
+                list.replaceChildren(...state.layers.map(layer => { const button = document.createElement('button'); button.type = 'button'; button.className = 'mm-cp-layer-item'; button.setAttribute('aria-pressed', String(layer.selected)); button.textContent = `${layer.hidden ? '○' : '●'} ${layer.name}`; button.addEventListener('click', () => this.textEditor?.select(layer.id)); return button; }));
+                this.overlay.querySelector<HTMLInputElement>('#mm-cp-text-size')!.disabled = state.image;
+                this.overlay.querySelector<HTMLSelectElement>('#mm-cp-image-fit')!.disabled = !state.image;
+                this.overlay.querySelector<HTMLInputElement>('#mm-cp-text-size')!.value = String(state.size);
+                this.overlay.querySelector<HTMLInputElement>('#mm-cp-text-width')!.value = String(state.width);
+                this.overlay.querySelector<HTMLButtonElement>('#mm-cp-text-undo')!.disabled = !state.canUndo;
+                this.overlay.querySelector<HTMLButtonElement>('#mm-cp-text-redo')!.disabled = !state.canRedo;
+            },
+        });
     }
 
     // ─── AI Generation ────────────────────────────────────────────────────────
@@ -896,9 +928,11 @@ export class CoverPanel {
     private cleanCoverHtml() {
         const body = this.previewFrame.contentDocument?.body.cloneNode(true) as HTMLElement | undefined;
         if (!body) return '';
-        body.querySelectorAll<HTMLElement>('.mm-cover-title,.mm-cover-subtitle').forEach(el => {
-            for (const prop of ['outline', 'outline-offset', 'cursor', 'user-select', 'transition']) el.style.removeProperty(prop);
+        body.querySelectorAll('[data-mm-cover-editor]').forEach(el => el.remove());
+        body.querySelectorAll<HTMLElement>(LAYER_SELECTOR).forEach(el => {
+            for (const prop of ['outline', 'outline-offset', 'cursor', 'user-select', 'transition', 'touch-action']) el.style.removeProperty(prop);
             el.removeAttribute('title');
+            el.removeAttribute('contenteditable'); el.removeAttribute('tabindex'); el.removeAttribute('aria-label');
         });
         return sanitizeArticleHtml(body.innerHTML, 'cover');
     }
@@ -914,7 +948,17 @@ export class CoverPanel {
         const next = { title: this.currentTitle, subtitle: this.currentSubtitle, html: this.cleanCoverHtml(), ratio: this.currentRatioIdx };
         const shared = propagate && this.overlay.querySelector<HTMLSelectElement>('#mm-cp-scope')!.value === 'all';
         this.drafts = updateMediaDrafts(this.drafts, this.mediaId, next, shared);
+        if (shared) for (const [id, draft] of Object.entries(this.drafts)) {
+            if (id !== this.mediaId) draft.html = this.adaptHtml(draft.html, id, draft.ratio);
+        }
         this.renderMediaOverview();
+    }
+
+    private adaptHtml(html: string, id: string, ratio: number) {
+        const holder = document.createElement('div'); holder.innerHTML = sanitizeArticleHtml(html, 'cover');
+        const root = holder.querySelector<HTMLElement>('.mm-cover');
+        if (root) { prepareCover(document, root); const s = this.mediaSize(id, ratio); adaptiveLayout(root, s.width, s.height, true); }
+        return sanitizeArticleHtml(holder.innerHTML, 'cover');
     }
 
     private switchMedia(id: string) {
@@ -950,6 +994,8 @@ export class CoverPanel {
             const tmp = document.createElement('div'); tmp.innerHTML = draft.html;
             const title = tmp.querySelector('.mm-cover-title'), subtitle = tmp.querySelector('.mm-cover-subtitle');
             if (title) title.textContent = draft.title; if (subtitle) subtitle.textContent = draft.subtitle;
+            const root = tmp.querySelector<HTMLElement>('.mm-cover');
+            if (root) { prepareCover(document, root); adaptiveLayout(root, s.width, s.height); }
             frame.srcdoc = `<style>${vars} body{font-size:${Math.min(s.width,s.height)/22}px}</style>${sanitizeArticleHtml(tmp.innerHTML, 'cover')}`;
             const label = document.createElement('span'); label.textContent = `${p.name} · ${ASPECT_RATIOS[draft.ratio].value}`;
             image.append(frame); item.append(image, label); item.addEventListener('click', () => this.switchMedia(p.id)); host.append(item);
