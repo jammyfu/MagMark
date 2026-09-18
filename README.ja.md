@@ -1,4 +1,4 @@
-<p align="center"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark ロゴ"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark ロゴ"></picture></p>
 <h1 align="center">MagMark</h1>
 <p align="center">Markdown で書き、雑誌のように整える。</p>
 <p align="center"><a href="README.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.en.md">English</a> · 日本語</p>

@@ -90,6 +90,10 @@ Integration is restricted to the approved feature branch. One-time write-enabled
 
 ## Inherited decisions
 
+### 2026-09-18 — README theme-aware monochrome mark
+
+GitHub README pages use a `picture` element with explicit dark/light SVG sources. The original supplied black artwork remains the light source; a derived white monochrome source serves dark mode. This avoids relying on CSS filters in GitHub's Markdown renderer and preserves a transparent logo background.
+
 ### 2026-09-18 — Formatted preview editing
 
 Preview text editing displays sanitized Markdown rendered as editable HTML. Save converts changed content through the existing rich-text importer; an unchanged DOM retains the exact source slice. Fenced code stays a literal text editor. Full source ranges keep paginated list content available.

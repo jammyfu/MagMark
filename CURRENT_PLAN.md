@@ -12,6 +12,8 @@ Branch: `codex/2.0.0-beta`. Original base: `7020c3b`; this iteration resumed ver
 
 ### Current execution: adaptive multilayer covers (2026-09-18)
 
+- README brand follow-up: use GitHub theme-aware dark/light logo sources so the supplied monochrome mark remains visible in both README color schemes.
+
 - Direct editing now presents formatted content instead of Markdown syntax, converting edited HTML back into the mapped source range and preserving unchanged source exactly.
 
 - Preview-edit follow-up: align list selection and direct editing so a selected list opens its complete Markdown source, including every item, marker, inline style and nested line.

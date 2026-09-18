@@ -4,7 +4,8 @@
 
 ## 品牌源文件
 
-- `public/brand/magmark-monochrome.svg`：应用页头与 README 使用的横向单色字标；暗色工作区在 CSS 中反相显示。
+- `public/brand/magmark-monochrome.svg`：应用页头与 README 浅色界面使用的横向单色字标。
+- `public/brand/magmark-monochrome-dark.svg`：README 深色界面使用的白色横向单色字标；README 通过 `picture` 的颜色偏好条件选择对应文件。
 - `screenshots/magmark-brand-hero.png`：README 顶部品牌头图。
 - `public/favicon.svg`：浏览器图标，依据系统明暗偏好选择前景色。
 - `index.html`：页头引用单色字标，不内联或重新描摹路径。

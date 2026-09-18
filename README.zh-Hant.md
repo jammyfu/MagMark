@@ -1,4 +1,4 @@
-<p align="center"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark 標誌"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark 標誌"></picture></p>
 <h1 align="center">MagMark</h1>
 <p align="center">寫 Markdown，讓版面像雜誌。</p>
 <p align="center"><a href="README.md">简体中文</a> · 繁體中文 · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>

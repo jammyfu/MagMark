@@ -1,4 +1,4 @@
-<p align="center"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark 标志"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="320" alt="MagMark 标志"></picture></p>
 
 <h1 align="center">MagMark</h1>
 <p align="center">写 Markdown，让版面像杂志。</p>

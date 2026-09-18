@@ -124,6 +124,11 @@ Current details: [QUIET_WORKSPACE.md](QUIET_WORKSPACE.md) and [remote evidence](
 
 ## Prior execution history
 
+## 2026-09-18 — README dark-mode logo contrast
+
+- The black supplied monochrome SVG disappeared against GitHub's dark README background. Added a white derived SVG and a theme-aware `picture` source to each localized README.
+- Brand regression coverage checks both sources and the dark media condition. Brand tests, governance verification and whitespace checks pass.
+
 ## 2026-09-18 — Formatted direct editing
 
 - Replaced the Markdown textarea for prose/lists with formatted editable content rendered from the complete mapped source. Lists, emphasis, links and inline code are visible as formatting; code blocks retain literal text editing.
