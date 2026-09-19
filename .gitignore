@@ -1,5 +1,9 @@
 node_modules/
 dist/
+dist-web/
+web-public/guide/
+web-public/llms.txt
+web-public/sitemap.xml
 *.log
 .DS_Store
 .env
@@ -23,3 +27,4 @@ tmp/
 !tests/samples/
 !screenshots/*.png
 .claude/worktrees/
+!web-public/og/*.png

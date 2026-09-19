@@ -1,4 +1,6 @@
 /* Workspace chrome only. Article typography/theme variables remain in editor.css. */
+.workspace-guide-link { display:block; padding:12px; color:var(--ws-ink); font:500 13px/1.5 var(--ws-ui); text-decoration:none; border-radius:8px; }
+.workspace-guide-link:hover, .workspace-guide-link:focus-visible { background:var(--ws-ground); outline:2px solid var(--ws-accent); outline-offset:-2px; }
 /* Selector icons live inside the control; the whole surface opens the native menu. */
 body[data-workspace] .workspace-actions .mm-select-icon {
   position: relative;

@@ -1,5 +1,9 @@
 # DECISIONS.md
 
+## 2026-09-19 — Discoverable beta documentation
+
+Use static Chinese and English guides linked from the editor file menu and sitemap so descriptions remain readable without the editing bundle. Guide translations have reciprocal hreflang and self canonicals; do not claim translated editor URLs because UI language is a client preference. Describe PDF as browser printing and the cover engine as deterministic layout. Keep persistence and network boundaries explicit. llms.txt is supplementary documentation, not a Google ranking mechanism; follow https://developers.google.com/search/docs/fundamentals/ai-optimization-guide .
+
 ## 2026-09-19 — Responsive cover boundary
 
 Retain the existing freeform editor without behavioral replacement. Introduce the structured workflow through an explicit action at the same public CoverPanel entry. Import only the current title/subtitle and an eligible local first raster image; the old freeform draft remains intact. Do not claim lossless migration of arbitrary HTML, multiple layers, or AI-flattened text.

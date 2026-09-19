@@ -1,5 +1,13 @@
 # WORKLOG.md
 
+## 2026-09-19 — Latest beta and SEO/GEO release
+
+- Fetched origin/codex/2.0.0-beta at 7db014e; existing checkout was already synchronized. Isolated release checkout preserves the uncommitted PROMOTION.md edits.
+- Confirmed latest upstream CI success at https://github.com/jammyfu/MagMark/actions/runs/35409232016 .
+- Added two static guides with workflows, six actual output dimensions, FAQ, editable design persistence, network boundaries and MVP limitations. Updated editor metadata, guide discovery, schema identity and generated sitemap/llms source index.
+- Added reproducible build:web pipeline and built-asset SEO checks; retained beta website behavior without a manifest/install promotion.
+- Verification: upstream CI passed for 7db014e; local deep verifier passed 231 tests and typecheck; responsive cover browser checks passed 13 cases including all six PNG dimensions and ZIP CRCs. Production build/SEO checks and 390px/1280px production browser tests passed for editor, new covers, guide layout and language navigation.
+
 ## 2026-09-19 — One-design / six-ratio cover MVP
 
 - Read the actual `codex/2.0.0-beta` HEAD (`694d9cc`), current cover implementation, media presets, layer editor, tests and governance. Did not use main or overwrite older assumptions onto the current beta.

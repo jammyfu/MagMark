@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <title>MagMark 2.0 Beta — Markdown 杂志排版与公众号编辑器</title>
-<meta content="MagMark 2.0 Beta 是面向中文写作的免费 Markdown 排版工具，支持杂志级分页、公众号富文本、图片编排、高精度 PNG 与打印级 PDF 导出。基础编辑在浏览器本地完成。" name="description"/>
+<meta content="MagMark 2.0 Beta：免费在线 Markdown 编辑器，支持中文杂志分页、公众号富文本复制、PNG 导出和浏览器打印为 PDF。一稿生成六种比例封面，支持单图与 ZIP 下载，基础编辑在浏览器本地完成。" name="description"/>
 <meta content="MagMark,Markdown 编辑器,Markdown 排版,公众号排版,中文排版,杂志排版,Markdown 转图片,Markdown 转 PDF,小红书排版" name="keywords"/>
 <meta content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" name="robots"/>
 <meta content="Fu Jam" name="author"/>
@@ -13,30 +13,36 @@
 <meta content="#f6f4ef" name="theme-color" media="(prefers-color-scheme: light)"/>
 <meta content="#171817" name="theme-color" media="(prefers-color-scheme: dark)"/>
 <link rel="canonical" href="https://bubufu.com/tools/magmark2/"/>
+<link rel="help" href="%BASE_URL%guide/"/>
 <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml"/>
 
 <meta content="website" property="og:type"/>
 <meta content="zh_CN" property="og:locale"/>
 <meta content="MagMark 2.0 Beta — Markdown 杂志排版与公众号编辑器" property="og:title"/>
-<meta content="把 Markdown 排成杂志页面、公众号内容与高精度图片。支持中文排版、本地编辑、PNG 和打印级 PDF 导出。" property="og:description"/>
+<meta content="免费在线 Markdown 排版、公众号富文本复制与六比例封面设计。浏览器本地编辑，导出 PNG、封面 ZIP 或打印为 PDF。" property="og:description"/>
 <meta content="https://bubufu.com/tools/magmark2/" property="og:url"/>
 <meta content="MagMark" property="og:site_name"/>
 <meta content="https://bubufu.com/tools/magmark2/og/magmark2-beta.png" property="og:image"/>
 <meta content="MagMark 2.0 Beta 中文 Markdown 排版工作区" property="og:image:alt"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
 <meta content="summary_large_image" name="twitter:card"/>
 <meta content="MagMark 2.0 Beta — Markdown 杂志排版与公众号编辑器" name="twitter:title"/>
-<meta content="中文 Markdown 杂志排版、公众号富文本、高精度 PNG 与打印级 PDF 导出。" name="twitter:description"/>
+<meta content="中文 Markdown 排版、公众号复制与六比例封面，本地编辑，PNG 与 ZIP 导出，浏览器打印为 PDF。" name="twitter:description"/>
 <meta content="https://bubufu.com/tools/magmark2/og/magmark2-beta.png" name="twitter:image"/>
 
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
+  "@id": "https://bubufu.com/tools/magmark2/#app",
   "name": "MagMark 2.0 Beta",
   "alternateName": "MagMark Markdown 排版工具",
   "url": "https://bubufu.com/tools/magmark2/",
   "image": "https://bubufu.com/tools/magmark2/og/magmark2-beta.png",
-  "description": "面向中文写作的 Markdown 杂志排版与公众号编辑器，支持分页预览、图片编排、高精度 PNG 和打印级 PDF 导出。",
+  "description": "免费在线 Markdown 排版与公众号编辑器，支持中文分页、PNG 导出、浏览器打印为 PDF，以及一稿六比例封面、PNG 与 ZIP 下载。",
+  "dateModified": "2026-09-19",
+  "subjectOf": {"@type": "WebPage", "url": "https://bubufu.com/tools/magmark2/guide/"},
   "applicationCategory": "DesignApplication",
   "applicationSubCategory": "Markdown editor and publishing tool",
   "operatingSystem": "Any modern web browser",
@@ -50,8 +56,11 @@
     "中文杂志级分页排版",
     "微信公众号富文本复制",
     "高精度 PNG 导出",
-    "打印级 PDF 导出",
-    "本地文件与图片编排"
+    "通过浏览器打印保存 PDF",
+    "本地文件与图片编排",
+    "一稿六比例封面与局部覆盖",
+    "封面 PNG 与六比例 ZIP 下载",
+    "手机端写作、预览与排版单面板切换"
   ],
   "author": {"@type": "Person", "name": "Fu Jam", "url": "https://github.com/jammyfu"},
   "publisher": {"@type": "Organization", "name": "步步福", "url": "https://bubufu.com/"},
@@ -78,7 +87,7 @@
     <main>
       <h1>MagMark 2.0 Beta：Markdown 杂志排版与公众号编辑器</h1>
       <p>MagMark 支持中文 Markdown 实时排版、杂志级分页、公众号富文本、高精度 PNG 与打印级 PDF 导出。编辑器需要启用 JavaScript 才能运行。</p>
-      <p><a href="https://github.com/jammyfu/MagMark">查看 MagMark 开源项目与使用说明</a></p>
+      <p><a href="%BASE_URL%guide/">阅读功能介绍、使用步骤与常见问题</a> · <a href="https://github.com/jammyfu/MagMark">查看 MagMark 开源项目</a></p>
     </main>
   </noscript>
   <a class="skip-link" href="#source-editor">跳到编辑器</a>
@@ -112,6 +121,7 @@
       <details id="file-menu" class="file-menu">
         <summary>文件 <span aria-hidden="true">⌄</span></summary>
         <div class="file-popover" aria-label="文件操作">
+          <a class="workspace-guide-link" href="%BASE_URL%guide/" target="_blank" rel="noopener">使用指南 / Guide ↗</a>
 <button type="button" id="file-upload-label" data-open-input="file-input">打开文本 <span>.md / .txt</span></button>
           <button type="button" id="btn-readme">载入 README</button>
           <button type="button" data-open-input="article-directory-input">导入文章目录 <span>含图片</span></button>

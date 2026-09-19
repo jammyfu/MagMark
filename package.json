@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "build:web": "node scripts/generate-web-docs.mjs && vite build --config vite.web.config.ts && node scripts/check-web-seo.mjs",
     "dev": "vite dev",
     "build": "tsc && vite build",
     "preview": "vite preview",

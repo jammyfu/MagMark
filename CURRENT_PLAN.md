@@ -1,5 +1,16 @@
 # CURRENT_PLAN.md
 
+## Current release: latest beta, SEO and source documentation (2026-09-19)
+
+The user explicitly authorized pulling the latest MagMark 2 beta, improving SEO/GEO and deploying to `https://bubufu.com/tools/magmark2/`. Release base is `7db014e`; upstream publishing CI passed. Build in an isolated checkout to preserve the unrelated local PROMOTION.md draft.
+
+- Publish the latest responsive cover implementation with Chinese/English static guides containing verified workflows, dimensions, persistence rules and limits.
+- Align application metadata, canonical identity, guide alternates, sitemap and optional llms source index. Do not introduce install prompts, fabricated language routes, ratings or unimplemented AI claims.
+- Make the dedicated web build reproducible and check built metadata, linked assets and guide crawlability.
+- Run deep repo checks, actual cover PNG/ZIP tests and desktop/mobile production smoke checks; back up the beta before deployment; verify public URLs and root sitemap discovery.
+
+The earlier feature-specific deployment restriction below is superseded for this release by the user's explicit deployment request. Stable MagMark remains a separate release.
+
 ## Active: responsive cover MVP (2026-09-19)
 
 Approved branch: `codex/2.0.0-beta`. Re-read remote base `694d9ccc2d1692f46574316a6432229771cd4814` before implementation. The user repeatedly approved implementation and beta synchronization. This change does not authorize a main merge, force push, deployment, external model charge, or publication.
