@@ -7,6 +7,8 @@
 - Added two static guides with workflows, six actual output dimensions, FAQ, editable design persistence, network boundaries and MVP limitations. Updated editor metadata, guide discovery, schema identity and generated sitemap/llms source index.
 - Added reproducible build:web pipeline and built-asset SEO checks; retained beta website behavior without a manifest/install promotion.
 - Verification: upstream CI passed for 7db014e; local deep verifier passed 231 tests and typecheck; responsive cover browser checks passed 13 cases including all six PNG dimensions and ZIP CRCs. Production build/SEO checks and 390px/1280px production browser tests passed for editor, new covers, guide layout and language navigation.
+- Published beta assets and both guides; updated the main sitemap with both guide URLs while retaining all existing entries. Backup: `/opt/stack/backups/magmark2-before-seo-20260919-1320` (site and main sitemap). HTML SHA256 `1948a1f4ca745f2987ed29d1e641421dcb94f82b504e3daa94bf8b36fd9bc380` matches the build. Main sitemap SHA256 `f8fb55767896a64ac3fe38b221cf0bb9cc3981c8b43a073b867fb7e97b061fa5` matches the reviewed update.
+- Online 390px/1280px editor, responsive cover, guide navigation and JavaScript-disabled guide checks passed. Public robots permits crawling and advertises the main sitemap. The main sitemap is the existing Nginx-served `/opt/sites/bubufu.com/public/sitemap.xml`; future portal deployments must retain the guide URLs. Search Console submission and actual indexing were not claimed or automated.
 
 ## 2026-09-19 — One-design / six-ratio cover MVP
 
