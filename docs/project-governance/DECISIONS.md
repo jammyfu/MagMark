@@ -1,5 +1,11 @@
 # DECISIONS.md
 
+## 2026-09-19 — PS layer synchronization and QA
+
+Reconcile the recovered package against current beta `c14df796bcfe26e337325ddcdce312d7e03ed024`, not its stale `7db014e` base. Preserve intervening mobile and SEO changes. Keep the PS-inspired workspace additive to the existing freeform entry and retain all original browser assertions. Shared metadata follows modification scope; position edits remain local. Store optional allowlisted stack metadata without changing the v1 file discriminator, retaining old-design import compatibility.
+
+Normalize active selection after deselection, clamp one movement delta for a selected group, exclude locked/hidden members, cancel transient menus/captures/rename controls at lifecycle boundaries, and reset only the selected layer's owned local content/geometry/metadata. No-op edits retain history identity. Invalidate stale composition before asynchronous asset loading. Save uses exactly the same byte-size/schema contract as import. Four content roles plus pinned paper remain the explicit limit; no arbitrary layers, groups, masks, blend modes, PSD or AI-generation claims.
+
 ## 2026-09-19 — Mobile scroll containment
 
 Use a fixed editor shell and VisualViewport dimensions at the mobile breakpoint, with CSS overscroll containment plus a directional touch-boundary fallback for older embedded webviews. Cancel only unconsumed single-finger scroll gestures, not native controls, canvas pointer handling, selection or pinch zoom. Guides use normal document scrolling and do not load this module. Physical WeChat behavior still requires on-device confirmation.

@@ -1,4 +1,5 @@
 import { type CoverDesign, type Layer, isRasterData } from './model';
+import { layerStack } from './layer-stack';
 import { compose, focalCrop, fontFamily, type Composition, type Measure } from './layout';
 export interface Assets {image?:HTMLImageElement;logo?:HTMLImageElement}
 export async function decodeImage(src:string):Promise<HTMLImageElement> {
@@ -18,42 +19,43 @@ export async function readRaster(file:File):Promise<string> {
   if(!isRasterData(src))throw new Error('图片格式无效');
   await decodeImage(src);return src;
 }
-export function paint(canvas:HTMLCanvasElement,design:CoverDesign,id:string,assets:Assets={},options:{maxWidth?:number;guides?:boolean;selected?:Layer}={}):Composition {
+export function paint(canvas:HTMLCanvasElement,design:CoverDesign,id:string,assets:Assets={},options:{maxWidth?:number;guides?:boolean;selected?:Layer|Layer[]}={}):Composition {
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('当前浏览器不支持画布');
   const measure:Measure=(text,px,font,bold)=>{ctx.font=`${bold?700:400} ${px}px ${fontFamily(font)}`;return ctx.measureText(text).width;};
   const layout=compose(design,id,measure),r=layout.recipe,scale=Math.min(1,(options.maxWidth||layout.width)/layout.width);
+  const stack=layerStack(design,id);
   canvas.width=Math.round(layout.width*scale);canvas.height=Math.round(layout.height*scale);
   ctx.scale(canvas.width/layout.width,canvas.height/layout.height);
   ctx.fillStyle=r.paper;ctx.fillRect(0,0,layout.width,layout.height);
-  if(r.image && assets.image) {
-    const b=layout.image,c=focalCrop(assets.image.naturalWidth,assets.image.naturalHeight,b.w,b.h,r.focalX,r.focalY);
-    ctx.drawImage(assets.image,c.x,c.y,c.w,c.h,b.x,b.y,b.w,b.h);
-  }
-  ctx.textBaseline='top';ctx.fillStyle=r.ink;
-  for(const kind of ['title','subtitle','logo'] as const) {
+  // One order for the layer list, hit testing, thumbnails and final export.
+  for(const kind of [...stack.order].reverse()) {
     const b=layout[kind];if(b.hidden)continue;
-    if(kind==='logo'&&assets.logo) {
+    ctx.save();ctx.globalAlpha=stack.layers[kind].opacity;
+    if(kind==='image') {
+      if(assets.image) {const c=focalCrop(assets.image.naturalWidth,assets.image.naturalHeight,b.w,b.h,r.focalX,r.focalY);ctx.drawImage(assets.image,c.x,c.y,c.w,c.h,b.x,b.y,b.w,b.h);}
+    } else if(kind==='logo'&&assets.logo) {
       const s=Math.min(b.w/assets.logo.naturalWidth,b.h/assets.logo.naturalHeight),w=assets.logo.naturalWidth*s,h=assets.logo.naturalHeight*s;
-      // Recolor only the known bundled monochrome logo, keeping its exact silhouette.
       const stamp=document.createElement('canvas');stamp.width=Math.ceil(w*2);stamp.height=Math.ceil(h*2);
       const ink=stamp.getContext('2d')!;ink.drawImage(assets.logo,0,0,stamp.width,stamp.height);ink.globalCompositeOperation='source-in';ink.fillStyle=r.ink;ink.fillRect(0,0,stamp.width,stamp.height);
-      ctx.drawImage(stamp,b.x,b.y,w,h);stamp.width=1;continue;
+      ctx.drawImage(stamp,b.x,b.y,w,h);stamp.width=1;
+    } else {
+      ctx.textBaseline='top';ctx.font=`${kind==='title'?700:400} ${b.size}px ${fontFamily(r.font)}`;ctx.fillStyle=r.ink;
+      ctx.beginPath();ctx.rect(b.x,b.y,b.w,b.h);ctx.clip();
+      b.lines.forEach((line,i)=>{const w=ctx.measureText(line).width,x=b.x+(r.align==='center'?(b.w-w)/2:r.align==='right'?b.w-w:0);ctx.fillText(line,x,b.y+i*b.lineHeight);});
     }
-    ctx.font=`${kind==='title'?700:400} ${b.size}px ${fontFamily(r.font)}`;ctx.fillStyle=r.ink;
-    ctx.save();ctx.beginPath();ctx.rect(b.x,b.y,b.w,b.h);ctx.clip();
-    b.lines.forEach((line,i)=>{const w=ctx.measureText(line).width,x=b.x+(r.align==='center'?(b.w-w)/2:r.align==='right'?b.w-w:0);ctx.fillText(line,x,b.y+i*b.lineHeight);});ctx.restore();
+    ctx.restore();
   }
-  if(options.guides) {
-    const b=layout.square;ctx.save();ctx.strokeStyle='#1677ff';ctx.lineWidth=1.5/scale;ctx.setLineDash([7/scale,5/scale]);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();
-  }
-  if(options.selected) {const b=layout[options.selected];if(!b.hidden){ctx.save();ctx.strokeStyle='#1677ff';ctx.lineWidth=1.5/scale;ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}}
+  if(options.guides) {const b=layout.square;ctx.save();ctx.strokeStyle='#1677ff';ctx.lineWidth=1.5/scale;ctx.setLineDash([7/scale,5/scale]);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}
+  const selected=Array.isArray(options.selected)?options.selected:options.selected?[options.selected]:[];
+  for(const key of selected){const b=layout[key];if(!b.hidden){ctx.save();ctx.strokeStyle=stack.layers[key].locked?'#9ca3af':'#1677ff';ctx.lineWidth=1.5/scale;if(stack.layers[key].locked)ctx.setLineDash([4/scale,4/scale]);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}}
   return layout;
 }
 export async function pngBlob(design:CoverDesign,id:string,assets:Assets):Promise<Blob> {
   const canvas=document.createElement('canvas');
   try {
     const layout=paint(canvas,design,id,assets);
-    if(layout.recipe.image&&!assets.image)throw new Error('主图尚未加载，不能导出');
+    if(!layout.image.hidden&&!assets.image)throw new Error('主图尚未加载，不能导出');
+    if(!layout.logo.hidden&&!assets.logo)throw new Error('Logo 尚未加载，不能导出');
     if(layout.warnings.length)throw new Error(layout.warnings.join('；'));
     return await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PNG 编码失败')),'image/png'));
   }finally{canvas.width=1;canvas.height=1;}

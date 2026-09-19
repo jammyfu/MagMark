@@ -1,5 +1,14 @@
 # CURRENT_PLAN.md
 
+## Current integration: Photoshop-inspired cover layers and QA (2026-09-19)
+
+The user explicitly requested committing and synchronizing the recovered PS layer workspace and bug fixes into `codex/2.0.0-beta`. Integration base is `c14df796bcfe26e337325ddcdce312d7e03ed024`, four commits after the package base `7db014e`. Preserve all intervening mobile, SEO and deployment documentation. This synchronization does not authorize a main merge, force push, deployment or model-provider charges.
+
+- Integrate the seven responsive layer modules, 29 state/parser/layout cases and two browser regression scripts. Preserve the existing freeform editor and all six output ratios.
+- Adapt the existing cover-entry browser test to select contextual text properties; retain every original assertion. Add the two layer scripts to existing read-only CI without changing permissions or dependencies.
+- Fresh local strict TypeScript compilation and 29 state cases passed. The same source passed 25 layer UI/file/pixel checks and 16 additional regressions in offline Chromium, using a local CJS bundle and the hash-verified embedded logo. Network navigation is administratively blocked in this runtime; full-project validation remains assigned to the ordinary GitHub CI after synchronization.
+- Read the new commit's full CI before claiming repository-wide success. Details and boundaries: [PHOTOSHOP_LAYERS.md](docs/project-governance/PHOTOSHOP_LAYERS.md).
+
 ## Current fix: mobile / WeChat gesture containment (2026-09-19)
 
 Fix editor page drift during touch scrolling: lock the outer mobile viewport, retain panel scrolling, stop boundary propagation in older webviews, and track visible viewport height for keyboard/browser chrome changes. Preserve pinch zoom, text selection, native controls and canvas dragging. Verify touch boundaries, keyboard-size transitions and desktop cleanup before publishing the beta fix.

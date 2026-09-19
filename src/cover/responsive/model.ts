@@ -1,6 +1,7 @@
 import { MEDIA_PRESETS } from '../media-presets';
 
-export type Layer = 'title' | 'subtitle' | 'logo';
+import { DEFAULT_ORDER, parseStack, type Layer, type StackPatch } from './layer-stack';
+export type { Layer } from './layer-stack';
 export type Scope = 'all' | 'one';
 export interface Recipe {
   title: string; subtitle: string; image: string;
@@ -9,8 +10,8 @@ export interface Recipe {
   showLogo: boolean; squareSafe: boolean; focalX: number; focalY: number;
 }
 export interface FrameOverride { x?: number; y?: number; w?: number; scale?: number; hidden?: boolean }
-export interface Variant { content: Partial<Recipe>; frames: Partial<Record<Layer, FrameOverride>> }
-export interface CoverDesign { version: 1; master: Recipe; variants: Record<string, Variant> }
+export interface Variant { content: Partial<Recipe>; frames: Partial<Record<Layer, FrameOverride>>; stack?: StackPatch }
+export interface CoverDesign { version: 1; master: Recipe; variants: Record<string, Variant>; stack?: StackPatch }
 export interface Target { id: string; name: string; ratio: string; width: number; height: number }
 const ids = ['wx-wide','wx-square','xhs-note','article-hero','vertical-video'];
 export const targets: Target[] = [
@@ -33,12 +34,17 @@ export function resolveRecipe(design: CoverDesign, id: string): Recipe {
 /** Shared edits never overwrite per-field overrides, including explicit '' and false. */
 export function editDesign(design: CoverDesign, id: string, scope: Scope, patch: Partial<Recipe>, frames: Partial<Record<Layer, FrameOverride>> = {}): CoverDesign {
   targetFor(id);
-  const next: CoverDesign = {version:1,master:{...design.master},variants:{...design.variants}};
+  const owner = scope === 'all' ? design.master : design.variants[id].content;
+  const contentChanged = Object.entries(patch).some(([key, value]) => owner[key as keyof Recipe] !== value);
+  const frameChanged = DEFAULT_ORDER.some(layer => Object.entries(frames[layer] ?? {}).some(
+    ([key, value]) => design.variants[id].frames[layer]?.[key as keyof FrameOverride] !== value));
+  if (!contentChanged && !frameChanged) return design;
+  const next: CoverDesign = {...design,master:{...design.master},variants:{...design.variants}};
   const previous = design.variants[id];
-  next.variants[id] = {content:{...previous.content},frames:{...previous.frames}};
+  next.variants[id] = {...previous,content:{...previous.content},frames:{...previous.frames}};
   if (scope === 'all') Object.assign(next.master,patch);
   else Object.assign(next.variants[id].content,patch);
-  for (const layer of ['title','subtitle','logo'] as const) if (frames[layer]) next.variants[id].frames[layer] = {...previous.frames[layer],...frames[layer]};
+  for (const layer of DEFAULT_ORDER) if (frames[layer]) next.variants[id].frames[layer] = {...previous.frames[layer],...frames[layer]};
   return next;
 }
 export function resetVariant(design: CoverDesign, id: string): CoverDesign {
@@ -47,7 +53,7 @@ export function resetVariant(design: CoverDesign, id: string): CoverDesign {
 }
 export function overrideCount(design: CoverDesign, id: string): number {
   const v = design.variants[id];
-  return Object.keys(v.content).length + Object.keys(v.frames).length;
+  return Object.keys(v.content).length + Object.keys(v.frames).length + Object.keys(v.stack?.layers ?? {}).length + (v.stack?.order ? 1 : 0);
 }
 export function isRasterData(value: unknown): value is string {
   return typeof value === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(value) && value.length <= 15_000_000;
@@ -55,8 +61,9 @@ export function isRasterData(value: unknown): value is string {
 const plain = (v: unknown): v is Record<string,unknown> => !!v && typeof v==='object' && !Array.isArray(v);
 const bounded = (v: unknown, min:number, max:number): v is number => typeof v==='number' && Number.isFinite(v) && v>=min && v<=max;
 /** Treat saved designs as untrusted input; rebuild allowlisted fields, never merge prototypes. */
+export const MAX_DESIGN_BYTES = 20_000_000;
 export function parseDesign(json: string): CoverDesign {
-  if (json.length > 20_000_000) throw new Error('设计文件过大（上限 20MB）');
+  if (json.length > MAX_DESIGN_BYTES || new TextEncoder().encode(json).byteLength > MAX_DESIGN_BYTES) throw new Error('设计文件过大（上限 20MB）');
   const raw: unknown = JSON.parse(json);
   if (!plain(raw) || raw.version!==1 || !plain(raw.master) || !plain(raw.variants)) throw new Error('不支持的设计文件版本');
   const result=createDesign();
@@ -79,11 +86,12 @@ export function parseDesign(json: string): CoverDesign {
     return out;
   }
   result.master={...result.master,...content(raw.master,true)};
+  if (Object.hasOwn(raw,'stack')) result.stack=parseStack(raw.stack);
   for(const target of targets) {
     const v=raw.variants[target.id];
     if(!plain(v)||!plain(v.frames)) throw new Error('比例版本无效');
     const frames: Variant['frames']={};
-    for(const layer of ['title','subtitle','logo'] as const) {
+    for(const layer of DEFAULT_ORDER) {
       if(!(layer in v.frames)) continue;
       const source=v.frames[layer];if(!plain(source))throw new Error('图层参数无效');
       const frame: FrameOverride={};
@@ -96,6 +104,14 @@ export function parseDesign(json: string): CoverDesign {
       frames[layer]=frame;
     }
     result.variants[target.id]={content:content(v.content),frames};
+    if (Object.hasOwn(v,'stack')) result.variants[target.id].stack=parseStack(v.stack);
   }
   return result;
+}
+
+/** A downloaded design must pass exactly the same contract as a later import. */
+export function serializeDesign(design: CoverDesign): string {
+  const json = JSON.stringify(design, null, 2);
+  parseDesign(json);
+  return json;
 }

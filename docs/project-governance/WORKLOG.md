@@ -1,5 +1,13 @@
 # WORKLOG.md
 
+## 2026-09-19 — PS layer integration onto current beta
+
+- Re-read beta at `c14df796bcfe26e337325ddcdce312d7e03ed024` and compared it with the recovered package's `7db014e` base. All four newer commits are retained; their responsive core and cover test files were unchanged. No reset or overwrite of mobile/SEO work.
+- Verified all 13 package SHA-256 checksums. Integrated the PS-inspired layer workspace and ten previously reproduced QA fixes, including selection normalization, common-delta movement, transient-state cleanup, per-layer content reset, no-op history, stale-preview invalidation and symmetric save/import size validation.
+- Fresh strict isolated TypeScript compilation and all 29 state/parser/layout cases passed. Re-ran the 25 layer UI/file/pixel checks and 16 additional regressions against the compiled source in real offline Chromium: 41 passed, no browser errors. Six PNG dimensions and ZIP CRCs were verified.
+- Local Git clone could not resolve github.com; intercepted browser navigation returned ERR_BLOCKED_BY_ADMINISTRATOR. Offline tests used setContent, the installed Chromium, a local CJS bundle and the approved logo via its supported source argument. No network restriction was disabled, no application stub was introduced, and these local adapters are not committed. Full-project validation is delegated to the ordinary read-only CI and must be read after push.
+- Preserved all original cover-entry assertions while adding contextual layer selections. Added both new browser scripts to existing CI. No dependency updates, permission expansion, main merge, deployment or image-model calls.
+
 ## 2026-09-19 — WeChat/mobile page drift
 
 - Added mobile viewport sizing, fixed outer shell and directional boundary guards. Internal panel scrolling remains native; canvas gestures, text selection and pinch zoom are not globally disabled.

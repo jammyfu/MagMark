@@ -44,7 +44,10 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Responsive covers through production entry
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.browser.outcome == 'success' }}
-        run: node scripts/check-responsive-covers.cjs
+        run: |
+          node scripts/check-responsive-covers.cjs
+          node scripts/check-photoshop-layers.cjs
+          node scripts/check-layer-regressions.cjs
       - name: Pagination browser regression
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.browser.outcome == 'success' }}
         run: npm run test:pagination
