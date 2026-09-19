@@ -5,6 +5,7 @@
 - Fetched and integrated origin beta 4e7ae79 in the isolated release directory; preserved the local PROMOTION.md draft.
 - Extended Chinese/English crawlable guides and application structured features with layer ordering, names, locks, visibility, opacity and editable-state guidance. Explicitly document four content roles and lack of PSD, mask/group/blend-mode support.
 - Verified upstream CI success for 4e7ae79. Local deep checks passed 267 tests and typecheck. Browser suites passed 25 layer checks, 16 regressions and 13 responsive-cover checks including PNG pixels/ZIP outputs. Production 390px/1280px smoke and built SEO checks passed. Multi-selection fixtures now use ControlOrMeta so native macOS contextual Control-click is not mistaken for a selection failure.
+- Redeployed beta and guides; backup `/opt/stack/backups/magmark2-before-layers-20260919-1500`. Online 390px/1280px checks passed including four content layers, mobile scroll containment and guide navigation; guide content is available with JavaScript disabled. Live HTML SHA256 `e82310e343e20cf0d6e0d6cafd6e8a39adab17a099409759180763e0f8c66242` matches the build. Main robots/sitemap retain crawl access and both guide URLs; llms source index now documents layer functionality and limits. No search indexing outcome is claimed.
 
 ## 2026-09-19 — PS layer integration onto current beta
 
