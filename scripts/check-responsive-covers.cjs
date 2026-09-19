@@ -15,9 +15,16 @@ const { crc32 } = require('node:zlib');
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.route('**/*', route => route.request().url() === 'http://magmark.test/brand/magmark-monochrome.svg'
-      ? route.fulfill({ contentType: 'image/svg+xml', body: fs.readFileSync('public/brand/magmark-monochrome.svg') }) : route.abort());
-    await page.setContent('<!doctype html><meta charset="utf-8"><base href="http://magmark.test/"><button id="open">封面</button>');
+    // A base tag does not change about:blank's opaque origin. Navigate to the
+    // intercepted fixture so the real bundled logo and canvas are same-origin.
+    await page.route('**/*', route => {
+      const url = route.request().url();
+      if (url === 'http://magmark.test/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><meta charset="utf-8"><button id="open">封面</button>' });
+      if (url === 'http://magmark.test/brand/magmark-monochrome.svg') return route.fulfill({ contentType: 'image/svg+xml', body: fs.readFileSync('public/brand/magmark-monochrome.svg') });
+      return route.abort();
+    });
+    await page.goto('http://magmark.test/');
+    assert.equal(await page.evaluate(() => location.origin), 'http://magmark.test');
     await page.addStyleTag({ content: fs.readFileSync('editor.css', 'utf8') + fs.readFileSync('workspace.css', 'utf8') });
     await page.addScriptTag({ content: bundle });
     await page.evaluate(() => { window.inserted = ''; window.freeform = new coverFixture.CoverPanel(html => window.inserted = html); freeform.open('一套设计，多种画幅', '同一篇稿，只换版面'); });
@@ -44,7 +51,7 @@ const { crc32 } = require('node:zlib');
     await check('reset follows master again', () => document.querySelector('#rc-subtitle').value === '同一篇稿，只换版面');
     await page.locator('#rc-guides').check();
     const zipPromise = page.waitForEvent('download'); await page.locator('#rc-zip').click();
-    const zip = await zipPromise, zipPath = path.join(temp, 'covers.zip'); await zip.saveAs(zipPath);
+    const zip = await zipPromise.catch(async error => { throw new Error(`${error.message}; cover status: ${await page.locator('#rc-status').innerText()}`); }), zipPath = path.join(temp, 'covers.zip'); await zip.saveAs(zipPath);
     const data = fs.readFileSync(zipPath); let offset = 0; const dimensions = [];
     while (data.readUInt32LE(offset) === 0x04034b50) {
       const size = data.readUInt32LE(offset + 18), length = data.readUInt16LE(offset + 26), extra = data.readUInt16LE(offset + 28);

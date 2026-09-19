@@ -73,7 +73,9 @@ const { chromium } = require('playwright');
       assert.equal(await page.locator('body').getAttribute('data-workspace'), 'compare');
       assert(await page.locator('.cm-content').isVisible()); assert(await page.locator('#preview-panel').isVisible());
       assert(!(await page.locator('#layout-inspector').isVisible()));
-      assert((await source()).startsWith('# 让内容，自然成形。'));
+      const expectedHeading = fs.readFileSync('PROMOTION.md', 'utf8').match(/^# .+$/m)?.[0];
+      assert(expectedHeading, 'The current zh-Hans starter must have a heading');
+      assert.equal((await source()).match(/^# .+$/m)?.[0], expectedHeading);
       assert(!(await page.locator('#char-count').innerText()).startsWith('0 '));
     });
     await test('view switches preserve literal source and editor state', async () => {
@@ -274,6 +276,8 @@ const { chromium } = require('playwright');
       const before=await page.locator('#document-status').innerText();
       await page.keyboard.press('Control+s'); assert.equal(await page.locator('#document-status').innerText(), before);
       await page.keyboard.press('Escape'); assert(!(await dialog.isVisible()));
+      // Native dialog close events restore focus asynchronously.
+      await page.waitForFunction(() => document.activeElement?.id === 'btn-cover');
       assert.equal(await page.evaluate(()=>document.activeElement.id),'btn-cover');
     });
     await test('no uncaught errors during workspace interactions', async () => { assert.deepEqual(errors, []); });
