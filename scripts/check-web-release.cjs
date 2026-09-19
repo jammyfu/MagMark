@@ -1,10 +1,11 @@
-const { chromium } = require('@playwright/test');
+const { chromium, webkit } = require('@playwright/test');
 const { readFileSync, existsSync } = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 (async () => {
   const base = 'https://bubufu.com/tools/magmark2/';
-  const browser = await chromium.launch({headless:true, channel:process.env.CHROME_CHANNEL || undefined});
+  const engine=process.env.BROWSER_ENGINE==='webkit'?webkit:chromium;
+  const browser = await engine.launch({headless:true, channel:process.env.CHROME_CHANNEL || undefined});
   try {
     for (const width of [390, 1280]) {
       const page = await browser.newPage({viewport:{width,height:844},hasTouch:width<800});
@@ -24,6 +25,36 @@ const assert = require('node:assert/strict');
       await page.waitForSelector('.workspace-loading',{state:'detached'});
       assert.equal(await page.locator('.workspace-actions .mm-select-icon > svg').count(),3);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      if(width<800) {
+        assert.equal(await page.evaluate(()=>getComputedStyle(document.body).position),'fixed');
+        const before=await page.locator('#app-header').boundingBox();
+        if(engine===chromium) {
+          const session=await page.context().newCDPSession(page);
+          await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:90,y:28}]});
+          for(const y of [55,85,120,170])await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:90,y}]});
+          await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+          await page.locator('.cm-content').fill(Array.from({length:120},(_,i)=>`Line ${i+1}: mobile scrolling regression`).join('\n'));
+          await page.locator('.cm-content').blur();
+          await page.locator('.cm-scroller').evaluate(el=>{el.scrollTop=0;});
+          await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:190,y:520}]});
+          for(const y of [480,430,380,330,280]) {
+            await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:190,y}]});
+            await page.waitForTimeout(30);
+          }
+          await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+          await page.waitForFunction(()=>document.querySelector('.cm-scroller').scrollTop>20);
+          assert.equal(await page.evaluate(()=>scrollY),0,'Internal scrolling must not move the page');
+          await session.detach();
+        }
+        assert.equal(await page.evaluate(()=>scrollY),0);
+        assert.equal((await page.locator('#app-header').boundingBox()).y,before.y);
+        await page.setViewportSize({width,height:460});
+        await page.waitForFunction(()=>Math.abs(document.body.getBoundingClientRect().height-visualViewport.height)<2);
+        const tabs=await page.locator('#workspace-tabs').boundingBox();
+        assert.ok(tabs.y+tabs.height<=461,'Navigation stays inside reduced viewport');
+        await page.setViewportSize({width,height:844});
+        await page.waitForFunction(()=>Math.abs(document.body.getBoundingClientRect().height-visualViewport.height)<2);
+      }
       await page.locator('[data-workspace-view="preview"]').click();
       await page.locator('#btn-layout').click();
       await page.locator('#layout-inspector').waitFor({state:'visible'});

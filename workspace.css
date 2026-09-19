@@ -556,7 +556,9 @@ body[data-workspace] #ctrl-theme { color-scheme:var(--ws-scheme); accent-color:v
 
 /* A phone has one canvas, with persistent, labelled touch navigation. */
 @media screen and (max-width:800px) {
-  body[data-workspace] { overflow:hidden; height:100dvh; }
+  html.mm-mobile-workspace { height:100%; overflow:hidden; overscroll-behavior:none; }
+  body[data-workspace] { position:fixed; top:var(--mm-visible-top, 0px); left:0; right:0; width:100%; margin:0; overflow:hidden; overscroll-behavior:none; height:100vh; height:var(--mm-visible-height, 100dvh); }
+  body[data-workspace] :is(.cm-scroller, .preview-area, .controls-bar, .file-popover, .export-dialog, .mm-cp-body, .mm-cp-controls, .mm-ip-body, .rc-body, .rc-controls, .rc-stage, textarea) { overscroll-behavior:none; -webkit-overflow-scrolling:touch; }
   header#app-header.workspace-header { height:64px; min-height:64px; padding:8px max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left)); display:flex; gap:6px; justify-content:space-between; }
   body[data-workspace] .brand-lockup { flex:0 1 62px; overflow:hidden; }
   body[data-workspace] .brand-mark[data-brand] { width:62px; max-width:62px; }
@@ -569,7 +571,7 @@ body[data-workspace] #ctrl-theme { color-scheme:var(--ws-scheme); accent-color:v
   body[data-workspace] .workspace-actions :is(.primary-action,.file-menu summary) { width:44px; height:44px; min-height:44px; padding:12px; display:flex; align-items:center; justify-content:center; box-sizing:border-box; }
   body[data-workspace] .workspace-actions .file-menu summary { color:var(--ws-ink); }
   body[data-workspace] #workspace-tabs { width:100%; max-width:none; margin:0; justify-self:stretch; }
-  body[data-workspace] #workspace-tabs { position:fixed; bottom:0; left:0; right:0; z-index:150; height:calc(60px + env(safe-area-inset-bottom)); padding:5px 12px calc(5px + env(safe-area-inset-bottom)); border-radius:0; border-top:1px solid var(--ws-line); background:var(--ws-surface); display:flex; gap:8px; box-sizing:border-box; }
+  body[data-workspace] #workspace-tabs { position:fixed; top:calc(var(--mm-visible-top, 0px) + var(--mm-visible-height, 100dvh) - 60px - env(safe-area-inset-bottom)); bottom:auto; left:0; right:0; z-index:150; height:calc(60px + env(safe-area-inset-bottom)); padding:5px 12px calc(5px + env(safe-area-inset-bottom)); border-radius:0; border-top:1px solid var(--ws-line); background:var(--ws-surface); display:flex; gap:8px; box-sizing:border-box; }
   body[data-workspace] #workspace-tabs button { flex:1; min-width:0; min-height:48px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; padding:4px; color:var(--ws-muted); }
   body[data-workspace] #workspace-tabs button::after { content:attr(aria-label); font:500 11px/1.2 var(--ws-ui); }
   body[data-workspace] #workspace-tabs [data-workspace-view='compare'] { display:none; }
@@ -596,4 +598,7 @@ body[data-workspace] #ctrl-theme { color-scheme:var(--ws-scheme); accent-color:v
   body[data-workspace] dialog.mm-panel-dialog { width:100%; max-width:100vw; height:100dvh; max-height:100dvh; margin:0; border-radius:0; }
   body[data-workspace] .export-dialog { max-width:calc(100vw - 24px); max-height:calc(100dvh - 32px); overflow:auto; padding:20px; }
   body[data-workspace] #block-toolbar { max-width:calc(100vw - 16px); max-height:40dvh; overflow:auto; }
+  body[data-workspace] :is(dialog.mm-panel-dialog, dialog#mm-responsive-cover) { top:var(--mm-visible-top, 0px); bottom:auto; height:var(--mm-visible-height, 100dvh); max-height:var(--mm-visible-height, 100dvh); overscroll-behavior:none; }
+  body[data-workspace] .export-dialog { max-height:calc(var(--mm-visible-height, 100dvh) - 32px); }
+  body[data-workspace] .file-popover { top:calc(var(--mm-visible-top, 0px) + 62px); max-height:calc(var(--mm-visible-height, 100dvh) - 144px); }
 }

@@ -1,5 +1,11 @@
 # WORKLOG.md
 
+## 2026-09-19 — WeChat/mobile page drift
+
+- Added mobile viewport sizing, fixed outer shell and directional boundary guards. Internal panel scrolling remains native; canvas gestures, text selection and pinch zoom are not globally disabled.
+- Deep verifier passed 238 tests including seven new gesture/viewport regressions; build:web and SEO checks passed. Chrome production smoke passed with native header drag and a reduced visible viewport; root scroll remained at zero and navigation stayed visible.
+- Chromium native touch scrolling moves the CodeMirror scroller while root scroll remains zero. WebKit 26 production smoke passed at 390px and 1280px, including reduced viewport navigation and cover dialogs. These are browser-engine tests, not a claim of physical WeChat testing.
+
 ## 2026-09-19 — Latest beta and SEO/GEO release
 
 - Fetched origin/codex/2.0.0-beta at 7db014e; existing checkout was already synchronized. Isolated release checkout preserves the uncommitted PROMOTION.md edits.

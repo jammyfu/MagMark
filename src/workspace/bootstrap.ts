@@ -1,8 +1,10 @@
 import { mountWorkspaceIcons } from './icons';
+import { mountMobileViewport } from './mobile-viewport';
 
 // Paint readable chrome before downloading/evaluating the editing engine.
 document.body.dataset.workspace = matchMedia('(max-width: 800px)').matches ? 'write' : 'compare';
 mountWorkspaceIcons();
+mountMobileViewport();
 const notice = document.createElement('div');
 notice.className = 'workspace-loading';
 notice.setAttribute('role', 'status');

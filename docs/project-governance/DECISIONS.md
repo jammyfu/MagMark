@@ -1,5 +1,9 @@
 # DECISIONS.md
 
+## 2026-09-19 — Mobile scroll containment
+
+Use a fixed editor shell and VisualViewport dimensions at the mobile breakpoint, with CSS overscroll containment plus a directional touch-boundary fallback for older embedded webviews. Cancel only unconsumed single-finger scroll gestures, not native controls, canvas pointer handling, selection or pinch zoom. Guides use normal document scrolling and do not load this module. Physical WeChat behavior still requires on-device confirmation.
+
 ## 2026-09-19 — Discoverable beta documentation
 
 Use static Chinese and English guides linked from the editor file menu and sitemap so descriptions remain readable without the editing bundle. Guide translations have reciprocal hreflang and self canonicals; do not claim translated editor URLs because UI language is a client preference. Describe PDF as browser printing and the cover engine as deterministic layout. Keep persistence and network boundaries explicit. llms.txt is supplementary documentation, not a Google ranking mechanism; follow https://developers.google.com/search/docs/fundamentals/ai-optimization-guide .

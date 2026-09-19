@@ -1,5 +1,9 @@
 # CURRENT_PLAN.md
 
+## Current fix: mobile / WeChat gesture containment (2026-09-19)
+
+Fix editor page drift during touch scrolling: lock the outer mobile viewport, retain panel scrolling, stop boundary propagation in older webviews, and track visible viewport height for keyboard/browser chrome changes. Preserve pinch zoom, text selection, native controls and canvas dragging. Verify touch boundaries, keyboard-size transitions and desktop cleanup before publishing the beta fix.
+
 ## Current release: latest beta, SEO and source documentation (2026-09-19)
 
 The user explicitly authorized pulling the latest MagMark 2 beta, improving SEO/GEO and deploying to `https://bubufu.com/tools/magmark2/`. Release base is `7db014e`; upstream publishing CI passed. Build in an isolated checkout to preserve the unrelated local PROMOTION.md draft.
