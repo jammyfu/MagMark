@@ -2,7 +2,7 @@ name: Publishing quality
 
 on:
   push:
-    branches: [feat/cjk-publishing-upgrade-20260914]
+    branches: [feat/cjk-publishing-upgrade-20260914, codex/2.0.0-beta]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -42,6 +42,9 @@ jobs:
         id: browser
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npx playwright install --with-deps chromium
+      - name: Responsive covers through production entry
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.browser.outcome == 'success' }}
+        run: node scripts/check-responsive-covers.cjs
       - name: Pagination browser regression
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.browser.outcome == 'success' }}
         run: npm run test:pagination
