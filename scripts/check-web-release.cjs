@@ -22,6 +22,8 @@ const assert = require('node:assert/strict');
       });
       await page.goto(base,{waitUntil:'domcontentloaded'});
       await page.waitForSelector('.cm-editor');
+      await page.locator('.brand-mark img').evaluate(image => image.decode());
+      assert.ok(await page.locator('.brand-mark img').evaluate(image => image.naturalWidth > 0), 'Header logo must load');
       await page.waitForSelector('.workspace-loading',{state:'detached'});
       assert.equal(await page.locator('.workspace-actions .mm-select-icon > svg').count(),3);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);

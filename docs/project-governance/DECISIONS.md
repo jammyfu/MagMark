@@ -1,5 +1,7 @@
 # DECISIONS.md
 
+2026-09-20: Header logo uses a bundled SVG import through HTML instead of an unchecked public path. Existing public brand URLs remain compatible for open sessions.
+
 ## 2026-09-19 — PS layer synchronization and QA
 
 Reconcile the recovered package against current beta `c14df796bcfe26e337325ddcdce312d7e03ed024`, not its stale `7db014e` base. Preserve intervening mobile and SEO changes. Keep the PS-inspired workspace additive to the existing freeform entry and retain all original browser assertions. Shared metadata follows modification scope; position edits remain local. Store optional allowlisted stack metadata without changing the v1 file discriminator, retaining old-design import compatibility.

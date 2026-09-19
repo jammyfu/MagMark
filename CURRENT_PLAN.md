@@ -1,5 +1,7 @@
 # CURRENT_PLAN.md
 
+Current release fix: bundle the header logo through Vite; verify decoded image and SEO assets; restore missing production brand assets and push the focused beta fix.
+
 ## Current deployment: layer workspace and SEO/GEO refresh (2026-09-19)
 
 User authorized redeploying the beta with SEO/GEO. Pull origin beta 4e7ae79, verify new layer interactions and pixel exports, expand both static guides with the four-layer workflow and explicit PSD limitations, rebuild and publish the beta with a recoverable backup. Retain the mobile touch fix and all current sitemap URLs.
