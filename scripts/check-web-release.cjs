@@ -65,6 +65,7 @@ const assert = require('node:assert/strict');
       await page.locator('#mm-cp-responsive').click();
       await page.waitForSelector('#rc-canvas');
       assert.equal(await page.locator('.rc-variant').count(),6);
+      assert.equal(await page.locator('#rc-layer-list [role="row"]').count(),4);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
       await page.goto(base+'guide/');
       await page.locator('h1').waitFor();

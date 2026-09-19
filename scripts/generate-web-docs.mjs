@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const base = 'https://bubufu.com/tools/magmark2/';
 const updated = '2026-09-19';
@@ -6,7 +6,7 @@ const { version } = JSON.parse(readFileSync(new URL('../package.json', import.me
 const pages = [
   {
     lang: 'zh-Hans', path: 'guide/', title: 'MagMark 使用指南：Markdown 排版、公众号与六比例封面',
-    description: '了解 MagMark 2.0 Beta 的中文 Markdown 排版、公众号复制、PNG 与 PDF 输出，以及一稿六比例封面操作、尺寸、文件限制和本地数据保存方式。',
+    description: 'MagMark 2.0 Beta 使用指南：中文 Markdown 排版、公众号复制、PNG 与 PDF 输出，六比例封面的图层排序、锁定、透明度、导出尺寸与本地保存。',
     heading: '写一份内容，排成适合发布的样子。', start: '打开编辑器', label: '功能与使用指南', updatedLabel: '更新',
     intro: 'MagMark 2.0 Beta 是步步福提供的免费在线 Markdown 排版工具，适合中文文章、公众号内容和社交平台封面。可边写边预览，复制富文本、导出 PNG，或通过浏览器打印保存 PDF。无需登录即可使用基础编辑。',
     sections: [
@@ -28,7 +28,7 @@ const pages = [
   },
   {
     lang: 'en', path: 'guide/en/', title: 'MagMark Guide: Markdown Publishing and Multi-ratio Covers',
-    description: 'Learn how to publish Markdown with MagMark, copy WeChat rich text, export PNG or print to PDF, and create six cover sizes with local overrides and portable design files.',
+    description: 'MagMark guide: Markdown publishing, WeChat rich text, PNG and PDF, plus six cover formats with layer ordering, locks, opacity, local overrides and editable design files.',
     heading: 'One piece of writing. Ready for different formats.', start: 'Open the editor', label: 'Features and user guide', updatedLabel: 'Updated',
     intro: 'MagMark 2.0 Beta is a free browser-based Markdown publishing tool from Bubufu for articles, CJK typography, WeChat content and social cover designs. Edit with a live preview, copy rich text, export PNG, or save a PDF through browser printing. Basic editing does not require an account.',
     sections: [
@@ -49,6 +49,8 @@ const pages = [
     ],
   },
 ];
+pages[0].sections.splice(3, 0, ['封面图层如何编辑', '<p>在“封面 → 一稿多比例”中，中央是画布，侧边提供属性与图层列表。当前支持标题、副标题、Logo、主图四种内容图层，纸张底层固定在最下方。</p><ol><li>点击图层选择对象，双击名称或按 F2 重命名。Shift 连选，Ctrl / Command 可增减选择。</li><li>拖动图层行改变前后顺序；手机也可以使用上移、下移按钮。排列顺序同时影响画布和 PNG 输出。</li><li>眼睛按钮控制显隐，锁定可防止当前画幅的误编辑；透明度会实际写入导出的 PNG。</li><li>主设计调整与当前比例的局部覆盖分别生效，编辑可撤销或重做。下载设计 JSON 保留可编辑状态。</li></ol><p>当前不支持 PSD 导入导出、任意新增或复制图层、图层组、蒙版、混合模式及 Photoshop 图层效果。锁定不等于冻结主设计内容；需要独立内容时，请使用当前比例的局部覆盖。带新图层信息的设计文件应由当前版本打开。</p>']);
+pages[1].sections.splice(3, 0, ['Editing cover layers', '<p>Open Cover → 一稿多比例 (multi-ratio design) to use the central canvas, properties and layer list. Four content roles are available: title, subtitle, logo and main image, above a pinned paper substrate.</p><ol><li>Click a layer to select it. Double-click its name or press F2 to rename. Shift selects a range; Ctrl / Command toggles selections.</li><li>Drag rows to change stacking order, or use the up/down buttons on touch devices. Canvas painting and PNG output use the same order.</li><li>Use visibility and lock controls to avoid unintended edits. Opacity affects actual exported PNG pixels.</li><li>Master changes and per-format overrides remain separate. Undo/redo is available; download design JSON to keep editable state.</li></ol><p>PSD import/export, arbitrary new or duplicate layers, groups, masks, blend modes and Photoshop layer effects are not implemented. A lock does not freeze master content: use local overrides for independent content. Open designs containing the new layer metadata with the current editor version.</p>']);
 const esc = s => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const css = `:root{color-scheme:light dark;--bg:#f7f7f9;--fg:#1d1d1f;--muted:#62626a;--line:#dcdce1;--accent:#075bcc}@media(prefers-color-scheme:dark){:root{--bg:#171719;--fg:#f5f5f7;--muted:#b4b4bb;--line:#3a3a40;--accent:#8abaff}}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.8 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}header,main,footer{max-width:900px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}nav{display:flex;gap:18px;flex-wrap:wrap}a{color:var(--accent);text-underline-offset:4px}a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}h1{font-size:clamp(30px,5vw,48px);line-height:1.22;letter-spacing:-.025em}h2{font-size:25px;line-height:1.4}h3{font-size:18px}section{border-top:1px solid var(--line);padding:20px 0;margin-top:28px}.muted,footer{color:var(--muted)}.cta{display:inline-block;border-radius:12px;background:var(--fg);color:var(--bg);padding:10px 20px;text-decoration:none}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left}th,td{padding:10px 16px;border-bottom:1px solid var(--line)}caption{text-align:left;color:var(--muted)}li{margin:8px 0}footer{border-top:1px solid var(--line);font-size:14px}@media(max-width:500px){header,main,footer{padding:18px}body{font-size:16px}}`;
 for (const p of pages) {
@@ -60,4 +62,5 @@ for (const p of pages) {
 }
 writeFileSync(new URL('../web-public/sitemap.xml', import.meta.url), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${['',...pages.map(p=>p.path)].map(p=>`\n  <url><loc>${base+p}</loc><lastmod>${updated}</lastmod></url>`).join('')}\n</urlset>\n`);
 writeFileSync(new URL('../web-public/llms.txt', import.meta.url), `# MagMark 2.0 Beta\n\n> Free browser-based Markdown publishing and responsive cover editor by Fu Jam, published by Bubufu.\n\n## Primary sources\n- [Editor](${base})\n- [Chinese feature guide and FAQ](${base}guide/)\n- [English feature guide and FAQ](${base}guide/en/)\n- [Source code](https://github.com/jammyfu/MagMark/tree/codex/2.0.0-beta)\n- [Responsive cover specification](https://github.com/jammyfu/MagMark/blob/codex/2.0.0-beta/docs/project-governance/RESPONSIVE_COVERS.md)\n\n## Verified capabilities\nMarkdown editing; CJK pagination; WeChat rich-text copying; PNG export; PDF via browser print; responsive covers in 2.35:1, 1:1, 3:4, 16:9, 9:16 and 4:5; per-format overrides; current PNG or six-image ZIP; editable design JSON. Basic editing requires no account.\n\n## Boundaries\nBasic local editing and exports run in the browser. Website loading, external images and optional online services can make network requests. Responsive covers use deterministic layout, not AI poster decomposition. Designs stay in the current page by default; download JSON before refreshing. No automatic cross-device cover sync. PNG/JPEG/WebP cover input: 10 MB, 24 million pixels; design JSON: 20 MB; ZIP: 80 MB. Workspace language options: zh-Hans, zh-Hant, en, ja; new beta panels are not fully translated.\n\nVersion: ${version}. Documentation updated: ${updated}. This file is a source index, not an indexing guarantee.\n`);
+appendFileSync(new URL('../web-public/llms.txt', import.meta.url), '\n## Cover layers\nThe responsive cover workspace supports title, subtitle, logo and main-image roles over a pinned paper layer. Layer names, ordering, visibility, locking and opacity are editable. The output uses the same stack and opacity. PSD import/export, arbitrary new layers, groups, masks and blend modes are not supported. See the Chinese/English guides above and https://github.com/jammyfu/MagMark/blob/codex/2.0.0-beta/docs/project-governance/PHOTOSHOP_LAYERS.md for current behavior.\n');
 console.log('Generated two static guides, beta sitemap and source index.');

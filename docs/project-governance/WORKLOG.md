@@ -1,5 +1,11 @@
 # WORKLOG.md
 
+## 2026-09-19 — Layer workspace redeployment
+
+- Fetched and integrated origin beta 4e7ae79 in the isolated release directory; preserved the local PROMOTION.md draft.
+- Extended Chinese/English crawlable guides and application structured features with layer ordering, names, locks, visibility, opacity and editable-state guidance. Explicitly document four content roles and lack of PSD, mask/group/blend-mode support.
+- Verified upstream CI success for 4e7ae79. Local deep checks passed 267 tests and typecheck. Browser suites passed 25 layer checks, 16 regressions and 13 responsive-cover checks including PNG pixels/ZIP outputs. Production 390px/1280px smoke and built SEO checks passed. Multi-selection fixtures now use ControlOrMeta so native macOS contextual Control-click is not mistaken for a selection failure.
+
 ## 2026-09-19 — PS layer integration onto current beta
 
 - Re-read beta at `c14df796bcfe26e337325ddcdce312d7e03ed024` and compared it with the recovered package's `7db014e` base. All four newer commits are retained; their responsive core and cover test files were unchanged. No reset or overwrite of mobile/SEO work.

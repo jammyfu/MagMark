@@ -23,7 +23,7 @@ const fs=require('node:fs');
   const row=layer=>page.locator(`[data-layer="${layer}"] .rc-layer-name`);
   const test=async(name,run)=>{await reset();const before=errors.length;try{await run();assert.equal(errors.length,before,'No browser errors');results.push({name,passed:true});console.log('PASS '+name);}catch(error){results.push({name,passed:false,error:error.message});console.error('FAIL '+name+': '+error.message);}};
   await test('Ctrl deselect keeps active properties on a remaining selected layer',async()=>{
-   await row('title').click();await row('image').click({modifiers:['Control']});await row('image').click({modifiers:['Control']});
+   await row('title').click();await row('image').click({modifiers:['ControlOrMeta']});await row('image').click({modifiers:['ControlOrMeta']});
    assert.equal(await page.locator('[data-layer="title"]').getAttribute('aria-selected'),'true');
    assert.equal(await page.locator('#rc-layer').inputValue(),'title');assert(await page.locator('#rc-title').isVisible());
    await page.fill('#rc-y','25');await page.dispatchEvent('#rc-y','change');
@@ -31,7 +31,7 @@ const fs=require('node:fs');
    assert.equal(await page.evaluate(()=>panel.design.variants['wx-wide'].frames.image),undefined);
   });
   await test('text tool recovers a real selection after deselecting the last row',async()=>{
-   await row('title').click({modifiers:['Control']});assert.equal(await page.locator('[role=row][aria-selected=true]').count(),0);
+   await row('title').click({modifiers:['ControlOrMeta']});assert.equal(await page.locator('[role=row][aria-selected=true]').count(),0);
    await page.click('#rc-tool-text');assert(await page.locator('#rc-title').isVisible());assert.equal(await page.evaluate(()=>document.activeElement.id),'rc-title');
   });
   await test('context menu is cleared across close and reopen',async()=>{
@@ -47,7 +47,7 @@ const fs=require('node:fs');
   });
   await test('dragging a multi-selection against the margin preserves relative spacing',async()=>{
    await page.evaluate(()=>{panel.design=layerFixture.editDesign(panel.design,'wx-wide','one',{}, {title:{x:.08,w:.25},subtitle:{x:.35,w:.25}});panel.fields();return panel.render();});
-   await row('title').click();await row('subtitle').click({modifiers:['Control']});
+   await row('title').click();await row('subtitle').click({modifiers:['ControlOrMeta']});
    const before=await page.evaluate(()=>({gap:panel.composition.subtitle.x-panel.composition.title.x,x:panel.composition.title.x,y:panel.composition.title.y,w:panel.composition.title.w,h:panel.composition.title.h,W:panel.composition.width,H:panel.composition.height}));
    const box=await page.locator('#rc-canvas').boundingBox();const x=box.x+(before.x+before.w/2)/before.W*box.width,y=box.y+(before.y+before.h/2)/before.H*box.height;
    await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x-200,y,{steps:8});await page.mouse.up();
@@ -90,7 +90,7 @@ const fs=require('node:fs');
   });
   await test('locking one selected layer excludes it from shared canvas movement',async()=>{
    await row('title').click();await page.click('[data-layer="title"] [data-action="lock"]');
-   await row('subtitle').click({modifiers:['Control']});const before=await page.evaluate(()=>panel.composition.title.x);
+   await row('subtitle').click({modifiers:['ControlOrMeta']});const before=await page.evaluate(()=>panel.composition.title.x);
    await page.locator('#rc-canvas').focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(50);
    assert.equal(await page.evaluate(()=>panel.composition.title.x),before);assert.equal(await page.evaluate(()=>panel.design.variants['wx-wide'].frames.title),undefined);
   });

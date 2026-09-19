@@ -1,5 +1,9 @@
 # CURRENT_PLAN.md
 
+## Current deployment: layer workspace and SEO/GEO refresh (2026-09-19)
+
+User authorized redeploying the beta with SEO/GEO. Pull origin beta 4e7ae79, verify new layer interactions and pixel exports, expand both static guides with the four-layer workflow and explicit PSD limitations, rebuild and publish the beta with a recoverable backup. Retain the mobile touch fix and all current sitemap URLs.
+
 ## Current integration: Photoshop-inspired cover layers and QA (2026-09-19)
 
 The user explicitly requested committing and synchronizing the recovered PS layer workspace and bug fixes into `codex/2.0.0-beta`. Integration base is `c14df796bcfe26e337325ddcdce312d7e03ed024`, four commits after the package base `7db014e`. Preserve all intervening mobile, SEO and deployment documentation. This synchronization does not authorize a main merge, force push, deployment or model-provider charges.

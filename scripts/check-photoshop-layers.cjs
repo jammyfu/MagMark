@@ -35,7 +35,7 @@ const path=require('node:path');
   await page.click('#rc-redo');await page.waitForFunction(()=>document.querySelector('#rc-opacity').value==='50');check('redo restores opacity',true);
   await row('logo').locator('.rc-layer-name').click();await row('title').locator('.rc-layer-name').click({modifiers:['Shift']});check('Shift range selection',await page.locator('#rc-layer-list [aria-selected=true]').count()===3);
   await page.click('#rc-layer-lock');check('batch lock affects all selected rows',await page.locator('#rc-layer-list [data-action=lock][aria-pressed=true]').count()===3);await page.click('#rc-layer-lock');
-  await row('title').locator('.rc-layer-name').click();await row('image').locator('.rc-layer-name').click({modifiers:['Control']});check('Control toggles noncontiguous selection',await page.locator('#rc-layer-list [aria-selected=true]').count()===2);
+  await row('title').locator('.rc-layer-name').click();await row('image').locator('.rc-layer-name').click({modifiers:['ControlOrMeta']});check('Control toggles noncontiguous selection',await page.locator('#rc-layer-list [aria-selected=true]').count()===2);
   await row('image').locator('.rc-layer-name').click();await page.click('#rc-layer-up');check('up arrow changes order',(await page.locator('#rc-layer-list [role=row]').evaluateAll(rows=>rows.map(r=>r.dataset.layer))).join(',')==='logo,subtitle,image,title');
   const a=await row('title').boundingBox();await page.mouse.move(a.x+60,a.y+20);await page.mouse.down();const b=await row('logo').boundingBox();await page.mouse.move(b.x+60,b.y+8,{steps:10});await page.mouse.up();
   check('captured pointer drag changes order',await page.locator('#rc-layer-list [role=row]').first().getAttribute('data-layer')==='title');
