@@ -1,3 +1,6 @@
+import { createPanelDialog } from '../workspace/panel-dialog';
+import { colorizeImage, contrastingInk, isSvgSource } from './image-colors';
+import { isSafeImageSource } from '../security/article-html';
 /**
  * MagMark Image Panel — v2.0 Smart Single-Window
  *
@@ -21,6 +24,7 @@ export interface ImageInsertOptions {
 export type ImageInsertCallback = (opts: ImageInsertOptions) => void;
 
 export interface EditPreset {
+    paperBackground?: string;
     layout: ImageInsertOptions['layout'];
     width: number;
     alt: string;
@@ -45,27 +49,37 @@ const LS_GEMINI_KEY = 'magmark_gemini_apikey';
 const LS_OPENAI_KEY = 'magmark_openai_apikey';
 const LS_AI_PROVIDER = 'magmark_ai_provider';
 
+// Preference access can be denied in privacy/sandboxed contexts; image editing still works.
+function readPreference(key: string): string {
+    try { return localStorage.getItem(key) || ''; } catch { return ''; }
+}
+function writePreference(key: string, value: string): void {
+    try { localStorage.setItem(key, value); } catch { /* Keep this session usable without persistence. */ }
+}
 type InputMode = 'empty' | 'url' | 'ai' | 'image';
 
 export class ImagePanel {
-    private overlay: HTMLElement | null = null;
+    private overlay: HTMLDialogElement | null = null;
+    private dialog: ReturnType<typeof createPanelDialog> | null = null;
     private onInsert: ImageInsertCallback;
     private currentImageSrc = '';
     private currentRatioIdx = 4;
     private mode: InputMode = 'empty';
     private editAlt: string | null = null;
+    private paperBackground = '#ffffff';
 
     constructor(onInsert: ImageInsertCallback) {
         this.onInsert = onInsert;
     }
 
     open() {
-        if (this.overlay) { this.overlay.style.display = 'flex'; return; }
+        if (this.overlay) { this.dialog?.open(); return; }
         this.createPanel();
     }
 
     openWithSrc(src: string, preset: EditPreset) {
         if (this.overlay) this.destroy();
+        this.paperBackground = preset.paperBackground || '#ffffff';
         this.createPanel();
         this.setPreviewImage(src, preset.alt || '图片');
         this.applyPreset(preset);
@@ -74,10 +88,11 @@ export class ImagePanel {
         this.overlay!.querySelector('#mm-ip-insert-btn')!.textContent = '应用修改';
     }
 
-    close() { if (this.overlay) this.overlay.style.display = 'none'; }
+    close() { this.dialog?.close(); }
 
     destroy() {
-        this.overlay?.remove();
+        this.dialog?.destroy();
+        this.dialog = null;
         this.overlay = null;
         this.currentImageSrc = '';
         this.mode = 'empty';
@@ -87,16 +102,21 @@ export class ImagePanel {
     // ─── DOM ─────────────────────────────────────────────────────────────────
 
     private createPanel() {
-        const overlay = document.createElement('div');
+        this.dialog = createPanelDialog('mm-ip-title');
+        const overlay = this.dialog.element;
         overlay.id = 'mm-image-panel-overlay';
         overlay.innerHTML = this.buildHTML();
         document.body.appendChild(overlay);
         this.overlay = overlay;
+        const provider = readPreference(LS_AI_PROVIDER);
+        const keyInput = overlay.querySelector<HTMLInputElement>('#mm-ip-ai-key')!;
+        keyInput.value = readPreference(provider === 'openai' ? LS_OPENAI_KEY : LS_GEMINI_KEY);
         this.injectStyles();
         this.attachEvents();
         this.currentRatioIdx = 4;
         this.selectAspectRatio(4);
         this.updateMode();
+        this.dialog.open();
     }
 
     private injectStyles() {
@@ -110,6 +130,12 @@ export class ImagePanel {
     position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
     display:flex;align-items:center;justify-content:center;z-index:99999;
 }
+.mm-ip-appearance{padding:14px;border:1px solid rgba(128,128,128,.25);border-radius:10px}
+.mm-ip-appearance [hidden],.mm-ip-appearance[hidden]{display:none!important}
+.mm-ip-color-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+.mm-ip-color-row label{display:flex;align-items:center;gap:8px;margin:0}
+.mm-ip-color-row input[type=color]{width:36px;height:28px;padding:2px;border:1px solid #7b8390;border-radius:6px;cursor:pointer;background:transparent}
+.mm-ip-color-note{font-size:11px;line-height:1.6;opacity:.75;margin:8px 0 0}
 #mm-image-panel {
     background:#1a1a22;border:1px solid rgba(255,255,255,.12);border-radius:16px;
     width:520px;max-width:calc(100vw - 32px);max-height:calc(100vh - 48px);
@@ -292,28 +318,25 @@ input#mm-ip-file-hidden{display:none}
     }
 
     private buildHTML(): string {
-        const provider = localStorage.getItem(LS_AI_PROVIDER) || 'gemini';
-        const geminiKey = localStorage.getItem(LS_GEMINI_KEY) || '';
-        const openaiKey = localStorage.getItem(LS_OPENAI_KEY) || '';
-        const apiKey = provider === 'gemini' ? geminiKey : openaiKey;
+        const provider = readPreference(LS_AI_PROVIDER) === 'openai' ? 'openai' : 'gemini';
 
         return `
 <div id="mm-image-panel">
   <div class="mm-ip-header">
-    <span class="mm-ip-title">🖼 插入图片</span>
-    <button class="mm-ip-close" id="mm-ip-close">✕</button>
+    <span class="mm-ip-title" id="mm-ip-title">插入图片</span>
+    <button type="button" class="mm-ip-close" id="mm-ip-close" aria-label="关闭图片面板">✕</button>
   </div>
 
   <!-- Smart input zone -->
   <div class="mm-ip-smart-zone" id="mm-ip-smart-zone">
     <div class="mm-ip-smart-hint">
-      <b>拖拽图片</b> 到此 · 或输入 <b>URL</b> / <b>描述文字</b>生成AI图 · 留空插入占位图
+      <b>拖拽或粘贴图片</b>，也可以输入图片地址。
     </div>
-    <textarea class="mm-ip-smart-input" id="mm-ip-smart-input"
+    <textarea class="mm-ip-smart-input" id="mm-ip-smart-input" aria-label="图片地址或生成描述"
       placeholder="粘贴图片 URL / 输入 AI 生成描述…" rows="1"></textarea>
     <input type="file" id="mm-ip-file-hidden" accept="image/*">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
-      <span class="mm-ip-mode-tag mode-empty" id="mm-ip-mode-tag">📌 占位图模式</span>
+      <span class="mm-ip-mode-tag mode-empty" id="mm-ip-mode-tag">占位图模式</span>
       <button style="background:0;border:0;color:#555;font-size:11px;cursor:pointer;text-decoration:underline"
               id="mm-ip-browse-btn">或 选择文件</button>
     </div>
@@ -326,7 +349,7 @@ input#mm-ip-file-hidden{display:none}
       <option value="openai" ${provider === 'openai' ? 'selected' : ''}>OpenAI</option>
     </select>
     <input type="password" class="mm-ip-ai-key" id="mm-ip-ai-key"
-           value="${apiKey}" placeholder="API Key…" autocomplete="off">
+           aria-label="生成服务 API Key" placeholder="API Key…" autocomplete="off">
     <button class="mm-ip-gen-btn" id="mm-ip-gen-btn">✨ 生成</button>
   </div>
 
@@ -343,14 +366,11 @@ input#mm-ip-file-hidden{display:none}
   </div>
 
   <!-- Ratio selector -->
-  <div class="mm-ip-ratio-section" id="mm-ip-ratio-section">
-    <div class="mm-ip-ratio-header">
-      <label class="mm-ip-ratio-label">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        比例
-      </label>
-      <button class="mm-ip-ratio-reset" id="mm-ip-ratio-reset">重置</button>
-    </div>
+  <details class="mm-ip-ratio-section" id="mm-ip-ratio-section">
+    <summary class="mm-ip-ratio-header">
+      <span class="mm-ip-ratio-label">占位图 / 生成比例</span>
+      <span id="mm-ip-ratio-current">1:1</span>
+    </summary>
     <div class="mm-ip-ratio-panel">
       <div class="mm-ip-ar-visual-row">
         <div class="mm-ip-ar-visual" id="mm-ip-ar-visual">
@@ -378,24 +398,9 @@ input#mm-ip-file-hidden{display:none}
           `).join('')}
         </div>
       </div>
-      <!-- Crop fit mode -->
-      <div class="mm-ip-crop-row" id="mm-ip-crop-row">
-        <span class="mm-ip-crop-label">适配</span>
-        <button class="mm-ip-crop-btn active" data-fit="cover" title="裁切填充 (Cover)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="6" y="1" width="12" height="22" rx="1" stroke-dasharray="3 2" opacity=".5"/></svg>
-        </button>
-        <button class="mm-ip-crop-btn" data-fit="contain" title="完整显示 (Contain)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2" opacity=".5"/><rect x="3" y="6" width="18" height="12" rx="1"/></svg>
-        </button>
-        <button class="mm-ip-crop-btn" data-fit="fill" title="拉伸填充 (Fill)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 3v18M16 3v18M3 8h18M3 16h18" opacity=".3"/></svg>
-        </button>
-        <button class="mm-ip-crop-btn" data-fit="none" title="原始比例">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
-        </button>
-      </div>
+      <button type="button" class="mm-ip-ratio-reset" id="mm-ip-ratio-reset">重置比例</button>
     </div>
-  </div>
+  </details>
 
   <!-- Caption -->
   <div class="mm-ip-caption-row">
@@ -404,13 +409,31 @@ input#mm-ip-file-hidden{display:none}
   </div>
 
   <!-- Layout -->
+  <div class="mm-ip-caption-row mm-ip-appearance" id="mm-ip-appearance" hidden>
+    <div id="mm-ip-svg-controls" hidden>
+    <label for="mm-ip-ink-mode">SVG 配色</label>
+    <select id="mm-ip-ink-mode" class="mm-ip-caption-input">
+      <option value="original">保留原色</option>
+      <option value="auto">按当前文章背景配色</option>
+      <option value="custom">自定义颜色</option>
+    </select>
+    <label class="mm-ip-color-row" id="mm-ip-ink-row" hidden>自定义颜色 <input type="color" id="mm-ip-ink" value="#24352d"></label>
+    <p class="mm-ip-color-note">单色着色会统一 SVG 中的颜色。</p>
+    </div>
+    <div class="mm-ip-color-row">
+    <label><input type="checkbox" id="mm-ip-bg-enabled"> 图片底色</label>
+    <input type="color" aria-label="图片底色" id="mm-ip-bg" value="#ffffff" hidden>
+    </div>
+    <button type="button" class="mm-ip-md-btn" id="mm-ip-color-preview">预览配色</button>
+    <p class="mm-ip-color-note">修改后保存为 PNG · 预览采用文章背景</p>
+  </div>
   <div class="mm-ip-layout-section">
     <label>图文混排</label>
     <div class="mm-ip-layout-btns">
-      <button class="mm-ip-layout-btn active" data-layout="center">⬛ 居中</button>
-      <button class="mm-ip-layout-btn" data-layout="float-left">◧ 浮左</button>
-      <button class="mm-ip-layout-btn" data-layout="float-right">浮右 ◨</button>
-      <button class="mm-ip-layout-btn" data-layout="full">↔ 全宽</button>
+      <button class="mm-ip-layout-btn active" data-layout="center">居中</button>
+      <button class="mm-ip-layout-btn" data-layout="float-left">靠左</button>
+      <button class="mm-ip-layout-btn" data-layout="float-right">靠右</button>
+      <button class="mm-ip-layout-btn" data-layout="full">全宽</button>
     </div>
     <div id="mm-ip-width-row">
       <label>宽度 <span id="mm-ip-width-val">60%</span></label>
@@ -420,7 +443,7 @@ input#mm-ip-file-hidden{display:none}
 
   <!-- Footer -->
   <div class="mm-ip-footer">
-    <button class="mm-ip-md-btn" id="mm-ip-md-btn" title="复制 Markdown">📋 复制</button>
+    <button class="mm-ip-md-btn" id="mm-ip-md-btn" title="复制 Markdown">复制</button>
     <button class="mm-ip-insert-btn" id="mm-ip-insert-btn">插入 →</button>
   </div>
 </div>`;
@@ -441,7 +464,7 @@ input#mm-ip-file-hidden{display:none}
         const input = q<HTMLTextAreaElement>('#mm-ip-smart-input');
         input.addEventListener('input', () => this.updateMode());
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
                 e.preventDefault();
                 if (this.mode === 'url') this.loadUrl(input.value.trim());
                 else if (this.mode === 'ai') this.handleGenerate();
@@ -487,16 +510,16 @@ input#mm-ip-file-hidden{display:none}
         // ── AI bar ──
         q<HTMLSelectElement>('#mm-ip-ai-prov').addEventListener('change', (e) => {
             const prov = (e.target as HTMLSelectElement).value;
-            localStorage.setItem(LS_AI_PROVIDER, prov);
+            writePreference(LS_AI_PROVIDER, prov);
             const key = prov === 'gemini'
-                ? localStorage.getItem(LS_GEMINI_KEY) || ''
-                : localStorage.getItem(LS_OPENAI_KEY) || '';
+                ? readPreference(LS_GEMINI_KEY)
+                : readPreference(LS_OPENAI_KEY);
             q<HTMLInputElement>('#mm-ip-ai-key').value = key;
         });
         q<HTMLInputElement>('#mm-ip-ai-key').addEventListener('change', (e) => {
             const prov = q<HTMLSelectElement>('#mm-ip-ai-prov').value;
             const k = prov === 'gemini' ? LS_GEMINI_KEY : LS_OPENAI_KEY;
-            localStorage.setItem(k, (e.target as HTMLInputElement).value.trim());
+            writePreference(k, (e.target as HTMLInputElement).value.trim());
         });
         q<HTMLButtonElement>('#mm-ip-gen-btn').addEventListener('click', () => this.handleGenerate());
 
@@ -525,14 +548,6 @@ input#mm-ip-file-hidden{display:none}
         });
 
         // ── Crop fit buttons ──
-        this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-crop-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.overlay!.querySelectorAll('.mm-ip-crop-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-
-        // ── Layout ──
         this.overlay!.querySelectorAll<HTMLButtonElement>('.mm-ip-layout-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.overlay!.querySelectorAll('.mm-ip-layout-btn').forEach(b => b.classList.remove('active'));
@@ -546,7 +561,20 @@ input#mm-ip-file-hidden{display:none}
         });
 
         // ── Footer ──
+        q<HTMLSelectElement>('#mm-ip-ink-mode').addEventListener('change', () => {
+            q<HTMLElement>('#mm-ip-ink-row').hidden = q<HTMLSelectElement>('#mm-ip-ink-mode').value !== 'custom';
+        });
+        q<HTMLInputElement>('#mm-ip-bg-enabled').addEventListener('change', () => {
+            q<HTMLInputElement>('#mm-ip-bg').hidden = !q<HTMLInputElement>('#mm-ip-bg-enabled').checked;
+        });
         q<HTMLButtonElement>('#mm-ip-insert-btn').addEventListener('click', () => this.handleInsert());
+        q<HTMLButtonElement>('#mm-ip-color-preview').addEventListener('click', async () => {
+            try {
+                const src = await this.coloredSource();
+                const image = this.overlay?.querySelector<HTMLImageElement>('#mm-ip-preview-area img');
+                if (image) image.src = src;
+            } catch { this.colorError(); }
+        });
         q<HTMLButtonElement>('#mm-ip-md-btn').addEventListener('click', () => this.handleCopyMarkdown());
     }
 
@@ -576,17 +604,18 @@ input#mm-ip-file-hidden{display:none}
             newMode = 'ai';
         }
 
-        if (newMode === this.mode) return;
+        if (newMode === this.mode) { this.updateModeTag(); return; }
         this.mode = newMode;
 
+        this.updateModeTag();
         // Update tag
         const tag = q('#mm-ip-mode-tag');
         tag.className = `mm-ip-mode-tag mode-${newMode}`;
         const labels: Record<InputMode, string> = {
-            empty: '📌 占位图模式',
-            url: '🔗 URL 模式 · 按 Enter 加载',
-            ai: '✨ AI 生成 · 按 Enter 生成',
-            image: '📁 已选择图片',
+            empty: '占位图模式',
+            url: '图片地址 · 按 Enter 加载',
+            ai: 'AI 生成 · 按 Enter 生成',
+            image: '已选择图片',
         };
         tag.textContent = labels[newMode];
 
@@ -623,6 +652,7 @@ input#mm-ip-file-hidden{display:none}
 
     private clearImage() {
         this.currentImageSrc = '';
+        this.syncAppearance();
         this.mode = 'empty';
         const preview = this.overlay?.querySelector<HTMLElement>('#mm-ip-preview-area');
         if (preview) { preview.innerHTML = '<button class="mm-ip-preview-clear" id="mm-ip-preview-clear" title="清除图片">✕</button>'; preview.style.display = 'none'; }
@@ -741,8 +771,8 @@ input#mm-ip-file-hidden{display:none}
         const r = ASPECT_RATIOS[idx];
         const q = <T extends HTMLElement>(s: string) => this.overlay!.querySelector(s) as T;
 
-        // Store placeholder SVG (used on insert when in empty mode)
-        this.currentImageSrc = this.createPlaceholderSvg(r.rw, r.rh, r.label);
+        // Ratio preferences never replace a selected source image.
+        q<HTMLElement>('#mm-ip-ratio-current').textContent = r.label;
 
         // Update visual box
         const active = q<HTMLElement>('#mm-ip-ar-active');
@@ -799,16 +829,42 @@ input#mm-ip-file-hidden{display:none}
     // ─── Preview & Insert ────────────────────────────────────────────────────
 
     private setPreviewImage(src: string, alt: string) {
-        this.currentImageSrc = src;
+        this.currentImageSrc = isSafeImageSource(src) ? src : '';
+        this.syncAppearance();
+        this.mode = this.currentImageSrc ? 'image' : 'empty';
+        this.updateModeTag();
         const area = this.overlay?.querySelector<HTMLElement>('#mm-ip-preview-area');
         if (!area) return;
-        // Keep the clear button
-        area.innerHTML =
-            `<img src="${src}" alt="${alt}">` +
-            `<button class="mm-ip-preview-clear" id="mm-ip-preview-clear" title="清除图片">✕</button>`;
+        area.style.backgroundColor = this.paperBackground;
+        const image = document.createElement('img');
+        if (this.currentImageSrc) image.src = this.currentImageSrc;
+        image.alt = alt;
+        const clear = document.createElement('button');
+        clear.className = 'mm-ip-preview-clear';
+        clear.id = 'mm-ip-preview-clear';
+        clear.title = '清除图片';
+        clear.textContent = '✕';
+        area.replaceChildren(image, clear);
         area.style.display = 'flex';
         // Re-attach clear
         area.querySelector('#mm-ip-preview-clear')?.addEventListener('click', () => this.clearImage());
+    }
+
+    private syncAppearance() {
+        if (!this.overlay) return;
+        const src = this.currentImageSrc;
+        this.overlay.querySelector<HTMLElement>('#mm-ip-appearance')!.hidden = !src;
+        this.overlay.querySelector<HTMLElement>('#mm-ip-svg-controls')!.hidden = !isSvgSource(src);
+        this.overlay.querySelector<HTMLSelectElement>('#mm-ip-ink-mode')!.value = 'original';
+        this.overlay.querySelector<HTMLElement>('#mm-ip-ink-row')!.hidden = true;
+        this.overlay.querySelector<HTMLInputElement>('#mm-ip-bg-enabled')!.checked = false;
+        this.overlay.querySelector<HTMLInputElement>('#mm-ip-bg')!.hidden = true;
+        // Blob URLs have no extension; check their declared media type, never file names/alt text.
+        if (src.startsWith('blob:')) void fetch(src).then(response => response.blob()).then(blob => {
+            if (this.overlay && this.currentImageSrc === src) {
+                this.overlay.querySelector<HTMLElement>('#mm-ip-svg-controls')!.hidden = blob.type !== 'image/svg+xml';
+            }
+        }).catch(() => {});
     }
 
     private updateModeTag() {
@@ -816,11 +872,13 @@ input#mm-ip-file-hidden{display:none}
         const tag = this.overlay.querySelector<HTMLElement>('#mm-ip-mode-tag');
         if (!tag) return;
         tag.className = `mm-ip-mode-tag mode-${this.mode}`;
+        const ratios = this.overlay.querySelector<HTMLElement>('#mm-ip-ratio-section');
+        if (ratios) ratios.hidden = this.mode === 'image' || this.mode === 'url';
         const labels: Record<InputMode, string> = {
-            empty: '📌 占位图模式',
-            url: '🔗 URL 模式 · 按 Enter 加载',
-            ai: '✨ AI 生成 · 按 Enter 生成',
-            image: '📁 已选择图片',
+            empty: '占位图模式',
+            url: '图片地址 · 按 Enter 加载',
+            ai: 'AI 生成 · 按 Enter 生成',
+            image: '已选择图片',
         };
         tag.textContent = labels[this.mode];
 
@@ -849,7 +907,8 @@ input#mm-ip-file-hidden{display:none}
         const width = parseInt(q<HTMLInputElement>('#mm-ip-width').value) || 60;
         const caption = q<HTMLInputElement>('#mm-ip-caption').value.trim();
 
-        let src = this.currentImageSrc;
+        const ratio = ASPECT_RATIOS[this.currentRatioIdx];
+        let src = this.mode === 'empty' ? this.createPlaceholderSvg(ratio.rw, ratio.rh, ratio.label) : this.currentImageSrc;
         // In URL mode, prefer the text input value
         if (this.mode === 'url') {
             const urlVal = q<HTMLTextAreaElement>('#mm-ip-smart-input').value.trim();
@@ -858,15 +917,41 @@ input#mm-ip-file-hidden{display:none}
         return { src, alt: this.editAlt ?? (caption || '图片'), caption, layout, width };
     }
 
-    private handleInsert() {
-        if (!this.currentImageSrc && this.mode !== 'url') return;
-        this.onInsert(this.buildInsertOptions());
-        this.close();
+    private colorError() {
+        const error = this.overlay?.querySelector<HTMLElement>('#mm-ip-error');
+        if (error) { error.style.display = 'block'; error.textContent = '无法处理图片配色。外链可能不允许读取，请下载图片后上传再试。'; }
     }
 
-    private handleCopyMarkdown() {
-        if (!this.currentImageSrc && this.mode !== 'url') return;
-        const md = buildImageMarkdown(this.buildInsertOptions());
+    private async coloredSource() {
+        const q = (id: string) => this.overlay!.querySelector<HTMLInputElement>(id)!;
+        const mode = q('#mm-ip-ink-mode').value;
+        const background = q('#mm-ip-bg-enabled').checked ? q('#mm-ip-bg').value : '';
+        const paper = background ? `rgb(${[1, 3, 5].map(i => parseInt(background.slice(i, i + 2), 16)).join(',')})` : this.paperBackground;
+        const svg = !this.overlay!.querySelector<HTMLElement>('#mm-ip-svg-controls')!.hidden;
+        const ink = !svg ? '' : mode === 'auto' ? contrastingInk(paper) : mode === 'custom' ? q('#mm-ip-ink').value : '';
+        return colorizeImage(this.buildInsertOptions().src, ink, background);
+    }
+
+    private async handleInsert() {
+        if (!this.currentImageSrc && this.mode !== 'url' && this.mode !== 'empty') return;
+        const button = this.overlay!.querySelector<HTMLButtonElement>('#mm-ip-insert-btn')!;
+        button.disabled = true;
+        try {
+            const opts = this.buildInsertOptions();
+            const mode = this.overlay!.querySelector<HTMLSelectElement>('#mm-ip-ink-mode')!.value;
+            const backing = this.overlay!.querySelector<HTMLInputElement>('#mm-ip-bg-enabled')!.checked;
+            if (mode !== 'original' || backing) opts.src = await this.coloredSource();
+            this.onInsert(opts);
+            this.close();
+        } catch { this.colorError(); }
+        finally { button.disabled = false; }
+    }
+
+    private async handleCopyMarkdown() {
+        if (!this.currentImageSrc && this.mode !== 'url' && this.mode !== 'empty') return;
+        let md: string;
+        try { md = buildImageMarkdown({...this.buildInsertOptions(), src: await this.coloredSource()}); }
+        catch { this.colorError(); return; }
         navigator.clipboard?.writeText(md).then(() => {
             const btn = this.overlay?.querySelector<HTMLButtonElement>('#mm-ip-md-btn');
             if (btn) { const o = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = o; }, 1800); }

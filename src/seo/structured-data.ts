@@ -3,6 +3,9 @@
  * Schema.org JSON-LD markup for rich search results
  */
 
+export type AuthorData = PersonData;
+export type PublisherData = OrganizationData;
+
 export interface ArticleSchema {
   headline: string;
   alternateName?: string[];
@@ -469,6 +472,7 @@ export function enrichWithStructuredData(html: string, metadata: {
 }): string {
   const articleSchema = generateArticleSchema({
     headline: metadata.title,
+    image: [],
     description: metadata.description,
     author: {
       '@type': 'Person',

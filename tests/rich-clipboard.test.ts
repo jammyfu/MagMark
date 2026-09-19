@@ -10,6 +10,38 @@ afterEach(() => {
 });
 
 describe('rich clipboard', () => {
+    it.each(['wechat', 'document'] as const)('does not export zero-height image paragraphs to %s', target => {
+        document.body.innerHTML = '<article><p class="mm-image-paragraph" style="font-size:16px;line-height:0"><img src="data:image/png;base64,image"><br><em style="font-size:13px;line-height:18px">多行图片说明</em></p></article>';
+        const payload = buildRichClipboardPayload(document.querySelector('article')!, target);
+        const out = document.createElement('div');
+        out.innerHTML = payload.html;
+        expect(out.querySelector('p')?.style.lineHeight).toBe('32px');
+        expect(out.querySelector('br')).toBeNull();
+        expect(out.querySelector('img')).not.toBeNull();
+    });
+    it('preserves embedded raster images through clipboard sanitization', () => {
+        const src = 'data:image/png;base64,iVBORw0KGgo=';
+        document.body.innerHTML = `<article><img src="${src}" alt="粘贴图片"></article>`;
+        const payload = buildRichClipboardPayload(document.querySelector('article')!, 'wechat');
+        const parsed = document.createElement('div');
+        parsed.innerHTML = sanitizeWechatPasteHtml(payload.html);
+        expect(parsed.querySelector('img')?.getAttribute('src')).toBe(src);
+        expect(payload.localImages).toBe(0);
+    });
+    it('embeds loaded blob images and reports unreadable or missing images', () => {
+        document.body.innerHTML = '<article><img src="blob:http://localhost/photo"><img src="data:image/png;base64,placeholder" data-mm-missing="true"></article>';
+        const source = document.querySelector('article')!;
+        Object.defineProperties(source.querySelector('img')!, {naturalWidth:{value:120},naturalHeight:{value:80}});
+        const drawImage = vi.fn();
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({drawImage} as unknown as CanvasRenderingContext2D);
+        vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,embedded');
+        const payload = buildRichClipboardPayload(source, 'wechat');
+        expect(payload.html).toContain('data:image/png;base64,embedded');
+        expect(payload.html).not.toContain('blob:');
+        expect(payload.localImages).toBe(1);
+        expect(drawImage).toHaveBeenCalledOnce();
+        expect(source.querySelector('img')?.getAttribute('src')).toContain('blob:');
+    });
     it('keeps table cells and normalizes mobile heading descendants without changing the preview', () => {
         document.body.innerHTML = '<article><h2 style="word-break:keep-all"><span style="white-space:nowrap;word-break:keep-all">3. 手机端也要能玩，不只是电脑上能跑</span></h2><table><thead><tr><th>模型</th><th>Token</th></tr></thead><tbody><tr><td>GPT-6 Astra</td><td>2.54 亿</td></tr></tbody></table></article>';
         const source = document.querySelector('article')!;
@@ -66,6 +98,25 @@ describe('rich clipboard', () => {
         expect(result.text).toContain('正文，加粗\n');
         expect(result.text).toContain('【图片 1：插图】');
         expect(result.text).not.toContain('删除');
+    });
+
+    it('groups all three starter list items into native WeChat text runs', () => {
+        document.body.innerHTML = '<article style="font-size:14px;line-height:28px"><ul><li><strong>写作</strong>：专注于原文。</li><li><strong>对照</strong>：看到文章成形。</li><li><strong>预览</strong>：重新读作品。</li></ul></article>';
+        const result = buildRichClipboardPayload(document.querySelector('article')!, 'wechat');
+        const holder = document.createElement('div'); holder.innerHTML = result.html;
+        expect(holder.querySelectorAll('li > span[leaf]')).toHaveLength(3);
+        expect(holder.querySelectorAll('li > span[leaf] > strong')).toHaveLength(3);
+        holder.innerHTML = sanitizeWechatPasteHtml(result.html);
+        expect(holder.querySelectorAll('span[leaf] span[leaf]')).toHaveLength(0);
+        expect(holder.querySelectorAll('li > span[leaf]')).toHaveLength(3);
+    });
+
+    it('keeps nested lists outside native inline text runs', () => {
+        const holder = document.createElement('div');
+        holder.innerHTML = sanitizeWechatPasteHtml('<ul><li>父项<strong>重点</strong><ul><li>子项</li></ul>尾注</li><li><p>独立段落</p></li></ul>');
+        expect(holder.querySelectorAll('span[leaf] ul, span[leaf] p, span[leaf] li')).toHaveLength(0);
+        expect(holder.querySelectorAll('span[leaf]')).toHaveLength(4);
+        expect(holder.textContent).toBe('父项重点子项尾注独立段落');
     });
 
     it('does not overwrite a successful modern clipboard write with execCommand', async () => {

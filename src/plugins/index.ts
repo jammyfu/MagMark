@@ -1,3 +1,4 @@
+import type { PluggableList } from 'unified';
 /**
  * MagMark 1.6.0 - Plugins Package
  * Export all remark/rehype plugins for markdown transformation
@@ -47,7 +48,7 @@ export interface MagazineTransformOptions {
   autoSpaceCjk?: boolean;
   preventWidows?: boolean;
   fullBleedImages?: boolean;
-  platform?: string;
+  platform?: 'xiaohongshu' | 'wechat' | 'pdf' | 'web';
   classPrefix?: string;
 }
 
@@ -69,27 +70,27 @@ export interface PipelineOptions extends MagazineTransformOptions, PaginationOpt
 }
 
 // Plugin composition for easy use
-export function createMagazinePipeline(options: PipelineOptions = {}) {
+export function createMagazinePipeline(options: PipelineOptions = {}): PluggableList {
   return [
-    cjkSpacer({ enabled: options.autoSpaceCjk !== false }),
-    paginationNodes({
-      markers: options.pageBreakMarkers,
+    [cjkSpacer, { enabled: options.autoSpaceCjk !== false }],
+    [paginationNodes, {
+      markers: options.pageBreakMarkers ?? options.markers,
       chapterNewPage: options.chapterNewPage !== false,
-      avoidBreakInside: options.avoidBreakInside !== false
-    }),
-    typographyEnhancers({
+      avoidBreakInside: options.avoidBreakInside !== false,
+    }],
+    [typographyEnhancers, {
       preventWidows: options.preventWidows !== false,
       preventOrphans: options.preventOrphans !== false,
       smartQuotes: options.smartQuotes !== false,
-      hangingPunctuation: options.hangingPunctuation !== false
-    }),
-    markdownToMagazine({
+      hangingPunctuation: options.hangingPunctuation !== false,
+    }],
+    [markdownToMagazine, {
       autoSpaceCjk: options.autoSpaceCjk !== false,
       preventWidows: options.preventWidows !== false,
       fullBleedImages: options.fullBleedImages !== false,
-      platform: (options.platform || 'web') as any,
-      classPrefix: options.classPrefix || 'mm-'
-    })
+      platform: options.platform ?? 'web',
+      classPrefix: options.classPrefix ?? 'mm-',
+    }],
   ];
 }
 

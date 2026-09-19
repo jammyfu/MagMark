@@ -1,61 +1,50 @@
 # WORKLOG.md
 
-## 2026-09-14
+2026-09-20: Production header brand URL returned HTTP 404 after the previous selectively assembled archive omitted brand/. Isolated this correction from ongoing local cover edits. Added image decode verification; retain existing SEO/GEO documents.
 
-- Added long-view universal image resize handles; browser verified Markdown width 40% to 56%, raw HTML 200px to 49%, and resizing at 50% preview zoom. Fixed legacy action-strip empty space intercepting small-image clicks.
-- Missing-image click now opens a menu with batch directory association instead of forcing individual replacement. Browser file-chooser check passed. All 43 unit tests and targeted strict TypeScript checks passed.
+## 2026-09-19 — Layer workspace redeployment
 
-- Fixed long-article selection: renderScroll previously omitted block IDs and click listeners. Long-view blocks now use their own IDs and restore saved block style overrides.
-- Added explicit missing-image art with preserved source identity, click-to-replace, right-click editing, double-click editing and keyboard Enter support. Kept placeholder SVGs out of WeChat image exports; valid loaded images retain their sizing.
-- Fixed Markdown image parsing for parenthesized/space-containing destinations and made edited Markdown paths safe to parse again. Added unique suffix mapping for separately selected image subfolders and file URLs, while still rejecting ambiguous matches.
-- Long-view browser verification: three valid Markdown image variants load; one missing image opens the editor and is replaced without duplication; paragraph selection and a 22px override work. 41 unit tests and changed-module strict typecheck pass. No changes to the user's live WeChat draft.
+- Fetched and integrated origin beta 4e7ae79 in the isolated release directory; preserved the local PROMOTION.md draft.
+- Extended Chinese/English crawlable guides and application structured features with layer ordering, names, locks, visibility, opacity and editable-state guidance. Explicitly document four content roles and lack of PSD, mask/group/blend-mode support.
+- Verified upstream CI success for 4e7ae79. Local deep checks passed 267 tests and typecheck. Browser suites passed 25 layer checks, 16 regressions and 13 responsive-cover checks including PNG pixels/ZIP outputs. Production 390px/1280px smoke and built SEO checks passed. Multi-selection fixtures now use ControlOrMeta so native macOS contextual Control-click is not mistaken for a selection failure.
+- Redeployed beta and guides; backup `/opt/stack/backups/magmark2-before-layers-20260919-1500`. Online 390px/1280px checks passed including four content layers, mobile scroll containment and guide navigation; guide content is available with JavaScript disabled. Live HTML SHA256 `e82310e343e20cf0d6e0d6cafd6e8a39adab17a099409759180763e0f8c66242` matches the build. Main robots/sitemap retain crawl access and both guide URLs; llms source index now documents layer functionality and limits. No search indexing outcome is claimed.
 
-- Added right-click image editing, replacement, alignment, width presets, source selection and deletion. Markdown AST source ranges prevent edits to code examples or the wrong occurrence of repeated images; stale/ambiguous source mappings are rejected.
-- Existing figure Edit now applies changes at the original source instead of inserting another image. HTML images retain surrounding links, local source paths and unrelated attributes; editing preserves alt text. Added figure controls to long-article mode.
-- Added article-folder import with explicit article selection when multiple Markdown files exist. Resolve images relative to the selected article before considering unique suffix matches; support parent paths and URL-encoded filenames.
-- Browser regression: actual 13-image article changed from 50% to 70% width without duplication or loss of local paths. Multi-article folder selected the correct same-named image; repeated-image action changed only the selected occurrence. Bulk WeChat upload remains unimplemented pending the extension installation decision.
+## 2026-09-19 — PS layer integration onto current beta
 
-- Restored semantic table/thead/tbody/th/td export on both magazine and WeChat-theme paths. Tables use fixed percentage layout, bounded cell padding, border-box sizing and native leaf text runs instead of repeating column labels in paragraphs.
-- Removed inherited keep-all/nowrap/anywhere heading combinations from magazine copying; WeChat headings and their copied descendants now use normal wrapping, break-word fallback and strict CJK line breaking.
-- Preserved the user's latest draft edits while restoring its two table grids. A screenshot resized in WeChat retained fixed height; restored proportional height without changing its desktop width. During paste verification detected duplicated content and replaced it with the backed-up single complete article before final verification.
-- At the user's subsequent request increased every explicit article font size by 2px and maintained line-height ratios. Native save/reload confirmed exact text equality, 13 images, two tables, 16px body and normal heading breaks. 32 tests and targeted strict TypeScript check pass. No publication or public deployment.
+- Re-read beta at `c14df796bcfe26e337325ddcdce312d7e03ed024` and compared it with the recovered package's `7db014e` base. All four newer commits are retained; their responsive core and cover test files were unchanged. No reset or overwrite of mobile/SEO work.
+- Verified all 13 package SHA-256 checksums. Integrated the PS-inspired layer workspace and ten previously reproduced QA fixes, including selection normalization, common-delta movement, transient-state cleanup, per-layer content reset, no-op history, stale-preview invalidation and symmetric save/import size validation.
+- Fresh strict isolated TypeScript compilation and all 29 state/parser/layout cases passed. Re-ran the 25 layer UI/file/pixel checks and 16 additional regressions against the compiled source in real offline Chromium: 41 passed, no browser errors. Six PNG dimensions and ZIP CRCs were verified.
+- Local Git clone could not resolve github.com; intercepted browser navigation returned ERR_BLOCKED_BY_ADMINISTRATOR. Offline tests used setContent, the installed Chromium, a local CJS bundle and the approved logo via its supported source argument. No network restriction was disabled, no application stub was introduced, and these local adapters are not committed. Full-project validation is delegated to the ordinary read-only CI and must be read after push.
+- Preserved all original cover-entry assertions while adding contextual layer selections. Added both new browser scripts to existing CI. No dependency updates, permission expansion, main merge, deployment or image-model calls.
 
-- Fixed the magazine-to-WeChat export forcing outer padding to zero. Set mobile-safe paper insets to 24px vertically and 20px horizontally with border-box sizing; kept Word export spacing unchanged. Regression test first failed with 0px, then all 31 tests passed.
-- Native paste at 375px and full-article layout at 320/375/677px have no horizontal/image overflow; platform structure checks pass at all widths. With explicit user approval, restored the now-empty draft and saved/reloaded it: 4200 non-whitespace characters, 13 hosted images, cream background and padding:24px 20px retained. Changed-module strict typecheck passes; no publication or deployment.
+## 2026-09-19 — WeChat/mobile page drift
 
-- Reproduced the reported Garden long-article copy failure using the actual Markdown and native Chrome UI. Existing image paths contained emphasis-generated HTML and pointed at localhost; 13 images failed insertion.
-- Added current-magazine WeChat copying, computed-style allowlisting, local image-directory association and explicit clipboard/image status. Protected raw HTML attributes and generated inline elements from Markdown emphasis replacement.
-- Replaced direct paragraph text with native span[leaf] text runs. The live platform checker counts overlapping inline Range rects, so increasing line-height alone did not solve mixed bold/link/code paragraphs.
-- Uploaded 13 images through the native WeChat picker, pasted the corrected article, saved the draft and reloaded it. Verified exact equality of 4200 non-whitespace characters, 13 hosted images, no Han custom tags, green typography, cream background and percentage image widths. No publication performed; Chrome JavaScript automation setting remained disabled.
-- Verification: 30 unit tests pass; changed-module strict TypeScript checks pass; tools/verify.py and git diff --check pass. Full-project typecheck still reports unrelated existing errors. Live platform verifyArticleStructure returned isValid:true for the final article. Private draft artifacts stay outside tracked source files.
+- Added mobile viewport sizing, fixed outer shell and directional boundary guards. Internal panel scrolling remains native; canvas gestures, text selection and pinch zoom are not globally disabled.
+- Deep verifier passed 238 tests including seven new gesture/viewport regressions; build:web and SEO checks passed. Chrome production smoke passed with native header drag and a reduced visible viewport; root scroll remained at zero and navigation stayed visible.
+- Chromium native touch scrolling moves the CodeMirror scroller while root scroll remains zero. WebKit 26 production smoke passed at 390px and 1280px, including reduced viewport navigation and cover dialogs. These are browser-engine tests, not a claim of physical WeChat testing.
+- Published to `/tools/magmark2/` with backup `/opt/stack/backups/magmark2-before-touchfix-20260919`. Online Chrome touch/viewport tests passed at 390px and 1280px. Live HTML SHA256 `64cf66e0117953a0c9c4cb797ec24ec766ef49be304d72de2707ced3e422b852` matches the tested build. Existing guides and sitemap remain available.
 
-- Disabled Han.css CJK 着重号 on Markdown `*emphasis*`: `editor.css` + print-preview override `text-emphasis: none` on `em:lang(zh|ja)`, and skip `Han.normalize.renderEm`. Magazine path keeps italic without sesame/circle dots.
-- WeChat paste maps `*...*` / `_..._` to a color `<span>` (`font-style:normal; text-emphasis:none`), not `<em>`. Sanitizer remaps leftover `<em>`/`<i>` and strips `text-emphasis*`.
-- Added WeChat paste unit tests for the user fixture `*视频里的标题画面：The Legend of Trump。*`.
+## 2026-09-19 — Latest beta and SEO/GEO release
 
-- Tightened the WeChat paste path against the editor dump: line-height ≥ 2× font-size (Range.getClientRects fragments inlines), text-align:left on every text tag, no font-family, no container padding, images/tables marked `data-ignore-width`, GFM tables flattened to paragraphs, no `<br>` inside `<p>`.
-- Converted unitless line-heights to explicit px/em, defaulted body `text-align` to `left`, flattened theme/export gradients, and set image `width:100%` with captions that carry a safe line-height.
-- Extended `tests/wechat-paste-html.test.ts` so every built-in theme is checked with a long text-only article and an image-rich article.
-- Captured real editor screenshots from `npm run dev` (Playwright) and committed `screenshots/magmark-main.png`, `image-panel-smart.png`, `wechat-paste-preview.png`, `print-preview.png`. Added `!screenshots/*.png` so the global `*.png` gitignore no longer drops them.
-- Split the public README into four languages (`README.md` 简体 default, `README.zh-Hant.md`, `README.ja.md`, `README.en.md`) with a centered language switcher.
-- Cited the live editor https://bubufu.com/tools/magmark/ in all four READMEs, `llms.txt`, and `llms-full.txt`. Kept magazine vs WeChat path honesty and MIT.
-- Rebased GEO public-entity docs from `origin/cursor/geo-public-entity-31c9` onto current main (WeChat paste HTML fix #2, tip `92b9922`).
-- Deepened README / `llms.txt` / `llms-full.txt` with the shipped WeChat Official Account inline-CSS HTML path (复制富文本; no `text-justify`; no oversized widths) and explicit non-claims (no GitHub Pages, no MagMark 2.0 SEO module as product).
-- Kept both governance histories: WeChat paste-fix entries below plus the 2026-09-01 GEO notes.
-- Fixed WeChat Official Account paste HTML so 内容结构检测 stops flagging long articles.
-- Removed `text-align:justify` / `text-justify` from WeChat themes (editor #2.6 / spec #1.6).
-- Replaced `<figure>` + `margin:auto` image blocks with a single `text-align:center` paragraph + `max-width:100%` img (spec #1.4).
-- Added `sanitizeWechatPasteHtml` on `renderWechatHtml` / `copyWechatHtml` and unit tests in `tests/wechat-paste-html.test.ts`.
-- Magazine Han/Paged preview path was left unchanged.
+- Fetched origin/codex/2.0.0-beta at 7db014e; existing checkout was already synchronized. Isolated release checkout preserves the uncommitted PROMOTION.md edits.
+- Confirmed latest upstream CI success at https://github.com/jammyfu/MagMark/actions/runs/35409232016 .
+- Added two static guides with workflows, six actual output dimensions, FAQ, editable design persistence, network boundaries and MVP limitations. Updated editor metadata, guide discovery, schema identity and generated sitemap/llms source index.
+- Added reproducible build:web pipeline and built-asset SEO checks; retained beta website behavior without a manifest/install promotion.
+- Verification: upstream CI passed for 7db014e; local deep verifier passed 231 tests and typecheck; responsive cover browser checks passed 13 cases including all six PNG dimensions and ZIP CRCs. Production build/SEO checks and 390px/1280px production browser tests passed for editor, new covers, guide layout and language navigation.
+- Published beta assets and both guides; updated the main sitemap with both guide URLs while retaining all existing entries. Backup: `/opt/stack/backups/magmark2-before-seo-20260919-1320` (site and main sitemap). HTML SHA256 `1948a1f4ca745f2987ed29d1e641421dcb94f82b504e3daa94bf8b36fd9bc380` matches the build. Main sitemap SHA256 `f8fb55767896a64ac3fe38b221cf0bb9cc3981c8b43a073b867fb7e97b061fa5` matches the reviewed update.
+- Online 390px/1280px editor, responsive cover, guide navigation and JavaScript-disabled guide checks passed. Public robots permits crawling and advertises the main sitemap. The main sitemap is the existing Nginx-served `/opt/sites/bubufu.com/public/sitemap.xml`; future portal deployments must retain the guide URLs. Search Console submission and actual indexing were not claimed or automated.
 
-## 2026-09-01
+## 2026-09-19 — One-design / six-ratio cover MVP
 
-- GEO pass for the public MagMark entity: README now opens with H1 `MagMark`, bilingual product lead, FAQ, and comparison vs Typora / VuePress / Vivliostyle.
-- Demoted `personal-project-standard-entry` to the README footer; governance files kept.
-- Added root `llms.txt` and `llms-full.txt`. MIT LICENSE untouched. Docs/metadata only.
+- Read the actual `codex/2.0.0-beta` HEAD (`694d9cc`), current cover implementation, media presets, layer editor, tests and governance. Did not use main or overwrite older assumptions onto the current beta.
+- Added a structured responsive editor through the existing public CoverPanel API. Preserved the complete freeform implementation as the exact original Git blob `69ee8d609433911084a998c1976235724817833d` in cover-panel-legacy.ts.
+- Implemented immutable master/variant state, field-level override/reset, local undo/redo, strict versioned JSON import, six target layouts, measured text fitting, focal crops, square safety guides, bundled logo reuse, PNG/ZIP export and actual PNG insertion.
+- Scoped local compilation and 25 model/layout assertions passed. A Chromium 144.0.7559.96 fixture using the actual new panel passed 21 further UI/file checks (46 combined), including local override survival, undo/redo, reset, real downloads, six exact PNG sizes, ZIP CRC validation, design round-trip, safe text, insertion, reopen and a 390px viewport. This is not full-app or physical-device certification.
+- Added a separate reproducible browser regression through the public production CoverPanel entry, and added the beta branch to the existing read-only Publishing quality workflow. Full CI status must be read after push; it is not assumed successful here.
+- No package versions changed, no model API was called, no third-party reference artwork was copied, no main merge or website deployment was performed.
 
-## 2026-04-18
+## Prior history
 
-- Bootstrapped the repository into the `continuous-project-loop` structure.
-- Added durable planning files, governance logs, and a repo-level verification entry.
-- Standardized the README entry section and automation guidance for `MagMark`.
+The previous worklog is preserved byte-for-byte in [2026-09-19-before-responsive-WORKLOG.md](archive/2026-09-19-before-responsive-WORKLOG.md). Its historical checks and deployments are not evidence for this new change.
+
+- Validation: production build and SEO asset checks passed; governance verification passed. Restored missing production brand directory and verified real Chrome image decoding at 390px and 1280px (2048 × 720 source). Existing deployed editor and SEO/GEO guide content retained.

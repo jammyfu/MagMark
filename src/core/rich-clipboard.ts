@@ -1,4 +1,6 @@
+import { sanitizeArticleHtml } from '../security/article-html';
 import { sanitizeWechatPasteHtml } from '../wechat/wechat-sanitize';
+import { spaceMixedHtml } from './mixed-typography';
 
 export type ClipboardTarget = 'document' | 'wechat';
 export interface RichClipboardPayload { html: string; text: string; localImages: number }
@@ -6,13 +8,31 @@ export interface RichClipboardPayload { html: string; text: string; localImages:
 const STYLE_PROPERTIES = [
     'color', 'background-color', 'font-family', 'font-size', 'font-weight', 'font-style',
     'line-height', 'letter-spacing', 'text-align', 'text-indent', 'text-decoration',
-    'white-space', 'word-break', 'overflow-wrap', 'vertical-align',
+    'white-space', 'word-break', 'overflow-wrap', 'line-break', 'text-justify', 'text-align-last', 'vertical-align',
     'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
     'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
     'border-top', 'border-right', 'border-bottom', 'border-left', 'border-radius',
     'border-collapse', 'list-style-type',
 ];
 const UI_SELECTOR = '.mm-fig-actions,.mm-fig-handles,.page-setting-indicator,.page-footer,script,style,button,input,textarea,select';
+
+function portableImageSource(image: HTMLImageElement): string | null {
+    if (image.dataset.mmMissing === 'true') return null;
+    const src = image.currentSrc || image.src;
+    if (/^data:image\/(?:png|jpe?g|gif|webp|avif|bmp);/i.test(src)) return src;
+    if (!image.naturalWidth) return null;
+    if (/^https?:/i.test(src) && !/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(new URL(src).hostname)) return src;
+    try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const context = canvas.getContext('2d');
+        if (!context) return null;
+        context.drawImage(image, 0, 0);
+        const data = canvas.toDataURL('image/png');
+        return data.startsWith('data:image/png;') ? data : null;
+    } catch { return null; }
+}
 
 export function buildRichClipboardPayload(source: HTMLElement, target: ClipboardTarget): RichClipboardPayload {
     const clone = source.cloneNode(true) as HTMLElement;
@@ -29,14 +49,19 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
         }
         copy.removeAttribute('style');
         for (const prop of STYLE_PROPERTIES) copy.style.setProperty(prop, css.getPropertyValue(prop));
+        // Zero line-height is only a preview trick for imported image paragraphs.
+        // It must not reach external editors, including the general rich-copy path.
+        if (original.classList.contains('mm-image-paragraph')) {
+            copy.style.lineHeight = `${(parseFloat(css.fontSize) || 16) * 2}px`;
+            copy.querySelectorAll(':scope > br').forEach(br => br.remove());
+        }
         if (target === 'wechat') copy.style.overflowWrap = 'anywhere';
         for (const attr of [...copy.attributes]) {
             if (!['style', 'src', 'alt', 'title', 'href', 'colspan', 'rowspan', 'start'].includes(attr.name)) copy.removeAttribute(attr.name);
         }
         if (original instanceof HTMLImageElement) {
-            const src = original.currentSrc || original.src;
-            const local = !/^https?:/i.test(src) || /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(new URL(src, document.baseURI).hostname);
-            if (target === 'wechat' && (local || !original.naturalWidth)) {
+            const src = target === 'wechat' ? portableImageSource(original) : original.currentSrc || original.src;
+            if (!src) {
                 localImages++;
                 const placeholder = document.createElement('span');
                 placeholder.textContent = `【图片 ${localImages}：${original.alt || '请在公众号后台上传'}】`;
@@ -87,8 +112,10 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
     }
     const section = document.createElement('section');
     section.style.cssText = clone.style.cssText;
+    section.style.setProperty('text-autospace', 'no-autospace');
     section.append(...clone.childNodes);
-    const html = target === 'wechat' ? sanitizeWechatPasteHtml(section.outerHTML) : section.outerHTML;
+    const portable = spaceMixedHtml(section.outerHTML);
+    const html = target === 'wechat' ? sanitizeWechatPasteHtml(portable) : sanitizeArticleHtml(portable);
     // Use block boundaries in the plain-text flavour as well.
     const plain = document.createElement('div');
     plain.innerHTML = html.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<\/(p|div|section|h[1-6]|li|tr|blockquote|pre)>/gi, '\n</$1>');
@@ -96,6 +123,7 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
 }
 
 export async function writeRichClipboard(payload: Pick<RichClipboardPayload, 'html' | 'text'>): Promise<boolean> {
+    payload = { ...payload, html: sanitizeArticleHtml(payload.html) };
     try {
         if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
             await navigator.clipboard.write([new ClipboardItem({

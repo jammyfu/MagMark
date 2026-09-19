@@ -153,7 +153,6 @@ export function generateRunningHeaders(
   }
   
   // Handle alternating pages
-  const isEven = page % 2 === 0;
   
   return {
     header: {

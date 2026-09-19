@@ -4,14 +4,6 @@
  */
 import { z } from 'zod';
 
-// Design token partial schema
-const TypographyLevelSchema = z.object({
-  tag: z.enum(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'small', 'span']),
-  fontSize: z.number().positive(),
-  fontWeight: z.number().min(100).max(900),
-  lineHeight: z.number().positive(),
-});
-
 const GridSchema = z.object({
   columns: z.number().int().min(1).max(24).default(12),
   baselineStep: z.number().int().positive().default(8),
@@ -45,11 +37,11 @@ const PlatformSizeSchema = z.object({
 
 const PlatformsSchema = z.object({
   xiaohongshu: z.object({
-    primary: PlatformSizeSchema,
-    alternative: PlatformSizeSchema,
-  }),
-  wechat: PlatformSizeSchema,
-  cover: PlatformSizeSchema,
+    primary: PlatformSizeSchema.default({ width: 1080, height: 1440, ratio: '3:4' }),
+    alternative: PlatformSizeSchema.default({ width: 1242, height: 1660 }),
+  }).default({}),
+  wechat: PlatformSizeSchema.default({ width: 1080, aspectRatio: 'long' }),
+  cover: PlatformSizeSchema.default({ width: 1080, height: 383 }),
   pdf: z.array(z.string()).default(['A4', 'Letter']),
   web: z.union([z.literal('responsive'), z.string()]).default('responsive'),
 });
@@ -62,15 +54,15 @@ const ColorsSchema = z.object({
   border: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#e0e0e0'),
 });
 
-// Main design tokens schema
+// Parent defaults are required: child defaults cannot run inside a missing object.
 export const DesignTokensSchema = z.object({
   version: z.string().default('2.0'),
   lastUpdated: z.string().datetime().default(() => new Date().toISOString()),
-  grid: GridSchema,
-  margins: MarginsSchema,
-  typography: TypographySchema,
-  platforms: PlatformsSchema,
-  colors: ColorsSchema,
+  grid: GridSchema.default({}),
+  margins: MarginsSchema.default({}),
+  typography: TypographySchema.default({}),
+  platforms: PlatformsSchema.default({}),
+  colors: ColorsSchema.default({}),
 });
 
 // Export format schema
@@ -161,43 +153,31 @@ export type ImageRenderOptions = z.infer<typeof ImageRenderOptionsSchema>;
 export type TypstOptions = z.infer<typeof TypstOptionsSchema>;
 export type PrinceOptions = z.infer<typeof PrinceOptionsSchema>;
 
-/**
- * Validate magazine input
- */
-export function validateMagazineInput(data: unknown): { 
-  valid: boolean; 
-  data?: MagazineInput; 
+/** Validate magazine input. */
+export function validateMagazineInput(data: unknown): {
+  valid: boolean;
+  data?: MagazineInput;
   errors?: z.ZodError;
 } {
   const result = MagazineInputSchema.safeParse(data);
-  
-  if (result.success) {
-    return { valid: true, data: result.data };
-  } else {
-    return { valid: false, errors: result.error };
-  }
+  return result.success
+    ? { valid: true, data: result.data }
+    : { valid: false, errors: result.error };
 }
 
-/**
- * Validate design tokens
- */
+/** Validate design tokens without filling invalid values with defaults. */
 export function validateDesignTokens(data: unknown): {
   valid: boolean;
   data?: DesignTokens;
   errors?: z.ZodError;
 } {
   const result = DesignTokensSchema.safeParse(data);
-  
-  if (result.success) {
-    return { valid: true, data: result.data };
-  } else {
-    return { valid: false, errors: result.error };
-  }
+  return result.success
+    ? { valid: true, data: result.data }
+    : { valid: false, errors: result.error };
 }
 
-/**
- * Get default design tokens
- */
+/** Return an independently parsed, complete configuration for each caller. */
 export function getDefaultDesignTokens(): DesignTokens {
   return DesignTokensSchema.parse({});
 }
