@@ -5,6 +5,7 @@
 - Added mobile viewport sizing, fixed outer shell and directional boundary guards. Internal panel scrolling remains native; canvas gestures, text selection and pinch zoom are not globally disabled.
 - Deep verifier passed 238 tests including seven new gesture/viewport regressions; build:web and SEO checks passed. Chrome production smoke passed with native header drag and a reduced visible viewport; root scroll remained at zero and navigation stayed visible.
 - Chromium native touch scrolling moves the CodeMirror scroller while root scroll remains zero. WebKit 26 production smoke passed at 390px and 1280px, including reduced viewport navigation and cover dialogs. These are browser-engine tests, not a claim of physical WeChat testing.
+- Published to `/tools/magmark2/` with backup `/opt/stack/backups/magmark2-before-touchfix-20260919`. Online Chrome touch/viewport tests passed at 390px and 1280px. Live HTML SHA256 `64cf66e0117953a0c9c4cb797ec24ec766ef49be304d72de2707ced3e422b852` matches the tested build. Existing guides and sitemap remain available.
 
 ## 2026-09-19 — Latest beta and SEO/GEO release
 
