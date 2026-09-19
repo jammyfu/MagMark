@@ -1,15 +1,18 @@
 import { CoverPanel as FreeformCoverPanel } from './cover-panel-legacy';
 import { ResponsiveCoverPanel } from './responsive/panel';
+import { preserveLazyCoverInvoker } from './lazy-cover-focus';
 export type { CoverData } from './cover-panel-legacy';
 
 /** Preserve existing freeform APIs and drafts; add an opt-in structured workflow. */
 export class CoverPanel extends FreeformCoverPanel {
   private responsive?: ResponsiveCoverPanel;
+  private disposeFocus?: () => void;
   constructor(onInsert: (coverHtml: string) => void) {
     super(onInsert);
     const overlays = document.querySelectorAll<HTMLDialogElement>('.mm-cp-overlay');
     const overlay = overlays.item(overlays.length - 1);
     if (!overlay) return;
+    this.disposeFocus = preserveLazyCoverInvoker(overlay);
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'mm-cp-responsive';
@@ -31,5 +34,6 @@ export class CoverPanel extends FreeformCoverPanel {
   override destroy() {
     this.responsive?.destroy();
     super.destroy();
+    this.disposeFocus?.();
   }
 }

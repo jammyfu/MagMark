@@ -73,9 +73,9 @@ const { chromium } = require('playwright');
       assert.equal(await page.locator('body').getAttribute('data-workspace'), 'compare');
       assert(await page.locator('.cm-content').isVisible()); assert(await page.locator('#preview-panel').isVisible());
       assert(!(await page.locator('#layout-inspector').isVisible()));
-      const expectedHeading = fs.readFileSync('PROMOTION.md', 'utf8').match(/^# .+$/m)?.[0];
+      const expectedHeading = fs.readFileSync('PROMOTION.md', 'utf8').match(/^(?:# .+|<h1\b[^>]*>.*<\/h1>)$/m)?.[0];
       assert(expectedHeading, 'The current zh-Hans starter must have a heading');
-      assert.equal((await source()).match(/^# .+$/m)?.[0], expectedHeading);
+      assert.equal((await source()).match(/^(?:# .+|<h1\b[^>]*>.*<\/h1>)$/m)?.[0], expectedHeading);
       assert(!(await page.locator('#char-count').innerText()).startsWith('0 '));
     });
     await test('view switches preserve literal source and editor state', async () => {
