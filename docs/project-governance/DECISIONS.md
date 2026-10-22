@@ -31,3 +31,7 @@ The existing read-only CI keeps contents:read and pinned actions. Adding beta co
 ## Prior decisions
 
 All preceding decisions remain available unchanged in [2026-09-19-before-responsive-DECISIONS.md](archive/2026-09-19-before-responsive-DECISIONS.md). This focused feature does not supersede the existing article-safety, mobile, localization, source-preservation or deployment boundaries.
+
+## 2026-10-22
+
+Node 22 构建环境固定至安全版本 22.23.4；自动质量检查从 .node-version 读取，保持静态应用、用户本地数据和现有发布地址不变。

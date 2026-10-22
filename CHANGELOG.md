@@ -25,3 +25,7 @@
 - 增加覆盖测试及 beta 分支只读 CI；不更新依赖、不部署网站。
 
 此前完整更新日志保留在 [归档](docs/project-governance/archive/2026-09-19-before-responsive-CHANGELOG.md)。
+
+## 2026-10-22
+
+Node 22 构建环境固定至安全版本 22.23.4；自动质量检查从 .node-version 读取，保持静态应用、用户本地数据和现有发布地址不变。
