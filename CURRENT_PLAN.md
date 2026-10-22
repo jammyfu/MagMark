@@ -1,3 +1,9 @@
+# 2026-10-22 Node 构建安全补丁
+
+固定现有 Node 22 构建线到官方安全版本 22.23.4。只更新自动检查的 Node 选择，不改变浏览器应用或合入原工作树的未提交功能。验证后同步 beta 分支；本批不通过构建版本文件重新发布原型功能。
+
+---
+
 # CURRENT_PLAN.md
 
 Current release fix: bundle the header logo through Vite; verify decoded image and SEO assets; restore missing production brand assets and push the focused beta fix.

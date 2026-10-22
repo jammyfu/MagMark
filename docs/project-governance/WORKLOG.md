@@ -48,3 +48,7 @@
 The previous worklog is preserved byte-for-byte in [2026-09-19-before-responsive-WORKLOG.md](archive/2026-09-19-before-responsive-WORKLOG.md). Its historical checks and deployments are not evidence for this new change.
 
 - Validation: production build and SEO asset checks passed; governance verification passed. Restored missing production brand directory and verified real Chrome image decoding at 390px and 1280px (2048 × 720 source). Existing deployed editor and SEO/GEO guide content retained.
+
+## 2026-10-22
+
+Node 22 构建环境固定至安全版本 22.23.4；自动质量检查从 .node-version 读取，保持静态应用、用户本地数据和现有发布地址不变。
