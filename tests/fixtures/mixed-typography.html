@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-Hans"><head><meta charset="utf-8"><title>MagMark 混排回归样张</title>
+<link rel="stylesheet" href="/editor.css">
+<style>
+body { background:#ebece9; height:auto; overflow:auto; padding:32px; color:#24312c; }
+main { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; }
+article { background:white; padding:24px; --mm-font-size:16px; --mm-line-height:1.8; --mm-letter-spacing:0; --user-font-family:'PingFang SC','Microsoft YaHei',sans-serif; --th-primary:#304c40; --th-accent:#9cae9e; }
+.narrow { width:345px; } .wide { width:560px; }
+header { font:16px system-ui; margin:0 0 24px; } label { display:block; font:12px system-ui; margin-bottom:20px; color:#62746a; }
+</style></head><body><header>MagMark · 中文优先的中英文混排回归样张</header><main>
+<article class="magmark narrow"><label>窄栏 · 345 px</label>
+<h1>中文排版遇见OpenAI：让文字自然成形</h1>
+<p>这是一段包含Agent、TypeScript和2026年数据的中文说明。英文单词保持完整，中文正常断行，不把所有空白都挤到English前后。</p>
+<p>跨标签间距：中文<strong>OpenAI</strong>模型，中文<em>Agent</em>协作与第<strong>15</strong>步测试。</p>
+<p>标点禁则：“模型真的理解了吗？”（这里是补充说明）《中文排版需求》——既保留……也不强行把全角逗号压成半个字。</p>
+<p>技术数据：GPU每秒5.71美元，v2.0.0-beta.1，70%流量，café与中文。A thoughtful paragraph keeps English words readable.</p>
+<p>原样保护：<code>const 中文API = "原文";</code> 与 <a href="https://example.com/中文API">https://example.com/中文API</a></p>
+</article>
+<article class="magmark wide"><label>宽栏 · 560 px</label>
+<h2>工程与写作：AI并不是排版的例外</h2>
+<p>当中文遇见英文时，不应把整段文字当作英文处理。OpenAI模型与2026年的工程实践，需要清楚的字距、稳定的行高，以及不会在分页之后再次改变的版式。</p>
+<p>中文<strong>TypeScript</strong>代码与<em>Agent</em>工具可以自然相处。长地址只在无法容纳时应急换行：https://example.com/averyveryveryveryveryveryverylongpathwithoutspaces。</p>
+<p>标点不占据行首，括号不悬在行尾；中文可以逐字换行，英文单词不被随意切开。English paragraphs preserve ordinary word spacing and retain the author's punctuation.</p>
+</article></main><output id="checks" style="display:block;padding:20px;font:13px system-ui"></output>
+<script type="module">
+import { prepareMixedPreview } from '/src/core/mixed-typography.ts';
+for (const article of document.querySelectorAll('article')) article.innerHTML = prepareMixedPreview(article.innerHTML);
+await document.fonts.ready;
+const results = [...document.querySelectorAll('article')].map(article => {
+  const lines = [];
+  for (const block of article.querySelectorAll('h1,h2,p')) {
+    const rows = new Map();
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      let offset = 0;
+      for (const char of node.textContent) {
+        const range = document.createRange();
+        range.setStart(node, offset); offset += char.length; range.setEnd(node, offset);
+        const rect = range.getBoundingClientRect();
+        if (!rect.width) continue;
+        const y = [...rows.keys()].find(y => Math.abs(y - rect.y) < 5) ?? rect.y;
+        rows.set(y, (rows.get(y) || '') + char);
+      }
+    }
+    lines.push(...rows.values());
+  }
+  return {
+    width: article.clientWidth,
+    overflow: article.scrollWidth > article.clientWidth,
+    punctuationViolations: lines.filter(line => /^[，。！？、；：）》」』】]/.test(line.trim()) || /[（《「『【]$/.test(line.trim())),
+    lines,
+  };
+});
+document.querySelector('#checks').textContent = results.map(r => `${r.width}px：横向溢出 ${r.overflow ? '有' : '无'}，标点禁则异常 ${r.punctuationViolations.length}`).join(' · ');
+document.querySelector('#checks').dataset.results = JSON.stringify(results);
+</script></body></html>
