@@ -1,81 +1,47 @@
 # CURRENT_PLAN.md
 
-## Completed: Long-Article Image Resize And Batch Mapping (2026-09-14)
+## Active: quiet workspace and CJK publishing upgrade (2026-09-15)
 
-- [x] Universal image-bounds resize overlay for Markdown and raw HTML images; write sizes back to source and account for preview zoom.
-- [x] Missing-image click opens a menu with batch directory association first; header exposes batch image import.
-- [x] Browser verified both image forms, batch file chooser, and resizing at 50% zoom. 43 unit tests and targeted strict TypeScript pass.
+Branch: `feat/cjk-publishing-upgrade-20260914`. Original base: `7020c3b`; this iteration resumed verified `afb7dca`. No main update, merge, force-push, deployment or WeChat account action is authorized.
 
-## Completed: Long-Article Selection And Missing Images (2026-09-14)
+This is the only current execution entry. Earlier status and complete execution history are preserved byte-for-byte in [the prior plan](docs/project-governance/archive/2026-09-14-CURRENT_PLAN.md). Earlier unpushed-local claims were not assumed recovered.
 
-- [x] Generate long-view block IDs, restore style overrides and attach block-selection listeners.
-- [x] Display missing-image placeholders that retain their original source and support direct replacement.
-- [x] Parse Markdown image destinations with the AST, preserving parentheses, angle-wrapped spaces and title attributes; resolve separately selected image directories without ambiguous matches.
-- [x] Long-view browser checks: three valid image path variants load, one missing image is editable, replacement stays in place, and selected paragraph styling persists. 41 unit tests and targeted TypeScript checks pass.
-- Single Markdown-file selection still requires image-directory permission; the UI now explains this rather than implying adjacent files were imported.
+### Implemented and verified
 
-## Active: Local Image Workflow (2026-09-14)
+- [x] Quiet light workspace: write/compare/preview, optional typography inspector, file disclosure, one export dialog. Original image, theme, copy and export callbacks remain connected.
+- [x] Actual web entry uses CodeMirror with literal Markdown, native selection synchronization, narrow source changes and isolated undo. No global prototype mutation or automatic normalization.
+- [x] Mobile single-pane layout, independent article/workspace colors, focus return, Escape, keyboard navigation and reduced motion.
+- [x] Explicit blank-source and known oversized-page PNG guards; no false cloud-save/publication status.
+- [x] Fix strict baseline errors without relaxing strictness; include app.ts, editor.ts and vite.config.ts.
+- [x] Default production build produces dist/index.html; optional library build is separate, not an SDK release.
+- [x] Lower-level export placeholders reject or return unavailable rather than fake file bytes.
+- [x] Local: 88 Vitest, 59 text, 6 SDK guard, 7 verification-gate, 17 pagination-DOM and 14 production-asset workspace checks passed in separate scopes. Strict typecheck, build and deep checks passed.
+- [x] Remote integration run 34877645243 passed fresh npm ci, strict typecheck, all configured tests, actual web build, deep checks, Chromium pagination and production-asset workspace checks before pushing e2262712d00b3260127b2f9b28ece9356c588616.
+- [x] Existing locked dependency versions/integrities retained; add only the five required CodeMirror direct dependencies and their transitive dependencies.
+- [x] Confirmed ordinary read-only Publishing quality run 34878022617, job 104090496815: all configured steps succeeded after helper cleanup.
 
-- [x] Add article-directory import and article-relative image mapping, including duplicate filenames.
-- [x] Add in-place image context actions for Markdown and HTML images without duplicating edited images.
-- [x] Verify real article editing and repeated-image targeting in the browser.
-- Browser-extension-based bulk WeChat uploading is not implemented in this change. Await the user's choice on installing an unpacked Chrome extension; do not present local mapping as uploading.
+Evidence and reproduction: [QUIET_WORKSPACE.md](docs/project-governance/QUIET_WORKSPACE.md), [remote verification](docs/project-governance/REMOTE_WORKSPACE_VERIFICATION.md).
 
-## Completed: WeChat Tables And Mobile Headings (2026-09-14)
+### Continuation: trust, stable previews and quieter auxiliary tools (2026-09-15)
 
-- [x] Replace lossy table-to-paragraph export with native responsive table cells on both WeChat paths.
-- [x] Normalize heading and descendant wrapping instead of inheriting magazine keep-all rules.
-- [x] Add regression coverage: 32 tests and changed-module typecheck pass.
-- [x] Preserve the user's updated draft text and images, repair its two tables, then increase article font sizes by 2px at the user's request. Save/reload verifies exact text, two tables, 13 images, 16px body and normal heading breaks. No publication or deployment.
+- [x] Shared parse5/rehype-sanitize boundary on magazine, SDK, WeChat, clipboard and cover paths. Image-source inspection uses inert AST positions rather than live DOM parsing. Source text is not automatically rewritten.
+- [x] Native labelled image/cover dialogs, explicit focus wrap/return, Escape and composition-safe Enter. Quiet light surfaces, collapsed ratio/AI options, no unimplemented crop buttons.
+- [x] Preserve an existing image when changing ratio preferences; clearing an image can still produce a placeholder without an extra gesture.
+- [x] Revision-checked preview frames, immediate blank-source invalidation and pending-export guards. Zoom only updates transforms and retains article DOM.
+- [x] Local strict typecheck, web build, deep verification: pass. Separate scopes: 104 Vitest, 59 text, 6 SDK guards, 7 gate tests, 17 pagination, 21 production-asset/offline Chromium UI checks.
+- [x] Remote run 34886333340 passed fresh npm ci, strict typecheck, 104 unit tests, 59 text checks, 6 SDK guards, 7 gate tests, 17 pagination fixtures, 22 real-HTTP workspace checks, build and deep verification. Its final bot push alone failed workflow permission; the authorized GitHub connector then fast-forwarded the exact tested tree as d1e3846. No permissions were expanded.
+- [x] Subsequent ordinary read-only Publishing quality run 34886672517, job 104118927125, succeeded for implementation d1e3846 after temporary helper cleanup, including real-HTTP workspace interactions.
 
-## Completed: WeChat Paper Insets (2026-09-14)
+Details and reproduction: [CONTINUATION_2026-09-15.md](docs/project-governance/CONTINUATION_2026-09-15.md). Remote evidence: [REMOTE_CONTINUATION_VERIFICATION.md](docs/project-governance/REMOTE_CONTINUATION_VERIFICATION.md).
 
-- [x] Restore 24px vertical / 20px horizontal padding inside the copied article background; preserve Word spacing.
-- [x] Verify 320/375/677px widths, image sizing and sanitizer round trips. All three widths pass the live platform structure checker.
-- [x] With explicit user approval, restore the empty draft, save and reload through native Chrome. All 4200 non-whitespace characters and 13 hosted images retained; padding and background survive saving. No publication.
-- [x] 31 tests, changed-module typecheck and repository verification pass.
+### Remaining ordered work
 
-## Completed: Magazine To WeChat Copy (2026-09-14)
+- [x] Shared mature HTML trust boundary on current primary entry/output paths, including inert image-source helpers. Continue auditing newly introduced renderers separately.
+- [ ] Unified source-aware Markdown semantics for magazine and WeChat; preserve existing image syntax and legacy line breaks.
+- [ ] Non-destructive cross-inline typography profiles with one spacing engine and explicit normalization preview.
+- [x] Cancel stale preview commits; block pending output and preserve source/image identity on zoom.
+- [ ] Bounded font/image readiness for final pagination/export and full slow-resource mapping regression.
+- [ ] Real OS Chinese IME, Firefox/WebKit/mobile WebView, live WeChat paste-save-reload and external-resource acceptance. Local-HTTP production navigation is now verified on the remote Chromium runner.
+- [ ] Reproducible Paged.js/Vivliostyle comparison, dependency advisory triage and SDK distribution packaging. Keep the current print backend until measured evidence supports changing it.
 
-- [x] Reproduce Garden long-article clipboard output with the reported Markdown.
-- [x] Add WeChat-compatible copying of the current magazine appearance.
-- [x] Preserve colors/backgrounds/image proportions, remove browser layout internals, protect image URLs.
-- [x] Verify native Chrome paste, save and reload: all 4200 non-whitespace characters and 13 uploaded images retained; platform structure checker passes.
-- [x] Run 30 unit tests, targeted strict TypeScript checks and repository verification. Full-project typecheck remains blocked by existing unrelated errors.
-- Public-site deployment is not part of this change; the new copy button is available in the local editor.
-
-## Previous Completed Plan
-
-## Goal
-
-Stop Han.css CJK 着重号 (sesame/circle dots under every glyph) on Markdown `*italic*` / `_italic_`. Magazine preview keeps readable italic. WeChat paste never emits `<em>` / `font-style:italic` / `text-emphasis` marks.
-
-## Tasks
-
-- [x] Confirm Han.css `em:lang(zh|ja)` default (`text-emphasis: filled circle` + dotted-border fallback) and that `index.html` loads it globally (magazine + WeChat preview share the stylesheet).
-- [x] Override Han.css emphasis on `em`/`i` in `editor.css`; skip `Han.normalize.renderEm` in magazine init.
-- [x] Same override in Paged.js print-preview HTML (loads Han.css independently).
-- [x] WeChat `inlineMd`: map `*...*` / `_..._` to color `<span>`, not `<em>`.
-- [x] `sanitizeWechatPasteHtml` strips `text-emphasis*` and remaps leftover `<em>`/`<i>`.
-- [x] Unit tests in `tests/wechat-paste-html.test.ts`.
-- [x] `python3 tools/verify.py` + WeChat paste tests.
-- [x] Ready (non-draft) PR.
-
-## Out Of Scope
-
-- Magazine Han spacing / biaodian / hanging punctuation (only the emphasis-mark routine).
-- Vendoring a Han.css fork.
-- Changing blockquote `font-style: italic` (not `<em>`, not the reported bug).
-- Inventing new Markdown syntax.
-
-## Verification
-
-- `python3 tools/verify.py`
-- `npm run typecheck` and `npm run test`
-- WeChat paste tests: no `<em>`, no `font-style:italic` on emphasis, no `text-emphasis` other than `none`
-
-## Next Candidates
-
-- Maintainer: `gh repo edit jammyfu/MagMark --homepage https://bubufu.com/tools/magmark/`
-- Define release-quality acceptance criteria.
-- Document export-engine boundaries in code comments without changing behavior.
+The UI milestone does not complete the publishing upgrade. Keep PR #7 draft and the live site unchanged.

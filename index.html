@@ -1,314 +1,247 @@
 <!DOCTYPE html>
 <html lang="zh-Hans">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MagMark 1.6.0 — Ultra-Precision Magazine Markdown Editor</title>
-    <meta name="description" content="MagMark 1.6.0 终极优化版：彻底告别 PDF 存图，强制齐行 + 自动连字符，高精度 Canvas 导出。">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600&family=LXGW+WenKai:wght@300;400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
-    <!-- Han.css — CJK 高级汉字排版 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css">
-    <link rel="stylesheet" href="/editor.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MagMark — 写作与排版</title>
+<meta content="MagMark，将 Markdown 排成易读的文章、杂志页面与公众号内容。" name="description"/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&amp;family=Noto+Sans+SC:wght@300;400;500;600&amp;family=LXGW+WenKai:wght@300;400;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<!-- Han.css — CJK 高级汉字排版 -->
+<link href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css" rel="stylesheet"/>
+<link href="/editor.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/workspace.css">
 </head>
-
-<body>
-    <!-- Header -->
-    <header id="app-header">
-        <div class="logo">
-            <span class="logo-icon">✦</span>
-            <span class="logo-text">MagMark <span class="logo-version">1.6.0</span></span>
-        </div>
-        <div class="header-actions">
-            <label class="file-upload-btn" title="同时导入 Markdown 和相对路径图片；目录含多篇文章时可选择">
-                <span>导入文章目录</span>
-                <input type="file" id="article-directory-input" webkitdirectory multiple hidden>
-            </label>
-            <label class="file-upload-btn" id="file-upload-label">
-                <span>📂 打开文件</span>
-                <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden>
-            </label>
-            <label class="file-upload-btn" title="文章包含 assets/... 等相对图片路径时，选择文章所在目录或 assets 目录">
-                <span>批量关联图片</span>
-                <input type="file" id="asset-directory-input" webkitdirectory multiple hidden>
-            </label>
-            <button class="btn btn-secondary" id="btn-save" title="保存 Markdown (Ctrl+S)">💾 保存</button>
-            <button class="btn btn-secondary" id="btn-image" title="插入图片 / AI 生图 / 图文混排">🖼 图片</button>
-            <button class="btn btn-secondary" id="btn-print-preview" title="使用 Paged.js 打开打印预览（含页码与页眉）">🖨 打印预览</button>
-            <button class="btn btn-secondary" id="btn-export-all" title="导出全部页为 PNG">🗂 导出全部</button>
-            <button class="btn btn-primary" id="btn-export" title="导出高精度 PNG">📸 导出当页</button>
-        </div>
-    </header>
-
-    <!-- Main Layout -->
-    <main class="main-container">
-        <!-- Left: Editor Panel -->
-        <div class="editor-panel" id="editor-panel">
-            <div class="panel-header">
-                <span class="panel-title">📝 Markdown 编辑器</span>
-                <span class="char-count" id="char-count">0 字符</span>
-            </div>
-            <textarea id="markdown-input" spellcheck="false"
-                placeholder="# 在此输入 Markdown…&#10;&#10;开始输入即可看到实时预览和智能分页效果。"></textarea>
-        </div>
-
-        <!-- Resize Handle -->
-        <div class="resize-handle" id="resize-handle"></div>
-
-        <!-- Right: Preview Panel -->
-        <div class="preview-panel" id="preview-panel">
-            <!-- Controls Bar -->
-            <div class="controls-bar" id="controls-bar">
-                <div class="control-group">
-                    <label class="control-label">风格主题</label>
-                    <select id="ctrl-theme">
-                        <optgroup label="── 杂志排版主题 ──">
-                            <option value="elite">旗舰金石 (Elite)</option>
-                            <option value="ocean-depths">深海 (Ocean)</option>
-                            <option value="sunset-boulevard">日落大道 (Sunset)</option>
-                            <option value="forest-canopy">森之冠 (Forest)</option>
-                            <option value="modern-minimalist">现代极简 (Modern)</option>
-                            <option value="golden-hour">黄金时刻 (Golden)</option>
-                            <option value="arctic-frost">北极霜晨 (Arctic)</option>
-                            <option value="desert-rose">沙漠玫瑰 (Rose)</option>
-                            <option value="tech-innovation">科技创新 (Tech)</option>
-                            <option value="botanical-garden">植物园 (Garden)</option>
-                            <option value="midnight-galaxy">午夜星系 (Galaxy)</option>
-                        </optgroup>
-                        <optgroup label="── 公众号主题 (内联样式) ──">
-                            <option value="wc-minimalist">极简主义</option>
-                            <option value="wc-elegant">优雅青绿</option>
-                            <option value="wc-modern">活力橙红</option>
-                            <option value="wc-business">商务深蓝</option>
-                            <option value="wc-retro">复古纸张</option>
-                            <option value="wc-pink">少女粉色</option>
-                            <option value="wc-dark">极简暗黑</option>
-                            <option value="wc-forest">森林呼吸</option>
-                            <option value="wc-ocean">深海之蓝</option>
-                            <option value="wc-lavender">薰衣草紫</option>
-                            <option value="wc-coffee">咖啡时光</option>
-                            <option value="wc-cyberpunk">赛博朋克</option>
-                            <option value="wc-premium_gold">尊享金典</option>
-                            <option value="wc-tech_blueprint">技术蓝图</option>
-                            <option value="wc-sunset">落日余晖</option>
-                            <option value="wc-mint">薄荷清爽</option>
-                            <option value="wc-hand_written">手写文艺</option>
-                            <option value="wc-wechat_green">微信绿 (官方)</option>
-                        </optgroup>
-                    </select>
-                </div>
-                <!-- 微信公众号字号倍率（选中微信主题时显示） -->
-                <div class="control-group" id="wc-fontsize-group" style="display:none;">
-                    <label class="control-label">字号倍率 <span class="val" id="val-wc-fontsize">1.0×</span></label>
-                    <input type="range" id="ctrl-wc-fontsize" min="0.8" max="1.5" step="0.05" value="1">
-                </div>
-                <!-- 微信预览设备（选中微信主题时显示） -->
-                <div class="control-group" id="wc-device-group" style="display:none;">
-                    <label class="control-label">预览设备</label>
-                    <select id="ctrl-wc-device">
-                        <option value="iphone">手机 (375px)</option>
-                        <option value="android">安卓 (412px)</option>
-                        <option value="tablet">平板 (768px)</option>
-                        <option value="desktop">宽屏 (800px)</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label class="control-label">字体</label>
-                    <select id="ctrl-font">
-                        <option value="'Source Han Serif SC', 'Noto Serif SC', serif">思源宋体 (杂志)</option>
-                        <option value="'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">思源黑体</option>
-                        <option value="'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">苹方 / 微软雅黑</option>
-                        <option value="'LXGW WenKai', 'KaiTi', 'STKaiti', serif">楷体 (文艺)</option>
-                        <option value="'Helvetica Neue', 'Arial', sans-serif">Helvetica / Arial</option>
-                        <option value="'Georgia', 'Times New Roman', serif">Georgia (英文)</option>
-                        <option value="'JetBrains Mono', 'Monaco', 'Menlo', monospace">等宽字体</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label class="control-label">字号 <span class="val" id="val-fontsize">14pt</span></label>
-                    <input type="range" id="ctrl-fontsize" min="10" max="24" value="14">
-                </div>
-                <div class="control-group">
-                    <label class="control-label">行高 <span class="val" id="val-lineheight">1.75×</span></label>
-                    <input type="range" id="ctrl-lineheight" min="1" max="3" step="0.05" value="1.75">
-                </div>
-                <div class="control-group">
-                    <label class="control-label">字间距 <span class="val" id="val-letterspacing">0.01em</span></label>
-                    <input type="range" id="ctrl-letterspacing" min="-0.05" max="0.2" step="0.01" value="0.01">
-                </div>
-                <div class="control-group">
-                    <label class="control-label">页面格式</label>
-                    <select id="ctrl-format">
-                        <option value="a4">A4 打印</option>
-                        <option value="mobile">手机 (393px)</option>
-                        <option value="desktop">桌面 (800px)</option>
-                        <option value="xiaohongshu">小红书 3:4</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label class="control-label">缩放</label>
-                    <div class="zoom-controls">
-                        <button id="zoom-out" class="zoom-btn" title="缩小 (Cmd −)">
-                            <svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        </button>
-                        <input id="zoom-value" class="zoom-input" type="number" min="25" max="300" step="5" value="100">
-                        <span class="zoom-pct">%</span>
-                        <button id="zoom-in" class="zoom-btn" title="放大 (Cmd +)">
-                            <svg width="10" height="10" viewBox="0 0 10 10"><line x1="5" y1="1" x2="5" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        </button>
-                        <button id="zoom-100" class="zoom-btn zoom-preset" title="实际大小 (Cmd 1)">1:1</button>
-                        <button id="zoom-fit" class="zoom-btn zoom-preset" title="适合窗口 (Cmd 0)">
-                            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 4V1h3M9 1h3v3M12 9v3H9M4 12H1V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label class="control-label">视图</label>
-                    <div class="mode-toggle">
-                        <button class="mode-btn active" id="btn-multi" data-mode="multi">分页</button>
-                        <button class="mode-btn" id="btn-scroll" data-mode="scroll">长文</button>
-                    </div>
-                </div>
-                <div class="control-group" id="page-override-group" style="display: flex;">
-                    <label class="control-label">单页独立</label>
-                    <label class="switch">
-                        <input type="checkbox" id="chk-page-override">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="control-group">
-                    <button id="btn-copy-page-rich" class="ctrl-style-btn" title="复制当前页（长文视图复制全文），适合 Word；微信公众号请使用旁边的「复制到公众号」">
-                        复制排版页
-                    </button>
-                    <button id="btn-copy-page-wechat" class="ctrl-style-btn" title="保留当前主题颜色，适配公众号的宽度、对齐和行高；长文视图复制全文。本地图片保留上传位置。">复制到公众号</button>
-                    <span id="copy-page-status" role="status" aria-live="polite" style="max-width:320px;font-size:12px;line-height:1.6"></span>
-                </div>
-                <!-- 微信富文本复制按钮（选中微信主题时显示） -->
-                <div class="control-group" id="wc-copy-group" style="display:none;">
-                    <button id="btn-wc-copy" class="ctrl-wc-copy-btn" title="将内联样式 HTML 复制到剪贴板，可直接粘贴到微信公众号后台">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        复制富文本
-                    </button>
-                </div>
-                <div class="control-group" id="manual-pag-group" style="display: flex;">
-                    <label class="control-label">手动分页</label>
-                    <label class="switch">
-                        <input type="checkbox" id="chk-manual-pagination">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="control-group" id="paragraph-divider-group" style="display: flex;">
-                    <label class="control-label">显示段落分割线</label>
-                    <label class="switch">
-                        <input type="checkbox" id="chk-show-paragraph-dividers">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <!-- Cover generation button -->
-                <div class="control-group">
-                    <button id="btn-cover" class="ctrl-cover-btn" title="生成封面">
-                        <svg width="12" height="12" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
-                            <rect x="1" y="1" width="13" height="13" rx="1.5"/>
-                            <line x1="1" y1="5.5" x2="14" y2="5.5"/>
-                            <line x1="4" y1="8.5" x2="11" y2="8.5" stroke-linecap="round"/>
-                            <line x1="4" y1="11" x2="9" y2="11" stroke-linecap="round"/>
-                        </svg>
-                        生成封面
-                    </button>
-                </div>
-                <!-- Reset button -->
-                <div class="control-group">
-                    <button id="btn-reset" class="ctrl-reset-btn" title="重置所有排版设置到默认值">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                            <path d="M3 3v5h5" />
-                        </svg>
-                        重置
-                    </button>
-                </div>
-            </div>
-
-            <!-- Preview Area -->
-            <div class="preview-area" id="preview-area">
-                <div class="page page-a4" id="page-initial">
-                    <div class="page-content magmark magmark-hide-paragraph-dividers" id="render-target">
-                        <div class="placeholder">
-                            <div class="placeholder-icon">✦</div>
-                            <p>在左侧输入 Markdown，预览将在这里实时呈现</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pagination Bar -->
-            <div class="pagination-bar" id="pagination-bar" style="display:none;">
-                <button class="page-btn" id="btn-prev" disabled>← 上一页</button>
-                <span class="page-info" id="page-info">第 1 / 1 页</span>
-                <button class="page-btn" id="btn-next" disabled>下一页 →</button>
-            </div>
-            <!-- Page Thumbnail Strip -->
-            <div class="page-strip" id="page-strip" style="display:none;"></div>
-        </div>
-    </main>
-
-    <!-- Block Floating Toolbar -->
-    <div id="block-toolbar" class="floating-toolbar" style="display: none;">
-        <div class="toolbar-item toolbar-typography-item">
-            <label>字号</label>
-            <input type="range" id="toolbar-fontsize" min="10" max="64" step="1">
-            <span class="toolbar-val" id="toolbar-val-fontsize">14px</span>
-        </div>
-        <div class="toolbar-item toolbar-typography-item">
-            <label>行高</label>
-            <input type="range" id="toolbar-lineheight" min="1" max="3" step="0.05">
-            <span class="toolbar-val" id="toolbar-val-lineheight">1.75</span>
-        </div>
-        <div class="toolbar-item toolbar-typography-item">
-            <label>间距</label>
-            <input type="range" id="toolbar-letterspacing" min="-0.1" max="0.5" step="0.01">
-            <span class="toolbar-val" id="toolbar-val-letterspacing">0.01</span>
-        </div>
-        <div class="toolbar-item toolbar-image-item" id="toolbar-image-align" style="display:none;">
-            <label>对齐</label>
-            <div class="toolbar-align-group">
-                <button id="toolbar-align-left" class="toolbar-btn toolbar-align-btn" title="左对齐">左</button>
-                <button id="toolbar-align-center" class="toolbar-btn toolbar-align-btn" title="居中">中</button>
-                <button id="toolbar-align-right" class="toolbar-btn toolbar-align-btn" title="右对齐">右</button>
-                <button id="toolbar-align-full" class="toolbar-btn toolbar-align-btn" title="全宽">满</button>
-            </div>
-        </div>
-        <div class="toolbar-divider"></div>
-        <!-- Insert image above: up-arrow pointing up, divider line, image rect on top -->
-        <button id="toolbar-insert-above" class="toolbar-btn toolbar-img-btn" title="在此块上方插入图片">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 1V5M5.5 3L8 0.5L10.5 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="0" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="1.3"/>
-                <rect x="1" y="9" width="14" height="6" rx="1" fill="currentColor" opacity="0.3" stroke="currentColor" stroke-width="1.3"/>
-                <path d="M3 14L5.5 11.5L7.5 13L9.5 11L13 14" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </button>
-        <!-- Insert image below: image rect on top, divider line, down-arrow pointing down -->
-        <button id="toolbar-insert-below" class="toolbar-btn toolbar-img-btn" title="在此块下方插入图片">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1" y="1" width="14" height="6" rx="1" fill="currentColor" opacity="0.3" stroke="currentColor" stroke-width="1.3"/>
-                <path d="M3 6L5.5 3.5L7.5 5L9.5 3L13 6" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="0" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.3"/>
-                <path d="M8 11V15M5.5 13L8 15.5L10.5 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </button>
-        <div class="toolbar-divider"></div>
-        <span id="toolbar-count" class="toolbar-count" style="display:none;"></span>
-        <button id="toolbar-close" class="toolbar-btn">✕</button>
+<body data-workspace="compare">
+  <a class="skip-link" href="#source-editor">跳到编辑器</a>
+  <header id="app-header" class="workspace-header">
+    <div class="brand-lockup" aria-label="MagMark 写作与排版">
+      <span class="brand-mark" aria-hidden="true">M<span>·</span></span>
+      <span class="brand-name">MagMark</span>
+      <span class="brand-divider" aria-hidden="true"></span>
+      <span id="document-title" class="document-title">未命名文章</span>
+      <span class="logo-version" hidden>1.6.0</span>
     </div>
+    <nav id="workspace-tabs" class="workspace-tabs" aria-label="工作区视图">
+      <button type="button" data-workspace-view="write" aria-pressed="false">写作</button>
+      <button type="button" data-workspace-view="compare" aria-pressed="true">对照</button>
+      <button type="button" data-workspace-view="preview" aria-pressed="false">预览</button>
+    </nav>
+    <div class="workspace-actions">
+      <details id="file-menu" class="file-menu">
+        <summary>文件 <span aria-hidden="true">⌄</span></summary>
+        <div class="file-popover" aria-label="文件操作">
+          <button type="button" id="file-upload-label" data-open-input="file-input">打开 Markdown <span>.md</span></button>
+          <button type="button" data-open-input="article-directory-input">导入文章目录 <span>含图片</span></button>
+          <button type="button" data-open-input="asset-directory-input">关联图片目录 <span>补全缺图</span></button>
+          <div class="menu-separator" role="separator"></div>
+          <button type="button" id="btn-save" title="下载 Markdown 原文">保存 Markdown <kbd>⌘ S</kbd></button>
+          <p>文章目录用于本地预览，不会上传图片。</p>
+        </div>
+      </details>
+      <button type="button" id="btn-publish" class="primary-action" aria-haspopup="dialog" aria-controls="export-dialog">导出 <span aria-hidden="true">↗</span></button>
+    </div>
+    <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden>
+    <input type="file" id="article-directory-input" webkitdirectory multiple hidden>
+    <input type="file" id="asset-directory-input" webkitdirectory multiple hidden>
+  </header>
 
-    <!-- Han.js — CJK 字间距、标点挤压、引号配对 -->
-    <script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
-    <script type="module" src="/editor.ts"></script>
+  <main class="main-container" id="workspace-main">
+    <section class="editor-panel" id="editor-panel" aria-label="写作区">
+      <div class="panel-header workspace-panel-header">
+        <div class="panel-heading"><span class="panel-dot" aria-hidden="true"></span><h1>Markdown</h1><span class="panel-caption">专注于表达</span></div>
+        <div class="insert-actions" aria-label="插入内容">
+          <button type="button" id="btn-image" title="插入或编辑图片">图片</button>
+          <button type="button" id="btn-cover" title="设置文章封面">封面</button>
+        </div>
+      </div>
+      <div id="source-editor" class="source-editor" tabindex="-1"></div>
+      <textarea id="markdown-input" aria-label="Markdown 原文" spellcheck="false" placeholder="# 从一个想法开始
+
+写下你的内容。"></textarea>
+      <footer class="editor-footer"><span id="char-count">0 字符</span><span id="document-status" role="status" aria-live="polite">Markdown 原文</span></footer>
+    </section>
+
+    <div class="resize-handle" id="resize-handle" role="separator" aria-label="调整写作区宽度" aria-orientation="vertical" aria-valuemin="25" aria-valuemax="70" aria-valuenow="42" tabindex="0"></div>
+
+    <section class="preview-panel" id="preview-panel" aria-label="文章预览">
+      <div class="preview-toolbar">
+        <div class="preview-mode" aria-label="文章视图" data-magazine-only>
+          <button type="button" class="mode-btn active" id="btn-multi" data-mode="multi" aria-pressed="true">分页</button>
+          <button type="button" class="mode-btn" id="btn-scroll" data-mode="scroll" aria-pressed="false">长文</button>
+        </div>
+        <span class="wechat-preview-label" hidden id="wechat-preview-label">公众号预览</span>
+        <div class="format-control" data-magazine-only><label class="sr-only" for="ctrl-format">页面格式</label><select id="ctrl-format">
+<option value="a4">A4 打印</option>
+<option value="mobile">手机 (393px)</option>
+<option value="desktop">桌面 (800px)</option>
+<option value="xiaohongshu">小红书 3:4</option>
+</select></div>
+        <button type="button" id="btn-layout" class="layout-action" aria-controls="layout-inspector" aria-expanded="false">排版 <span aria-hidden="true">☷</span></button>
+      </div>
+      <div class="preview-area" id="preview-area" tabindex="-1">
+        <div class="placeholder"><p>写下内容，预览在这里自然呈现。</p></div>
+      </div>
+      <div class="preview-footer">
+        <div class="pagination-bar" id="pagination-bar" style="display:none;">
+          <button type="button" class="page-btn" id="btn-prev" title="上一页" aria-label="上一页" disabled>←</button>
+          <button type="button" class="page-info" id="page-info" aria-controls="page-strip" aria-expanded="false" title="展开页码导航">第 1 / 1 页</button>
+          <button type="button" class="page-btn" id="btn-next" title="下一页" aria-label="下一页" disabled>→</button>
+        </div>
+        <div class="workspace-zoom" aria-label="预览缩放"><div class="zoom-controls">
+<button class="zoom-btn" id="zoom-out" title="缩小 (Cmd −)">
+<svg height="10" viewbox="0 0 10 10" width="10"><line stroke="currentColor" stroke-linecap="round" stroke-width="1.5" x1="1" x2="9" y1="5" y2="5"></line></svg>
+</button>
+<input class="zoom-input" id="zoom-value" max="300" min="25" step="5" type="number" value="100"/>
+<span class="zoom-pct">%</span>
+<button class="zoom-btn" id="zoom-in" title="放大 (Cmd +)">
+<svg height="10" viewbox="0 0 10 10" width="10"><line stroke="currentColor" stroke-linecap="round" stroke-width="1.5" x1="5" x2="5" y1="1" y2="9"></line><line stroke="currentColor" stroke-linecap="round" stroke-width="1.5" x1="1" x2="9" y1="5" y2="5"></line></svg>
+</button>
+<button class="zoom-btn zoom-preset" id="zoom-100" title="实际大小 (Cmd 1)">1:1</button>
+<button class="zoom-btn zoom-preset" id="zoom-fit" title="适合窗口 (Cmd 0)">
+<svg fill="none" height="13" viewbox="0 0 13 13" width="13"><path d="M1 4V1h3M9 1h3v3M12 9v3H9M4 12H1V9" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3"></path></svg>
+</button>
+</div></div>
+      </div>
+      <div class="page-strip" id="page-strip" style="display:none;" aria-label="页码导航"></div>
+    </section>
+
+    <aside id="layout-inspector" class="layout-inspector" aria-labelledby="inspector-title" hidden>
+      <header class="inspector-header"><h2 id="inspector-title" tabindex="-1">排版</h2><button type="button" id="btn-layout-close" aria-label="关闭排版设置">完成</button></header>
+      <div class="controls-bar" id="controls-bar">
+        <section class="inspector-section"><h3>外观</h3>
+          <div class="control-group"><label class="control-label" for="ctrl-theme">文章风格</label><select id="ctrl-theme">
+<optgroup label="── 杂志排版主题 ──">
+<option value="elite">旗舰金石 (Elite)</option>
+<option value="ocean-depths">深海 (Ocean)</option>
+<option value="sunset-boulevard">日落大道 (Sunset)</option>
+<option value="forest-canopy">森之冠 (Forest)</option>
+<option value="modern-minimalist">现代极简 (Modern)</option>
+<option value="golden-hour">黄金时刻 (Golden)</option>
+<option value="arctic-frost">北极霜晨 (Arctic)</option>
+<option value="desert-rose">沙漠玫瑰 (Rose)</option>
+<option value="tech-innovation">科技创新 (Tech)</option>
+<option value="botanical-garden">植物园 (Garden)</option>
+<option value="midnight-galaxy">午夜星系 (Galaxy)</option>
+</optgroup>
+<optgroup label="── 公众号主题 (内联样式) ──">
+<option value="wc-minimalist">极简主义</option>
+<option value="wc-elegant">优雅青绿</option>
+<option value="wc-modern">活力橙红</option>
+<option value="wc-business">商务深蓝</option>
+<option value="wc-retro">复古纸张</option>
+<option value="wc-pink">少女粉色</option>
+<option value="wc-dark">极简暗黑</option>
+<option value="wc-forest">森林呼吸</option>
+<option value="wc-ocean">深海之蓝</option>
+<option value="wc-lavender">薰衣草紫</option>
+<option value="wc-coffee">咖啡时光</option>
+<option value="wc-cyberpunk">赛博朋克</option>
+<option value="wc-premium_gold">尊享金典</option>
+<option value="wc-tech_blueprint">技术蓝图</option>
+<option value="wc-sunset">落日余晖</option>
+<option value="wc-mint">薄荷清爽</option>
+<option value="wc-hand_written">手写文艺</option>
+<option value="wc-wechat_green">微信绿 (官方)</option>
+</optgroup>
+</select></div>
+          <div class="control-group" data-magazine-only><label class="control-label" for="ctrl-font">字体</label><select id="ctrl-font">
+<option value="'Source Han Serif SC', 'Noto Serif SC', serif">思源宋体 (杂志)</option>
+<option value="'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">思源黑体</option>
+<option value="'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">苹方 / 微软雅黑</option>
+<option value="'LXGW WenKai', 'KaiTi', 'STKaiti', serif">楷体 (文艺)</option>
+<option value="'Helvetica Neue', 'Arial', sans-serif">Helvetica / Arial</option>
+<option value="'Georgia', 'Times New Roman', serif">Georgia (英文)</option>
+<option value="'JetBrains Mono', 'Monaco', 'Menlo', monospace">等宽字体</option>
+</select></div>
+          <p class="inspector-note">风格只改变文章，工作区保持安静。</p>
+        </section>
+        <section class="inspector-section"><h3>阅读节奏</h3>
+          <div class="control-group" data-magazine-only><label class="control-label" for="ctrl-fontsize">字号 <span class="val" id="val-fontsize">14px</span></label><input type="range" id="ctrl-fontsize" min="10" max="64" value="14"></div>
+          <div class="control-group" data-magazine-only><label class="control-label" for="ctrl-lineheight">行高 <span class="val" id="val-lineheight">1.75×</span></label><input type="range" id="ctrl-lineheight" min="1" max="3" step="0.05" value="1.75"></div>
+          <div class="control-group" id="wc-fontsize-group" style="display:none;"><label class="control-label" for="ctrl-wc-fontsize">字号倍率 <span class="val" id="val-wc-fontsize">1.0×</span></label><input type="range" id="ctrl-wc-fontsize" min="0.8" max="1.5" step="0.05" value="1"></div>
+          <div class="control-group" id="wc-device-group" style="display:none;"><label class="control-label" for="ctrl-wc-device">预览设备</label><select id="ctrl-wc-device">
+<option value="iphone">手机 (375px)</option>
+<option value="android">安卓 (412px)</option>
+<option value="tablet">平板 (768px)</option>
+<option value="desktop">宽屏 (800px)</option>
+</select></div>
+        </section>
+        <details class="inspector-advanced" data-magazine-only><summary>高级设置 <span aria-hidden="true">＋</span></summary>
+          <div class="control-group"><label class="control-label" for="ctrl-letterspacing">字间距 <span class="val" id="val-letterspacing">0.01em</span></label><input type="range" id="ctrl-letterspacing" min="-0.05" max="0.2" step="0.01" value="0.01"></div>
+          <div class="control-group control-switch" id="page-override-group"><label class="control-label" for="chk-page-override">仅调整当前页</label><label class="switch"><input type="checkbox" id="chk-page-override"><span class="slider round"></span></label></div>
+          <div class="control-group control-switch" id="manual-pag-group"><label class="control-label" for="chk-manual-pagination">手动分页</label><label class="switch"><input type="checkbox" id="chk-manual-pagination"><span class="slider round"></span></label></div>
+          <div class="control-group control-switch" id="paragraph-divider-group"><label class="control-label" for="chk-show-paragraph-dividers">段落分割线</label><label class="switch"><input type="checkbox" id="chk-show-paragraph-dividers"><span class="slider round"></span></label></div>
+        </details>
+        <button type="button" id="btn-reset" class="reset-action">恢复默认排版</button>
+      </div>
+    </aside>
+  </main>
+  <div id="workspace-status" class="workspace-status" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="export-dialog" class="export-dialog" aria-labelledby="export-title" aria-describedby="export-context">
+    <header class="export-header"><div><p class="eyebrow">带走你的作品</p><h2 id="export-title">导出与复制</h2></div><button type="button" id="btn-export-close" class="icon-close" aria-label="关闭导出面板">×</button></header>
+    <p id="export-context" class="export-context">当前预览内容</p>
+    <p id="export-warning" class="export-warning" role="status" hidden></p>
+    <section class="export-section"><h3>复制排版</h3>
+      <div class="export-choice" data-magazine-only><button type="button" id="btn-copy-page-wechat">复制到公众号 <span aria-hidden="true">↗</span></button><p>保留文章风格，适配公众号。</p></div>
+      <div class="export-choice" id="wc-copy-group" style="display:none;"><button type="button" id="btn-wc-copy">复制公众号富文本 <span aria-hidden="true">↗</span></button><p>将当前公众号风格复制到剪贴板。</p></div>
+      <div class="export-choice"><button type="button" id="btn-copy-page-rich">复制到 Word 等编辑器 <span aria-hidden="true">↗</span></button><p>复制当前排版，不发布文章。</p></div>
+      <p id="copy-page-status" class="export-feedback" role="status" aria-live="polite"></p>
+    </section>
+    <section class="export-section" data-magazine-only><h3>保存文件</h3>
+      <div class="export-file-grid"><button type="button" id="btn-export">当前页 PNG</button><button type="button" id="btn-export-all">全部页 PNG</button><button type="button" id="btn-print-preview">打印 / PDF 预览</button></div>
+    </section>
+    <footer class="export-note">本地图片需在目标平台单独上传。导出不会自动发布。</footer>
+  </dialog>
+  <div class="floating-toolbar" id="block-toolbar" style="display: none;">
+<div class="toolbar-item toolbar-typography-item">
+<label>字号</label>
+<input id="toolbar-fontsize" max="64" min="10" step="1" type="range"/>
+<span class="toolbar-val" id="toolbar-val-fontsize">14px</span>
+</div>
+<div class="toolbar-item toolbar-typography-item">
+<label>行高</label>
+<input id="toolbar-lineheight" max="3" min="1" step="0.05" type="range"/>
+<span class="toolbar-val" id="toolbar-val-lineheight">1.75</span>
+</div>
+<div class="toolbar-item toolbar-typography-item">
+<label>间距</label>
+<input id="toolbar-letterspacing" max="0.5" min="-0.1" step="0.01" type="range"/>
+<span class="toolbar-val" id="toolbar-val-letterspacing">0.01</span>
+</div>
+<div class="toolbar-item toolbar-image-item" id="toolbar-image-align" style="display:none;">
+<label>对齐</label>
+<div class="toolbar-align-group">
+<button class="toolbar-btn toolbar-align-btn" id="toolbar-align-left" title="左对齐">左</button>
+<button class="toolbar-btn toolbar-align-btn" id="toolbar-align-center" title="居中">中</button>
+<button class="toolbar-btn toolbar-align-btn" id="toolbar-align-right" title="右对齐">右</button>
+<button class="toolbar-btn toolbar-align-btn" id="toolbar-align-full" title="全宽">满</button>
+</div>
+</div>
+<div class="toolbar-divider"></div>
+<!-- Insert image above: up-arrow pointing up, divider line, image rect on top -->
+<button class="toolbar-btn toolbar-img-btn" id="toolbar-insert-above" title="在此块上方插入图片">
+<svg fill="none" height="16" viewbox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M8 1V5M5.5 3L8 0.5L10.5 3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3"></path>
+<line stroke="currentColor" stroke-width="1.3" x1="0" x2="16" y1="7" y2="7"></line>
+<rect fill="currentColor" height="6" opacity="0.3" rx="1" stroke="currentColor" stroke-width="1.3" width="14" x="1" y="9"></rect>
+<path d="M3 14L5.5 11.5L7.5 13L9.5 11L13 14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.9"></path>
+</svg>
+</button>
+<!-- Insert image below: image rect on top, divider line, down-arrow pointing down -->
+<button class="toolbar-btn toolbar-img-btn" id="toolbar-insert-below" title="在此块下方插入图片">
+<svg fill="none" height="16" viewbox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">
+<rect fill="currentColor" height="6" opacity="0.3" rx="1" stroke="currentColor" stroke-width="1.3" width="14" x="1" y="1"></rect>
+<path d="M3 6L5.5 3.5L7.5 5L9.5 3L13 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.9"></path>
+<line stroke="currentColor" stroke-width="1.3" x1="0" x2="16" y1="9" y2="9"></line>
+<path d="M8 11V15M5.5 13L8 15.5L10.5 13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3"></path>
+</svg>
+</button>
+<div class="toolbar-divider"></div>
+<span class="toolbar-count" id="toolbar-count" style="display:none;"></span>
+<button class="toolbar-btn" id="toolbar-close">✕</button>
+</div>
+  <script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
+  <script type="module" src="/app.ts"></script>
 </body>
-
 </html>

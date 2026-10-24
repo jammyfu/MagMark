@@ -1,3 +1,4 @@
+import { sanitizeArticleHtml } from '../security/article-html';
 import { sanitizeWechatPasteHtml } from '../wechat/wechat-sanitize';
 
 export type ClipboardTarget = 'document' | 'wechat';
@@ -88,7 +89,7 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
     const section = document.createElement('section');
     section.style.cssText = clone.style.cssText;
     section.append(...clone.childNodes);
-    const html = target === 'wechat' ? sanitizeWechatPasteHtml(section.outerHTML) : section.outerHTML;
+    const html = target === 'wechat' ? sanitizeWechatPasteHtml(section.outerHTML) : sanitizeArticleHtml(section.outerHTML);
     // Use block boundaries in the plain-text flavour as well.
     const plain = document.createElement('div');
     plain.innerHTML = html.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<\/(p|div|section|h[1-6]|li|tr|blockquote|pre)>/gi, '\n</$1>');
@@ -96,6 +97,7 @@ export function buildRichClipboardPayload(source: HTMLElement, target: Clipboard
 }
 
 export async function writeRichClipboard(payload: Pick<RichClipboardPayload, 'html' | 'text'>): Promise<boolean> {
+    payload = { ...payload, html: sanitizeArticleHtml(payload.html) };
     try {
         if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
             await navigator.clipboard.write([new ClipboardItem({
