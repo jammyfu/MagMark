@@ -1,14 +1,19 @@
 {
   "name": "magmark",
-  "version": "1.6.0",
+  "version": "2.0.0-beta.1",
   "description": "World-class magazine-quality markdown converter",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "build:web": "node scripts/generate-web-docs.mjs && vite build --config vite.web.config.ts && node scripts/check-web-seo.mjs",
     "dev": "vite dev",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "node scripts/check-text-compat.cjs && node tests/sdk-export-cases.cjs && vitest run",
+    "test:text": "node scripts/check-text-compat.cjs",
+    "test:sdk": "node tests/sdk-export-cases.cjs",
+    "test:pagination": "node scripts/check-pagination.cjs",
+    "test:verify": "python3 -m unittest discover -s tests -p test_verify.py",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:visual": "percy snapshot .",
@@ -19,7 +24,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist node_modules/.vite",
-    "version": "node scripts/sync-version.js && git add ."
+    "version": "node scripts/sync-version.js && git add .",
+    "test:workspace": "node scripts/check-workspace.cjs",
+    "build:lib": "tsc && vite build --mode library"
   },
   "keywords": [
     "markdown",
@@ -36,16 +43,21 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/magmark/magmark-2.0.git"
+    "url": "https://github.com/jammyfu/MagMark.git"
   },
   "bugs": {
-    "url": "https://github.com/magmark/magmark-2.0/issues"
+    "url": "https://github.com/jammyfu/MagMark/issues"
   },
-  "homepage": "https://github.com/magmark/magmark-2.0#readme",
+  "homepage": "https://bubufu.com/tools/magmark/",
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@codemirror/commands": "6.11.0",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/state": "6.7.4",
+    "@codemirror/view": "6.43.11",
     "@tiptap/core": "^2.1.0",
     "@tiptap/extension-image": "^2.1.0",
     "@tiptap/extension-link": "^2.1.0",
@@ -55,11 +67,14 @@
     "@tiptap/starter-kit": "^2.1.0",
     "archiver": "^6.0.0",
     "canvas": "^3.2.1",
+    "dompurify": "3.4.15",
     "html-to-image": "^1.11.13",
     "prosemirror-state": "^1.4.3",
     "prosemirror-view": "^1.32.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "rehype-raw": "7.0.0",
+    "rehype-sanitize": "6.0.0",
     "rehype-stringify": "^10.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.0.0",
@@ -72,6 +87,7 @@
     "@percy/cli": "^1.27.0",
     "@playwright/test": "^1.40.0",
     "@types/archiver": "^6.0.0",
+    "@types/jsdom": "21.1.7",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
@@ -83,6 +99,7 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-react": "^7.33.0",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "jsdom": "26.1.0",
     "postcss": "^8.4.0",
     "prettier": "^3.0.0",
     "tailwindcss": "^3.3.0",

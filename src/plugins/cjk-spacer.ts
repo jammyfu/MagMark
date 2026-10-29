@@ -1,201 +1,102 @@
 /**
- * MagMark 2.0 - CJK Spacer Plugin
- * Automatically inserts spaces between CJK characters and Latin/numbers
- * 
- * Based on the CJK spacing best practices:
- * - Insert space between CJK and Latin characters
- * - Insert space between CJK and numbers
- * - Preserve existing spaces
- * - Handle punctuation edge cases
+ * Conservative Han/Latin spacing for prose AST nodes.
+ * This rendering transformation changes AST text, not the Markdown source.
+ * It is not a complete CJK line-breaking or cross-inline typography engine.
  */
-import { visit } from 'unist-util-visit';
-import { u } from 'unist-builder';
+const HAN = /\p{Script=Han}/u;
+const LATIN = /\p{Script=Latin}/u;
+const MARK = /\p{Mark}/u;
+const FULLWIDTH_LATIN = /[Ａ-Ｚａ-ｚ]/u;
+// Without GFM, a bare URL/email can still be an ordinary text node. Preserve
+// the entire such run rather than guessing where its editable prose ends.
+// Fixed-width signals avoid quadratic backtracking on long reference-free prose.
+// Treat any @ or // conservatively; a false positive preserves text, not corrupts it.
+const LITERAL_REFERENCE = /\/\/|www\.|mailto:|@/iu;
 
-// Unicode ranges
-const CJK_REGEX = /[\u4e00-\u9fff\u3400-\u4dbf\u{20000}-\u{2a6df}\u{2a700}-\u{2b73f}\u{2b740}-\u{2b81f}\u{2b820}-\u{2ceaf}\uf900-\ufaff]/u;
-const LATIN_REGEX = /[a-zA-Z]/;
-const NUMBER_REGEX = /[0-9]/;
-const PUNCTUATION_REGEX = /[，。！？、；：""''（）【】《》]/;
-
-/**
- * Check if a character is CJK
- */
-function isCJK(char) {
-  return CJK_REGEX.test(char);
-}
-
-/**
- * Check if a character is Latin (English alphabet)
- */
-function isLatin(char) {
-  return LATIN_REGEX.test(char);
-}
-
-/**
- * Check if a character is a number
- */
-function isNumber(char) {
-  return NUMBER_REGEX.test(char);
-}
-
-/**
- * Check if a character is CJK punctuation
- */
-function isCJKPunctuation(char) {
-  return PUNCTUATION_REGEX.test(char);
-}
-
-/**
- * Check if spacing is needed between two characters
- * Returns true if space should be inserted
- */
-function needsSpacing(left, right) {
-  if (!left || !right) return false;
-  
-  const leftIsCJK = isCJK(left);
-  const rightIsCJK = isCJK(right);
-  const leftIsLatin = isLatin(left);
-  const rightIsLatin = isLatin(right);
-  const leftIsNumber = isNumber(left);
-  const rightIsNumber = isNumber(right);
-  
-  // CJK <-> Latin: add space
-  if ((leftIsCJK && rightIsLatin) || (leftIsLatin && rightIsCJK)) {
-    return true;
+type CharacterKind = 'han' | 'latin-number' | 'other';
+function characterKind(character: string): CharacterKind {
+  if (HAN.test(character)) return 'han';
+  if ((LATIN.test(character) && !FULLWIDTH_LATIN.test(character)) || /[0-9]/.test(character)) {
+    return 'latin-number';
   }
-  
-  // CJK <-> Number: add space
-  if ((leftIsCJK && rightIsNumber) || (leftIsNumber && rightIsCJK)) {
-    return true;
-  }
-  
-  return false;
+  return 'other';
 }
 
-/**
- * Add spacing to text content
- */
-function addSpacing(text) {
-  if (!text || typeof text !== 'string') return text;
-  
-  let result = '';
-  for (let i = 0; i < text.length; i++) {
-    const current = text[i];
-    const next = text[i + 1];
-    
-    result += current;
-    
-    // Check if we need to add space
-    if (next && needsSpacing(current, next)) {
-      // Don't add space if there's already a space
-      if (current !== ' ' && next !== ' ') {
-        result += ' ';
+/** Plain prose only. Do not pass raw Markdown, HTML, URLs or source code here. */
+export function addCJKSpacing(text: string, space = ' '): string {
+  if (!text || typeof text !== 'string' || !space || LITERAL_REFERENCE.test(text)) return text;
+  const result: string[] = [];
+  let previous: CharacterKind = 'other';
+  // for...of iterates code points, not UTF-16 halves. Combining marks and
+  // variation selectors remain attached to their preceding base character.
+  for (const character of text) {
+    if (MARK.test(character)) {
+      result.push(character);
+      continue;
+    }
+    const current = characterKind(character);
+    if ((previous === 'han' && current === 'latin-number') ||
+        (previous === 'latin-number' && current === 'han')) {
+      result.push(space);
+    }
+    result.push(character);
+    previous = current;
+  }
+  return result.join('');
+}
+
+export interface CJKSpacerOptions {
+  enabled?: boolean;
+  space?: string;
+}
+
+interface ProseNode {
+  type: string;
+  value?: string;
+  children?: ProseNode[];
+}
+
+// Link subtrees are deliberately conservative: a visible autolink can itself
+// be an executable URL. A future source-aware text-run adapter may distinguish
+// descriptive link labels, but this transformer must not guess.
+const OPAQUE_TYPES = new Set([
+  'inlineCode', 'code', 'math', 'inlineMath', 'html',
+  'link', 'linkReference', 'image', 'imageReference', 'definition',
+  'yaml', 'toml',
+]);
+
+/** Existing async transformer contract retained for current consumers. */
+export function cjkSpacer(options: CJKSpacerOptions = {}) {
+  const { enabled = true, space = ' ' } = options;
+  return async <T extends ProseNode>(tree: T): Promise<T> => {
+    if (!enabled || !space) return tree;
+    const pending: ProseNode[] = [tree];
+    while (pending.length) {
+      const node = pending.pop()!;
+      if (OPAQUE_TYPES.has(node.type)) continue;
+      if (node.type === 'text' && typeof node.value === 'string') {
+        node.value = addCJKSpacing(node.value, space);
+      }
+      if (node.children) {
+        for (let index = node.children.length - 1; index >= 0; index--) {
+          pending.push(node.children[index]);
+        }
       }
     }
-  }
-  
-  return result;
-}
-
-/**
- * Process text node and add CJK spacing
- */
-function processTextNode(node) {
-  if (node.type === 'text' && node.value) {
-    node.value = addSpacing(node.value);
-  }
-}
-
-/**
- * CJK Spacer plugin for unified/remark
- * Options:
- * - enabled: boolean (default: true)
- * - space: string (default: ' ')
- */
-export function cjkSpacer(options = {}) {
-  const { enabled = true, space = ' ' } = options;
-  
-  if (!enabled) {
-    return async (tree) => tree;
-  }
-
-  return async (tree, file) => {
-    // Process all text nodes
-    visit(tree, 'text', (node) => {
-      processTextNode(node);
-    });
-
-    // Also process inline code
-    visit(tree, 'inlineCode', (node) => {
-      if (node.value) {
-        node.value = addSpacing(node.value);
-      }
-    });
-
-    // Process link text
-    visit(tree, 'link', (node) => {
-      if (node.children) {
-        node.children.forEach(child => {
-          if (child.type === 'text') {
-            processTextNode(child);
-          }
-        });
-      }
-    });
-
-    // Process emphasis and strong
-    visit(tree, ['emphasis', 'strong'], (node) => {
-      if (node.children) {
-        node.children.forEach(child => {
-          if (child.type === 'text') {
-            processTextNode(child);
-          }
-        });
-      }
-    });
-
     return tree;
   };
 }
 
-/**
- * Standalone function to add CJK spacing to any string
- * Useful for non-AST transformations
- */
-export function addCJKSpacing(text) {
-  return addSpacing(text);
+export function containsCJK(text: string): boolean {
+  return typeof text === 'string' && HAN.test(text);
 }
 
-/**
- * Check if text contains CJK characters
+/** Explicit cleanup only: remove a single ASCII space between Han characters.
+ * Existing NBSPs, tabs, newlines and other intentional spacing are preserved.
  */
-export function containsCJK(text) {
-  if (!text || typeof text !== 'string') return false;
-  return CJK_REGEX.test(text);
-}
-
-/**
- * Remove extra spaces between CJK characters
- * Useful for cleanup/normalization
- */
-export function normalizeCJKSpacing(text) {
+export function normalizeCJKSpacing(text: string): string {
   if (!text || typeof text !== 'string') return text;
-  
-  // Remove spaces between CJK characters
-  let result = text;
-  const chars = text.split('');
-  
-  for (let i = chars.length - 2; i >= 0; i--) {
-    const current = chars[i];
-    const next = chars[i + 1];
-    
-    if (current === ' ' && isCJK(chars[i - 1]) && isCJK(next)) {
-      // Remove the space between two CJK characters
-      chars.splice(i, 1);
-    }
-  }
-  
-  return chars.join('');
+  return text.replace(/(\p{Script=Han}) (?=\p{Script=Han})/gu, '$1');
 }
 
 export default cjkSpacer;

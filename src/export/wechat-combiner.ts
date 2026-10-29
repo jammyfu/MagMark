@@ -145,7 +145,7 @@ export async function optimizeForWeChat(
   
   // Use better quality downsampling
   ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  ctx.quality = 'best';
   
   ctx.drawImage(img, 0, 0, width, height);
   
@@ -157,9 +157,9 @@ export async function optimizeForWeChat(
  */
 export function splitForWeChat(
   content: string,
-  options: { maxHeight?: number; overlap?: number } = {}
+  _options: { maxHeight?: number; overlap?: number } = {}
 ): string[] {
-  const { maxHeight = 8000, overlap = 200 } = options;
+  // Legacy character-based helper; it does not measure physical page height.
   
   // Simple splitting by character count
   // In production, use actual rendered height

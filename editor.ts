@@ -1,11 +1,18 @@
+import { sanitizeArticleHtml } from './src/security/article-html';
+import { markEditableSource } from './src/workspace/preview-edit';
+import { bindRangeStepper } from './src/workspace/range-stepper';
+import { mountToolbarPosition } from './src/workspace/toolbar-position';
+import { trackMouseGesture } from './src/workspace/mouse-gesture';
+import { prepareMixedPreview } from './src/core/mixed-typography';
+import { layoutTableSheets } from './src/workspace/table-sheets';
+import { deleteSelectedSource } from './src/workspace/delete-selection';
 import { store, AppState, PageSetting, getFormatDefaultSetting } from './src/core/state';
 import { paginate, getPageDimensions } from './src/engine/layout';
-import * as htmlToImage from 'html-to-image';
 import { ImagePanel, buildImageMarkdown } from './src/image/image-panel';
 import { installImageContextMenu, findImageReferences } from './src/image/image-context-menu';
 import { installMissingImagePlaceholders } from './src/image/missing-images';
 import { chooseDirectoryArticle, resolveDirectoryImage } from './src/image/local-image-directory';
-import { CoverPanel } from './src/cover/cover-panel';
+import type { CoverPanel } from './src/cover/cover-panel';
 import { version } from './package.json';
 import { WECHAT_THEMES, WECHAT_DEVICE_OPTIONS } from './src/wechat/wechat-themes';
 import { renderWechatHtml, copyWechatHtml } from './src/wechat/wechat-renderer';
@@ -33,6 +40,24 @@ const imageStore = new Map<string, string>(); // uuid → data URL
 const localImageFiles = new Map<string, string>();
 let articleRelativePath = '';
 
+export interface SavedImages { pasted: Array<[string, string]>; directory: Array<[string, Blob]>; path: string }
+export function imageSaveKey() { return JSON.stringify([[...imageStore], [...localImageFiles], articleRelativePath]); }
+export async function captureSavedImages(): Promise<SavedImages> {
+    const directory = await Promise.all([...localImageFiles].map(async ([name, url]): Promise<[string, Blob]> => {
+        if (!url.startsWith('blob:')) throw new Error('Unsupported local image source');
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Local image unavailable');
+        return [name, await response.blob()];
+    }));
+    return { pasted: [...imageStore], directory, path: articleRelativePath };
+}
+export function restoreSavedImages(images: SavedImages) {
+    // Retain earlier references so source undo can still resolve its images.
+    for (const [key, value] of images.pasted) imageStore.set(key, value);
+    for (const [key, value] of images.directory) localImageFiles.set(key, URL.createObjectURL(value));
+    articleRelativePath = images.path;
+}
+
 function storeImage(dataUrl: string): string {
     const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
     imageStore.set(uuid, dataUrl);
@@ -51,19 +76,11 @@ function resolveImageSrc(src: string): string {
  * (C) 2026 Editorial Elite System
  *
  * 排版增强层：
- *   • Han.css  — CJK 汉字与标点的精细排印（字间距、标点挤压、引号配对）
+ *   • CSS Text — 原生中西文间距和严格禁则；旧浏览器在分页前兼容处理
  *   • Paged.js — CSS Paged Media 多栏/页眉/页脚（打印预览窗口）
  *   • Vivliostyle 理念 — 严格孤行/寡行控制、CSS @page 分页
  */
 
-// Han.css 全局函数声明（由 <script src="han.min.js"> 注入）
-interface HanApi {
-    (el: Element): { render(): void };
-    normalize?: {
-        renderEm?: ((context?: unknown, target?: unknown) => void) & { __magmarkDisabled?: boolean };
-    };
-}
-declare const Han: HanApi | undefined;
 
 const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
 
@@ -71,7 +88,7 @@ const $ = <T extends HTMLElement>(s: string) => document.querySelector(s) as T;
  * Update UI version strings from package.json
  */
 function updateUIVersion() {
-    document.title = `MagMark ${version} — Ultra-Precision Magazine Markdown Editor`;
+    document.title = `MagMark ${version} — Markdown 杂志排版与公众号编辑器`;
     const logoVersion = $('.logo-version');
     if (logoVersion) logoVersion.textContent = version;
     
@@ -99,33 +116,6 @@ let marqueeStart = { x: 0, y: 0 };
 let isDraggingMarquee = false;
 
 /**
- * Han.css 默认把 CJK `<em>` 渲染成着重号（text-emphasis / h-char:after）。
- * MagMark 的 Markdown `*...*` 只要斜体强调，不要每个字底下的点。
- */
-function disableHanEmphasisMarks() {
-    const locale = typeof Han !== 'undefined' ? Han.normalize : undefined;
-    if (!locale || typeof locale.renderEm !== 'function' || locale.renderEm.__magmarkDisabled) return;
-    locale.renderEm = function () { /* MagMark: keep *em* as italic, not 着重号 */ };
-    locale.renderEm.__magmarkDisabled = true;
-}
-
-/**
- * Han.css 初始化 — 对所有 .magmark 内容元素执行汉字排印处理
- * 包括：CJK↔拉丁间距修正、标点宽度压缩、引号配对
- */
-function initHanTypography() {
-    if (typeof Han === 'undefined') return;
-    disableHanEmphasisMarks();
-    previewArea.querySelectorAll('.magmark').forEach(el => {
-        try {
-            Han(el).render();
-        } catch {
-            // Han.css 在某些边缘 DOM 状态下可能抛出，安全忽略
-        }
-    });
-}
-
-/**
  * Debounce helper for expensive render calls
  */
 function debounce(fn: Function, delay: number) {
@@ -141,6 +131,44 @@ function debounce(fn: Function, delay: number) {
 /**
  * MAIN RENDER PIPELINE
  */
+let previewRevision = 0;
+let committedPreview: (() => boolean) | null = null;
+
+/** Source and layout identity, not a timer: stale frames must never replace newer output. */
+function beginPreviewUpdate(): () => boolean {
+    const revision = ++previewRevision;
+    const md = markdownInput.value;
+    const snapshot = store.getState();
+    const wechat = wcMode, multiplier = wcFontMultiplier, device = wcDevice;
+    const cover = coverHtml;
+    previewArea.style.opacity = '1';
+    previewArea.setAttribute('aria-busy', 'true');
+    store.setState({ isProcessing: true });
+    return () => {
+        const state = store.getState();
+        return revision === previewRevision && markdownInput.value === md && wcMode === wechat &&
+            multiplier === wcFontMultiplier && device === wcDevice && cover === coverHtml &&
+            state.theme === snapshot.theme && state.format === snapshot.format && state.viewMode === snapshot.viewMode &&
+            state.fontFamily === snapshot.fontFamily && state.fontSize === snapshot.fontSize &&
+            state.lineHeight === snapshot.lineHeight && state.letterSpacing === snapshot.letterSpacing &&
+            state.manualPagination === snapshot.manualPagination && state.showParagraphDividers === snapshot.showParagraphDividers &&
+            state.pageOverrides === snapshot.pageOverrides && state.blockOverrides === snapshot.blockOverrides;
+    };
+}
+function finishPreviewUpdate(current: () => boolean) {
+    if (!current()) return;
+    committedPreview = current;
+    previewArea.style.opacity = '1';
+    previewArea.setAttribute('aria-busy', 'false');
+    store.setState({ isProcessing: false });
+}
+function canUseCurrentPreview(): boolean {
+    if (markdownInput.value.trim() && !store.getState().isProcessing && committedPreview?.()) return true;
+    const status = document.getElementById('copy-page-status');
+    if (status) status.textContent = '排版尚未就绪，请在预览更新后再导出。';
+    return false;
+}
+
 async function render(stabilized = false) {
     // WeChat mode: delegate to WeChat preview renderer instead of the paginator
     if (wcMode) {
@@ -153,24 +181,39 @@ async function render(stabilized = false) {
     store.setState({ md });
 
     if (!md.trim()) {
+        ++previewRevision;
+        committedPreview = null;
+        previewArea.style.opacity = '1';
+        previewArea.setAttribute('aria-busy', 'false');
+        store.setState({ isProcessing: false, pageHtmls: [], totalPages: 0, currentPage: 1 });
         previewArea.innerHTML = '<div class="placeholder"><div class="placeholder-icon">✦</div><p>开始创作您的杂志大作...</p></div>';
         paginationBar.style.display = 'none';
         return;
     }
 
     if (state.viewMode === 'multi') {
-        // Convert MD to raw HTML blocks
-        // Using a simplified block splitter for refactor
+        const current = beginPreviewUpdate();
+        try {
+        // Convert source to trusted HTML before DOM-based block measurement.
         const rawHtml = convertMarkdown(md);
         const temp = document.createElement('div');
         temp.innerHTML = rawHtml;
         const blocks = Array.from(temp.children).map(c => c.outerHTML);
 
         const pages = await paginate(blocks, state, state.manualPagination);
+        if (!current()) return;
         const nextCurrentPage = Math.min(store.getState().currentPage, Math.max(1, pages.length));
         store.setState({ pageHtmls: pages, totalPages: pages.length, currentPage: nextCurrentPage });
 
-        renderPages(stabilized);
+        renderPages(stabilized, current);
+        } catch (error) {
+            if (!current()) return;
+            committedPreview = null;
+            previewArea.textContent = '本次排版未完成。请检查内容后重试，原文仍完整保留。';
+            previewArea.setAttribute('aria-busy', 'false');
+            store.setState({ pageHtmls: [], totalPages: 0, isProcessing: false });
+            console.error('MagMark layout failed', error);
+        }
     } else {
         renderScroll(md);
     }
@@ -190,22 +233,17 @@ function finalizePaginationUpdate() {
  */
 /**
  * Multi-Page Display Logic
- * Uses opacity fade to prevent flash-of-blank during re-render
+ * Commit only current frames; keep the previous view visible until replacement.
  */
-function renderPages(stabilized = false) {
-    const state = store.getState();
-    const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
-    const shouldFade = !stabilized;
-
-    if (shouldFade) {
-        // Only hide the preview on the first pass. The stabilized pass should
-        // swap in quietly so format/theme switches do not visibly double-flash.
-        previewArea.style.opacity = '0';
-        previewArea.style.transition = 'opacity 0.12s ease';
-    }
-
-    // Use requestAnimationFrame to allow paint before rebuilding
+function renderPages(stabilized = false, existingTask?: () => boolean) {
+    // Navigation/zoom should not paint an old document while a new layout is pending.
+    if (!existingTask && store.getState().isProcessing) return;
+    if (wcMode || store.getState().viewMode !== 'multi') return;
+    const current = existingTask || beginPreviewUpdate();
     requestAnimationFrame(() => {
+        if (!current()) return;
+        const state = store.getState();
+        const magmarkClass = state.showParagraphDividers ? 'magmark' : 'magmark magmark-hide-paragraph-dividers';
         previewArea.innerHTML = '';
 
         // ── Render cover page first if one is set ──────────────────────
@@ -219,7 +257,7 @@ function renderPages(stabilized = false) {
             coverPage.style.display = isCurrent ? 'block' : 'none';
             coverPage.style.setProperty('--page-scale', String(state.scale));
             coverPage.style.marginBottom = `${Math.max(0, getPageDimensions(state.format).h * state.scale - getPageDimensions(state.format).h) + 32}px`;
-            coverPage.innerHTML = `<div class="mm-cover-wrap" style="width:100%;height:100%;overflow:hidden;">${coverHtml}</div>
+            coverPage.innerHTML = `<div class="mm-cover-wrap" style="width:100%;height:100%;overflow:hidden;">${sanitizeArticleHtml(coverHtml, 'cover')}</div>
                 <button class="mm-cover-remove-btn" title="移除封面">✕</button>`;
             coverPage.querySelector('.mm-cover-remove-btn')!.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -268,22 +306,23 @@ function renderPages(stabilized = false) {
         updatePaginationUI();
         renderPageStrip();
 
-        // Run Han.css after DOM is attached. If we need a stabilization pass,
-        // keep this first paint hidden and reveal only after the final pass.
+        // Typography is already applied during measurement; never mutate it after pagination.
         requestAnimationFrame(() => {
-            initHanTypography();
-            // Han.css 会插入额外排印节点，初始化后高度可能变化。
-            // 对分页视图补做一次稳定化分页，避免“初始化能塞下，缩放后却换页”。
+            if (!current()) return;
+            // Retain the existing resource stabilization pass.
             if (!stabilized && store.getState().viewMode === 'multi') {
-                requestAnimationFrame(() => render(true));
+                requestAnimationFrame(() => { if (current()) void render(true); });
                 return;
             }
-            previewArea.style.opacity = '1';
+            finishPreviewUpdate(current);
         });
     });
 }
 
 function renderScroll(md: string) {
+    if (wcMode) { renderWechatPreview(); return; }
+    const current = beginPreviewUpdate();
+    store.setState({ md });
     const html = convertMarkdown(md);
     const state = store.getState();
     const formatClass = 'page-' + state.format;
@@ -305,8 +344,7 @@ function renderScroll(md: string) {
     });
     attachBlockListeners();
     attachFigureListeners();
-    // Han.css 排印处理
-    requestAnimationFrame(initHanTypography);
+    requestAnimationFrame(() => { if (current()) finishPreviewUpdate(current); });
 }
 
 /**
@@ -339,6 +377,8 @@ function attachBlockListeners() {
                     if (f !== b) f.classList.remove('mm-fig-selected');
                 });
                 b.classList.toggle('mm-fig-selected');
+                if (b.classList.contains('mm-fig-selected')) selectBlock(b);
+                else clearSelection();
             } else {
                 // Non-figure block clicked → clear all figure selections
                 previewArea.querySelectorAll('figure.mm-figure.mm-fig-selected').forEach(f => {
@@ -357,6 +397,10 @@ function attachBlockListeners() {
     // Note: marquee mousedown is bound once in init()
 }
 
+// Let a second click reach the text before the floating toolbar can cover it.
+let blockToolbarTimer: ReturnType<typeof setTimeout>;
+previewArea.addEventListener('dblclick', () => clearTimeout(blockToolbarTimer), true);
+
 /** Single-click select (clears previous selection) */
 function selectBlock(el: HTMLElement) {
     const bid = el.dataset.blockId;
@@ -371,7 +415,8 @@ function selectBlock(el: HTMLElement) {
     store.setState({ selectedBlockId: bid });
     el.classList.add('block-editing');
 
-    showToolbar([el]);
+    clearTimeout(blockToolbarTimer);
+    blockToolbarTimer = setTimeout(() => { if (el.isConnected) showToolbar([el]); }, 300);
 }
 
 /** Shift-click to add/remove from multi-selection */
@@ -410,13 +455,57 @@ function shiftSelectBlock(el: HTMLElement) {
     }
 }
 
+type BlockSelectionScope = 'body' | 'h1' | 'h2' | 'h3' | 'minor-headings' | 'headings';
+
+function blockMatchesSelectionScope(block: HTMLElement, scope: BlockSelectionScope): boolean {
+    const tag = block.tagName.toLowerCase();
+    if (scope === 'h1' || scope === 'h2' || scope === 'h3') return tag === scope;
+    if (scope === 'headings') return /^h[1-6]$/.test(tag);
+    if (scope === 'minor-headings') return /^h[4-6]$/.test(tag);
+    // Body copy includes prose containers such as lists, quotes, code and tables,
+    // while intentionally excluding headings, images and visual separators.
+    return !/^h[1-6]$/.test(tag) && tag !== 'figure' && tag !== 'hr';
+}
+
+/** Select one semantic text layer across every rendered page. */
+function selectBlocksByScope(scope: BlockSelectionScope) {
+    const blocks = Array.from(
+        previewArea.querySelectorAll<HTMLElement>('.magmark > [data-block-id]')
+    ).filter(block => blockMatchesSelectionScope(block, scope));
+    if (!blocks.length) return;
+
+    const currentId = store.getState().selectedBlockId;
+    const primary = blocks.find(block => block.dataset.blockId === currentId) || blocks[0];
+    const ordered = [primary, ...blocks.filter(block => block !== primary)];
+
+    selectedBlockIds.clear();
+    previewArea.querySelectorAll('.block-editing, .block-selected').forEach(block => {
+        block.classList.remove('block-editing', 'block-selected');
+    });
+
+    primary.classList.add('block-editing');
+    ordered.slice(1).forEach(block => {
+        const id = block.dataset.blockId;
+        if (!id) return;
+        selectedBlockIds.add(id);
+        block.classList.add('block-selected');
+    });
+    store.setState({ selectedBlockId: primary.dataset.blockId || null });
+    showToolbar(ordered);
+}
+
+let fontSizeStepper: ReturnType<typeof bindRangeStepper> | undefined;
+let lineHeightStepper: ReturnType<typeof bindRangeStepper> | undefined;
+let letterSpacingStepper: ReturnType<typeof bindRangeStepper> | undefined;
+let toolbarPosition: ReturnType<typeof mountToolbarPosition> | undefined;
+
 function showToolbar(els: HTMLElement | HTMLElement[]) {
+    clearTimeout(blockToolbarTimer);
     const elArray = Array.isArray(els) ? els : [els];
     if (elArray.length === 0) return;
 
     const primary = elArray[0];
     toolbar.style.display = 'flex';
-    positionToolbar(primary);
 
     const bid = primary.dataset.blockId!;
     const state = store.getState();
@@ -433,6 +522,7 @@ function showToolbar(els: HTMLElement | HTMLElement[]) {
         toolbar.querySelectorAll<HTMLElement>('.toolbar-align-btn').forEach(btn => {
             btn.classList.toggle('active', btn.id === `toolbar-align-${activeLayout.replace('float-', '')}`);
         });
+        positionToolbar(primary);
         return;
     }
 
@@ -443,34 +533,36 @@ function showToolbar(els: HTMLElement | HTMLElement[]) {
     };
 
     $<HTMLInputElement>('#toolbar-fontsize').value = String(over.fontSize);
+    fontSizeStepper?.sync();
     $('#toolbar-val-fontsize').textContent = over.fontSize + 'px';
     $<HTMLInputElement>('#toolbar-lineheight').value = String(over.lineHeight);
     $('#toolbar-val-lineheight').textContent = over.lineHeight.toFixed(2);
     $<HTMLInputElement>('#toolbar-letterspacing').value = String(over.letterSpacing);
+    lineHeightStepper?.sync();
+    letterSpacingStepper?.sync();
     $('#toolbar-val-letterspacing').textContent = over.letterSpacing.toFixed(2);
 
     // Show count badge if multi-select
-    const count = elArray.length + selectedBlockIds.size;
+    const count = previewArea.querySelectorAll('.block-editing, .block-selected').length;
     const countBadge = $('#toolbar-count');
     if (countBadge) {
         countBadge.textContent = count > 1 ? `${count} 块已选` : '';
         (countBadge as HTMLElement).style.display = count > 1 ? 'block' : 'none';
     }
+    positionToolbar(primary);
 }
 
 function positionToolbar(el: HTMLElement) {
     if (toolbar.style.display === 'none') return;
-    const rect = el.getBoundingClientRect();
-    // Position above the element
-    const tbHeight = toolbar.offsetHeight || 48;
-    toolbar.style.top = `${rect.top - tbHeight - 10}px`;
-    toolbar.style.left = `${Math.max(8, rect.left)}px`;
+    toolbarPosition?.place(el.getBoundingClientRect());
 }
 
 /* ── Marquee (PS Box Select) ── */
 let justFinishedMarquee = false;
+let cancelMarquee: (() => void) | undefined;
 
 function onMarqueeStart(e: MouseEvent) {
+    cancelMarquee?.();
     // Only start marquee if clicking on the preview background (not on a block)
     const target = e.target as HTMLElement;
     if (target.closest('.magmark > *') || target.closest('.floating-toolbar')) return;
@@ -481,6 +573,7 @@ function onMarqueeStart(e: MouseEvent) {
 
     isDraggingMarquee = false;
     marqueeStart = { x: e.clientX, y: e.clientY };
+    const previousUserSelect = document.body.style.userSelect;
 
     const onMove = (ev: MouseEvent) => {
         const dx = ev.clientX - marqueeStart.x;
@@ -505,25 +598,25 @@ function onMarqueeStart(e: MouseEvent) {
             `position:fixed;z-index:3000;left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
     };
 
-    const onUp = (ev: MouseEvent) => {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-        // Re-enable text selection
-        document.body.style.userSelect = '';
-
-        if (isDraggingMarquee && marqueeEl) {
-            applyMarqueeSelection(ev);
+    const onUp = (ev?: MouseEvent) => {
+        const completed = isDraggingMarquee && marqueeEl && ev;
+        // Clean up before applying selection: a render failure must not leave an overlay.
+        document.body.style.userSelect = previousUserSelect;
+        if (marqueeEl) {
             marqueeEl.remove();
             marqueeEl = null;
+        }
+        isDraggingMarquee = false;
+        cancelMarquee = undefined;
+        if (completed) {
             // Signal to the click handler not to clear selection
             justFinishedMarquee = true;
             setTimeout(() => { justFinishedMarquee = false; }, 50);
+            applyMarqueeSelection(ev!);
         }
-        isDraggingMarquee = false;
     };
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    cancelMarquee = trackMouseGesture(onMove, onUp);
 }
 
 function applyMarqueeSelection(endEvent: MouseEvent) {
@@ -565,10 +658,11 @@ function applyMarqueeSelection(endEvent: MouseEvent) {
 
 /** Clears all block selections and hides the floating toolbar */
 function clearSelection() {
+    clearTimeout(blockToolbarTimer);
     selectedBlockIds.clear();
     store.setState({ selectedBlockId: null });
-    previewArea.querySelectorAll('.block-editing, .block-selected').forEach(b => {
-        b.classList.remove('block-editing', 'block-selected');
+    previewArea.querySelectorAll('.block-editing, .block-selected, .mm-fig-selected, .mm-image-active').forEach(b => {
+        b.classList.remove('block-editing', 'block-selected', 'mm-fig-selected', 'mm-image-active');
     });
     toolbar.style.display = 'none';
 }
@@ -603,8 +697,17 @@ function stripFrontmatter(md: string): string {
     return match ? md.slice(match[0].length) : md;
 }
 
-function convertMarkdown(md: string): string {
-    const lines = stripFrontmatter(md).replace(/\r\n/g, '\n').split('\n');
+function convertMarkdown(md: string, mapSource = true): string {
+    const body = stripFrontmatter(md);
+    const lines = body.split(/\r?\n/);
+    let offset = md.length - body.length;
+    const offsets = lines.map(line => {
+        const start = offset;
+        offset += line.length + (md.slice(offset + line.length, offset + line.length + 2) === '\r\n' ? 2 : 1);
+        return start;
+    });
+    const editable = (start: number, end: number, prefix = 0) => mapSource
+        ? markEditableSource(md, offsets[start] + prefix, offsets[end] + lines[end].length) : '';
     const blocks: string[] = [];
     let i = 0;
 
@@ -636,13 +739,20 @@ function convertMarkdown(md: string): string {
         const lang = opener.slice(fence.length).trim().split(/\s+/)[0] || '';
         const codeLines: string[] = [];
         i++;
+        const contentStart = i;
         while (i < lines.length && !lines[i].trimEnd().startsWith(fence)) {
             codeLines.push(escapeHtml(lines[i]));
             i++;
         }
-        i++; // skip closing fence
+        const contentEnd = i - 1;
+        const from = contentStart < offsets.length ? offsets[contentStart] : md.length;
+        const to = contentEnd >= contentStart
+            ? offsets[contentEnd] + lines[contentEnd].length
+            : from;
+        const sourceMark = mapSource ? markEditableSource(md, from, to) : '';
+        if (i < lines.length) i++; // skip closing fence when present
         const cls = lang ? ` class="language-${escapeHtml(lang)}"` : '';
-        return `<pre><code${cls}>${codeLines.join('\n')}</code></pre>`;
+        return `<pre${sourceMark}><code${cls}>${codeLines.join('\n')}</code></pre>`;
     }
 
     // ── Blockquote ────────────────────────────────────────
@@ -654,7 +764,7 @@ function convertMarkdown(md: string): string {
             i++;
         }
         // Recursively convert inner content (supports nested blockquotes)
-        const inner = convertMarkdown(quoteLines.join('\n'))
+        const inner = convertMarkdown(quoteLines.join('\n'), false)
             .replace(/<\/?p>/g, '') // keep inner markup clean
             || quoteLines.map(l => inlineMarkdown(l)).join('<br>');
         return `<blockquote><p>${inner}</p></blockquote>`;
@@ -685,6 +795,18 @@ function convertMarkdown(md: string): string {
         });
         const dataRows = tableLines.slice(2);
 
+        // Produce ordinary two-column tables before pagination/export measurement.
+        // Repeat field headings for each record so long prose stays readable.
+        if (document.querySelector<HTMLSelectElement>('#ctrl-table-layout')?.value === 'vertical' && dataRows.length) {
+            return dataRows.map(row => {
+                const cells = parseCells(row);
+                const count = Math.max(headerCells.length, cells.length);
+                return `<table class="mm-table-record"><tbody>${Array.from({ length: count }, (_, j) =>
+                    `<tr><th scope="row">${inlineMarkdown(headerCells[j] || `列 ${j + 1}`)}</th><td>${inlineMarkdown(cells[j] || '')}</td></tr>`
+                ).join('')}</tbody></table>`;
+            }).join('\n');
+        }
+
         const alignAttr = (idx: number) => {
             const a = aligns[idx];
             return a && a !== 'left' ? ` style="text-align:${a}"` : '';
@@ -704,10 +826,12 @@ function convertMarkdown(md: string): string {
 
     // ── List (ul / ol with nesting) ───────────────────────
     function parseList(isOrdered: boolean): string {
+        const listStart = i;
+        let lastItemLine = i;
         function getIndent(l: string): number {
             return l.match(/^(\s*)/)?.[1].length ?? 0;
         }
-        function buildItems(minIndent: number, ordered: boolean): string {
+        function buildItems(minIndent: number, _ordered: boolean): string {
             let html = '';
             while (i < lines.length) {
                 const line = lines[i];
@@ -723,12 +847,11 @@ function convertMarkdown(md: string): string {
                 if (!ulMatch && !olMatch) break;
 
                 let content = ulMatch ? ulMatch[2] : olMatch![1];
-                let isTask = false;
+                const sourceMark = editable(i, i, line.length - content.length);
                 let checked = false;
 
                 // Task list item
                 if (ulMatch && ulMatch[1]) {
-                    isTask = true;
                     checked = ulMatch[1].includes('x');
                     const checkbox = `<input type="checkbox" ${checked ? 'checked' : ''} disabled> `;
                     content = checkbox + inlineMarkdown(content);
@@ -736,6 +859,7 @@ function convertMarkdown(md: string): string {
                     content = inlineMarkdown(content);
                 }
 
+                lastItemLine = i;
                 i++;
 
                 // Check for nested list
@@ -750,14 +874,15 @@ function convertMarkdown(md: string): string {
                     }
                 }
 
-                html += `<li>${content}${nested}</li>`;
+                html += `<li${sourceMark}>${content}${nested}</li>`;
             }
             return html;
         }
 
         const baseIndent = getIndent(lines[i]);
         const inner = buildItems(baseIndent, isOrdered);
-        return isOrdered ? `<ol>${inner}</ol>` : `<ul>${inner}</ul>`;
+        const sourceMark = editable(listStart, lastItemLine);
+        return isOrdered ? `<ol${sourceMark}>${inner}</ol>` : `<ul${sourceMark}>${inner}</ul>`;
     }
 
     // ── Figure (standalone image line → block <figure>) ───
@@ -787,6 +912,7 @@ function convertMarkdown(md: string): string {
         /^\[!\[[^\]]*\]\([^)]+\)\]\([^)]+\)\s*$/.test(l.trim());
 
     function parseParagraph(): string {
+        const start = i;
         const rawLines: string[] = [];
         const paraLines: string[] = [];
         while (i < lines.length && !isBlockStop(lines[i])) {
@@ -799,7 +925,7 @@ function convertMarkdown(md: string): string {
         if (rawLines.length > 0 && rawLines.every(isBadgeLine)) {
             return `<p class="mm-badge-row">${paraLines.join(' ')}</p>`;
         }
-        return `<p>${paraLines.join('<br>')}</p>`;
+        return `<p${editable(start, i - 1)}>${paraLines.join('<br>')}</p>`;
     }
 
     // ── Main parsing loop ─────────────────────────────────
@@ -818,7 +944,7 @@ function convertMarkdown(md: string): string {
         const hm = line.match(/^(#{1,6}) (.+)$/);
         if (hm) {
             const level = hm[1].length;
-            blocks.push(`<h${level}>${inlineMarkdown(hm[2])}</h${level}>`);
+            blocks.push(`<h${level}${editable(i, i, level + 1)}>${inlineMarkdown(hm[2])}</h${level}>`);
             i++;
             continue;
         }
@@ -843,7 +969,16 @@ function convertMarkdown(md: string): string {
         if (para) blocks.push(para);
     }
 
-    return blocks.join('\n');
+    const result = prepareMixedPreview(sanitizeArticleHtml(blocks.join('\n')));
+    if (!mapSource || document.querySelector<HTMLSelectElement>('#ctrl-table-layout')?.value !== 'rotate') return result;
+    const settings = store.getState();
+    const page = getPageDimensions(settings.format);
+    return layoutTableSheets(result, {
+        width: page.w - page.pl - page.pr - 8,
+        height: page.h - page.pt - page.pb - 64 - page.safetyMargin,
+        fontSize: Math.max(14, settings.fontSize), lineHeight: settings.lineHeight,
+        fontFamily: settings.fontFamily,
+    });
 }
 
 /**
@@ -1070,6 +1205,7 @@ function getClipboardSourceElement(): HTMLElement | null {
 }
 
 async function copyCurrentPageRichContent(target: ClipboardTarget = 'document') {
+    if (!canUseCurrentPreview()) return false;
     const source = getClipboardSourceElement();
     if (!source) {
         alert('当前没有可复制的排版页。');
@@ -1082,7 +1218,7 @@ async function copyCurrentPageRichContent(target: ClipboardTarget = 'document') 
         if (status) status.textContent = !ok
             ? '复制失败，请允许浏览器访问剪贴板后重试。'
             : target === 'wechat' && payload.localImages
-                ? `已复制正文和样式；${payload.localImages} 张本地或未加载图片已保留位置，请在公众号后台上传替换。`
+                ? `已复制正文、样式和可读取图片；${payload.localImages} 张图片无法读取，请重新关联图片目录或在公众号后台上传替换。`
                 : target === 'wechat' ? '已复制公众号兼容排版，保留当前主题颜色。' : '已复制排版，可粘贴到 Word 或网页编辑器。';
         return ok;
     } catch {
@@ -1093,12 +1229,13 @@ async function copyCurrentPageRichContent(target: ClipboardTarget = 'document') 
 }
 
 /**
- * 打印预览窗口（Paged.js + Han.css）
+ * 打印预览窗口（Paged.js + 原生 CSS 混排）
  *
  * 在独立弹出窗口中加载 Paged.js polyfill，对内容应用 CSS Paged Media
- * 规则（页边距、页眉页脚、页码），并通过 Han.css 进行 CJK 排印处理。
+ * 规则（页边距、页眉页脚、页码），排版规则与页面测量保持一致。
  */
 function openPrintPreview() {
+    if (!canUseCurrentPreview()) return;
     const state = store.getState();
     if (!state.pageHtmls || state.pageHtmls.length === 0) {
         alert('请先输入内容再使用打印预览');
@@ -1107,14 +1244,14 @@ function openPrintPreview() {
 
     // 读取当前生效的 CSS 变量
     const rootStyle = getComputedStyle(document.documentElement);
-    const bodyStyle = getComputedStyle(document.body);
     const mmFontSize = rootStyle.getPropertyValue('--mm-font-size').trim() || '14px';
     const mmLineHeight = rootStyle.getPropertyValue('--mm-line-height').trim() || '1.75';
     const mmLetterSpacing = rootStyle.getPropertyValue('--mm-letter-spacing').trim() || '0.01em';
     const userFont = rootStyle.getPropertyValue('--user-font-family').trim();
     const thFontBody = rootStyle.getPropertyValue('--th-font-body').trim();
     const mmFontFamily = rootStyle.getPropertyValue('--mm-font-family').trim() || "'Source Han Serif SC', serif";
-    const effectiveFont = userFont || thFontBody || mmFontFamily;
+    const article = previewArea.querySelector<HTMLElement>('.magmark');
+    const effectiveFont = article ? getComputedStyle(article).fontFamily : userFont || thFontBody || mmFontFamily;
     const thPrimary = rootStyle.getPropertyValue('--th-primary').trim() || '#d4af37';
     const thAccent = rootStyle.getPropertyValue('--th-accent').trim() || '#e67e22';
     const thBgPage = rootStyle.getPropertyValue('--th-bg-page').trim() || '#ffffff';
@@ -1132,8 +1269,7 @@ function openPrintPreview() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MagMark — 打印预览</title>
-<link href="https://fonts.googleapis.com/css2?family=Source+Han+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- Paged.js polyfill：自动处理 CSS Paged Media @page 规则 -->
 <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
 <style>
@@ -1164,6 +1300,11 @@ body {
     font-size: ${mmFontSize};
     line-height: ${mmLineHeight};
     letter-spacing: ${mmLetterSpacing};
+    text-autospace: normal;
+    text-spacing-trim: trim-start;
+    line-break: strict;
+    overflow-wrap: anywhere;
+    hyphens: manual;
     color: ${thTextPage};
     background: ${thBgPage};
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "locl" 1;
@@ -1173,12 +1314,14 @@ body {
 
 /* ── 分页区块容器 ─────────────────────────────── */
 .mm-page-section { width: 100%; }
+a, code, pre, kbd, samp { text-autospace: no-autospace; }
+pre, code { text-spacing-trim: space-all; }
 
 /* ── 正文排版 ────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
     font-family: ${effectiveFont};
     page-break-after: avoid; break-after: avoid;
-    word-break: keep-all; overflow-wrap: break-word;
+    word-break: normal; overflow-wrap: anywhere;
     font-feature-settings: "kern" 1;
 }
 h1 {
@@ -1210,13 +1353,14 @@ h4 {
 }
 p {
     text-align: justify;
-    text-justify: inter-character;
-    hyphens: auto;
+    text-justify: auto;
+    text-align-last: left;
+    hyphens: manual;
     margin-bottom: 1em;
     word-break: normal;
     overflow-wrap: break-word;
     line-break: strict;
-    hanging-punctuation: first last;
+    hanging-punctuation: none;
     orphans: 3; widows: 3;
 }
 strong { font-weight: 700; color: ${thPrimary}; }
@@ -1267,7 +1411,9 @@ blockquote p { margin-bottom: 0.4em; }
 
 /* ── 列表 ────────────────────────────────────── */
 ul, ol { padding-left: 1.75em; margin-bottom: 1em; }
-li { margin-bottom: 0.25em; line-height: ${mmLineHeight}; word-break: normal; overflow-wrap: break-word; }
+li { margin-bottom: 0.25em; line-height: ${mmLineHeight}; word-break: normal; overflow-wrap: break-word; text-align:justify; text-justify:auto; text-align-last:left; }
+.mm-latin-run { font-size:.94em; letter-spacing:normal; line-height:inherit; vertical-align:baseline; }
+.mm-reference-run { word-break:break-all; overflow-wrap:anywhere; text-autospace:no-autospace; }
 li::marker { color: ${thPrimary}; }
 
 /* ── 表格 ────────────────────────────────────── */
@@ -1325,26 +1471,6 @@ img {
 <div class="magmark">
 ${combinedHtml}
 </div>
-<!-- Han.js — 必须在内容渲染后执行 -->
-<script src="https://cdn.jsdelivr.net/npm/han-css@3/dist/han.min.js"></script>
-<script>
-// Paged.js 完成分页后再运行 Han.css，确保所有文本节点均已插入 DOM
-function disableHanEmphasisMarks() {
-    if (typeof Han !== 'function' || !Han.normalize || typeof Han.normalize.renderEm !== 'function') return;
-    Han.normalize.renderEm = function() {};
-}
-if (typeof PagedPolyfill !== 'undefined') {
-    PagedPolyfill.preview().then(function() {
-        disableHanEmphasisMarks();
-        if (typeof Han === 'function') Han(document.body).render();
-    });
-} else {
-    window.addEventListener('load', function() {
-        disableHanEmphasisMarks();
-        if (typeof Han === 'function') Han(document.body).render();
-    });
-}
-</script>
 </body>
 </html>`;
 
@@ -1652,12 +1778,12 @@ function applyZoom(scale: number) {
     const clamped = Math.min(3, Math.max(0.25, Math.round(scale * 100) / 100));
     store.setState({ scale: clamped });
     syncZoomUI(clamped);
-    const state = store.getState();
-    if (state.viewMode === 'multi') {
-        renderPages(true);
-    } else {
-        renderScroll(markdownInput.value);
-    }
+    const height = getPageDimensions(store.getState().format).h;
+    // Zoom is presentation only: retain selection, image handles and typography DOM.
+    previewArea.querySelectorAll<HTMLElement>('.page').forEach(page => {
+        page.style.setProperty('--page-scale', String(clamped));
+        page.style.marginBottom = `${Math.max(0, height * clamped - height) + 32}px`;
+    });
 }
 
 function computeFitScale(): number {
@@ -1674,8 +1800,12 @@ function computeFitScale(): number {
 function init() {
     // Listen for data changes
     markdownInput.addEventListener('input', () => {
+        ++previewRevision;
+        previewArea.setAttribute('aria-busy', 'true');
+        store.setState({ isProcessing: true });
         $('#char-count').textContent = markdownInput.value.length + ' 字符';
-        debouncedRender();
+        if (!markdownInput.value.trim()) { debouncedRender.cancel(); void render(); }
+        else debouncedRender();
     });
 
     // Global Controls
@@ -1730,6 +1860,7 @@ function init() {
     });
     $<HTMLInputElement>('#ctrl-letterspacing').addEventListener('change', finalizePaginationUpdate);
 
+    document.querySelector('#ctrl-table-layout')?.addEventListener('change', () => render());
     $<HTMLSelectElement>('#ctrl-format').addEventListener('change', (e) => {
         const fmt = (e.target as HTMLSelectElement).value as AppState['format'];
         const formatSetting = getFormatDefaultSetting(fmt);
@@ -1837,7 +1968,8 @@ function init() {
         btnWcCopy.addEventListener('click', async () => {
             const md = markdownInput.value;
             if (!md.trim()) { alert('请先输入内容'); return; }
-            const themeKey = store.getState().theme.replace('wc-', '');
+            store.setState({ md });
+    const themeKey = store.getState().theme.replace('wc-', '');
             const theme = WECHAT_THEMES[themeKey] || WECHAT_THEMES.minimalist;
             const html = renderWechatHtml(md, {
                 theme,
@@ -1889,6 +2021,18 @@ function init() {
     });
 
     // View Mode
+    $('#toolbar-delete').addEventListener('click', () => {
+        const blocks = [...previewArea.querySelectorAll<HTMLElement>('.block-editing, .block-selected, .mm-fig-selected')];
+        const activeImage = previewArea.querySelector<HTMLElement>('.mm-image-active');
+        if (!blocks.length && activeImage) blocks.push(activeImage);
+        if (!blocks.length) return;
+        const next = deleteSelectedSource(markdownInput.value, blocks, resolveImageSrc);
+        if (next === null) { alert('无法唯一定位选中内容（可能重复或跨页），请在 Markdown 原文中删除，避免误删。'); return; }
+        try { markdownInput.value = next; } catch { return; }
+        clearSelection();
+        markdownInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
     $('#btn-multi').addEventListener('click', () => {
         $('.mode-btn.active').classList.remove('active');
         $('#btn-multi').classList.add('active');
@@ -1909,6 +2053,7 @@ function init() {
 
     // Keyboard navigation: ← → to turn pages, Cmd/Ctrl+S to save
     document.addEventListener('keydown', (e) => {
+        if (e.isComposing || (e.target instanceof Element && e.target.closest('dialog[open]'))) return;
         if (e.key === 'Escape') { clearSelection(); return; }
 
         // Don't intercept arrow keys while the textarea is focused
@@ -1945,18 +2090,37 @@ function init() {
     initToolbar();
 
     // Cover Panel
-    const coverPanel = new CoverPanel((html) => {
-        coverHtml = html;
-        updateCoverBtn();
-        render();
-    });
+    let coverPanel: CoverPanel | undefined;
+    let coverLoading = false;
 
-    $('#btn-cover').addEventListener('click', () => {
+    $('#btn-cover').addEventListener('click', async () => {
+        if (coverLoading) return;
+        const button = $<HTMLButtonElement>('#btn-cover');
+        coverLoading = true;
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        try {
+        if (!coverPanel) {
+            const { CoverPanel } = await import('./src/cover/cover-panel');
+            coverPanel = new CoverPanel((html) => {
+                coverHtml = html;
+                updateCoverBtn();
+                render();
+            });
+        }
         // Auto-extract title from first H1 in markdown
         const md = markdownInput.value;
         const titleMatch = md.match(/^#\s+(.+)/m);
         const title = titleMatch ? titleMatch[1].trim() : '';
         coverPanel.open(title);
+        } catch {
+            const status = document.getElementById('workspace-status');
+            if (status) { status.hidden = false; status.textContent = '封面工具加载失败，请再次点击重试。'; }
+        } finally {
+            coverLoading = false;
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
     });
 
     // Image Panel — data URLs 自动存储为 mm-img://uuid 短引用
@@ -2205,7 +2369,7 @@ function init() {
         for (const file of files) localImageFiles.set(file.webkitRelativePath, URL.createObjectURL(file));
         render();
         const status = document.getElementById('copy-page-status');
-        if (status) status.textContent = `已关联 ${files.length} 张本地图片。复制到公众号时会保留图片位置，请在公众号后台上传。`;
+        if (status) status.textContent = `已关联 ${files.length} 张本地图片。图片加载完成后，复制到公众号会一并携带图片内容。`;
         input.value = '';
     });
     $<HTMLInputElement>('#file-input').addEventListener('change', (e) => {
@@ -2275,6 +2439,8 @@ const debounceWcRender = debounce(renderWechatPreview, 150);
  * 并在预览区域以手机 mock 框架展示。
  */
 function renderWechatPreview() {
+    if (!wcMode) return;
+    const current = beginPreviewUpdate();
     const md = markdownInput.value;
     const themeKey = store.getState().theme.replace('wc-', '');
     const theme = WECHAT_THEMES[themeKey] || WECHAT_THEMES.minimalist;
@@ -2336,6 +2502,7 @@ function renderWechatPreview() {
 
     // 隐藏分页栏（微信模式下是单页滚动）
     paginationBar.style.display = 'none';
+    finishPreviewUpdate(current);
 }
 
 function navigate(dir: number) {
@@ -2403,11 +2570,19 @@ function updatePaginationUI() {
 }
 
 function initToolbar() {
+    toolbarPosition = mountToolbarPosition(toolbar, $('#toolbar-drag'));
     const debouncedApply = debounce(render, 400);
     const finalizeToolbarPagination = () => {
         debouncedApply.cancel();
         render();
     };
+
+    $<HTMLSelectElement>('#toolbar-select-scope').addEventListener('change', (event) => {
+        const select = event.target as HTMLSelectElement;
+        const scope = select.value as BlockSelectionScope | '';
+        if (scope) selectBlocksByScope(scope);
+        select.value = '';
+    });
 
     $<HTMLInputElement>('#toolbar-fontsize').addEventListener('input', (e) => {
         const val = parseInt((e.target as HTMLInputElement).value);
@@ -2416,6 +2591,11 @@ function initToolbar() {
         debouncedApply();
     });
     $<HTMLInputElement>('#toolbar-fontsize').addEventListener('change', finalizeToolbarPagination);
+    fontSizeStepper = bindRangeStepper(
+        $<HTMLInputElement>('#toolbar-fontsize'),
+        $<HTMLButtonElement>('#toolbar-fontsize-up'),
+        $<HTMLButtonElement>('#toolbar-fontsize-down')
+    );
 
     $<HTMLInputElement>('#toolbar-lineheight').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -2424,6 +2604,7 @@ function initToolbar() {
         debouncedApply();
     });
     $<HTMLInputElement>('#toolbar-lineheight').addEventListener('change', finalizeToolbarPagination);
+    lineHeightStepper = bindRangeStepper($<HTMLInputElement>('#toolbar-lineheight'), $<HTMLButtonElement>('#toolbar-lineheight-up'), $<HTMLButtonElement>('#toolbar-lineheight-down'));
 
     $<HTMLInputElement>('#toolbar-letterspacing').addEventListener('input', (e) => {
         const val = parseFloat((e.target as HTMLInputElement).value);
@@ -2432,6 +2613,7 @@ function initToolbar() {
         debouncedApply();
     });
     $<HTMLInputElement>('#toolbar-letterspacing').addEventListener('change', finalizeToolbarPagination);
+    letterSpacingStepper = bindRangeStepper($<HTMLInputElement>('#toolbar-letterspacing'), $<HTMLButtonElement>('#toolbar-letterspacing-up'), $<HTMLButtonElement>('#toolbar-letterspacing-down'));
 
     $('#toolbar-close').addEventListener('click', () => {
         toolbar.style.display = 'none';
@@ -2469,12 +2651,11 @@ function updateBlockStyle(prop: keyof PageSetting, val: number) {
 
     store.setState({ blockOverrides: blockStyles });
 
-    // Reposition toolbar to primary
-    const primary = previewArea.querySelector(`[data-block-id="${bid}"]`) as HTMLElement;
-    if (primary) positionToolbar(primary);
+    // Keep the controls under the pointer while selected blocks reflow.
 }
 
 async function exportPng() {
+    if (!canUseCurrentPreview()) return;
     const state = store.getState();
 
     // In multi-page mode, find the current page by data-page attribute.
@@ -2493,6 +2674,7 @@ async function exportPng() {
     btn.disabled = true;
 
     try {
+        const htmlToImage = await import('html-to-image');
         const dataUrl = await htmlToImage.toPng(activePage, {
             pixelRatio: 3,
             backgroundColor: getComputedStyle(activePage).backgroundColor || '#ffffff'
@@ -2515,6 +2697,7 @@ async function exportPng() {
  * Export ALL pages as separate PNG files (zipped in-browser)
  */
 async function exportAllPng() {
+    if (!canUseCurrentPreview()) return;
     const state = store.getState();
     if (state.viewMode !== 'multi' || state.totalPages === 0) {
         alert('请先切换到分页模式并输入内容');
@@ -2535,6 +2718,7 @@ async function exportAllPng() {
     const links: HTMLAnchorElement[] = [];
     for (let i = 0; i < allPages.length; i++) {
         try {
+            const htmlToImage = await import('html-to-image');
             const dataUrl = await htmlToImage.toPng(allPages[i], {
                 pixelRatio: 3,
                 backgroundColor: getComputedStyle(allPages[i]).backgroundColor || '#ffffff',
@@ -2549,7 +2733,7 @@ async function exportAllPng() {
     }
 
     // Restore visibility
-    allPages.forEach((p, i) => {
+    allPages.forEach(p => {
         const pNum = parseInt(p.dataset.page || '0');
         p.style.display = pNum === state.currentPage ? 'block' : 'none';
     });
@@ -2817,7 +3001,7 @@ function resetAll() {
         letterSpacing: a4Defaults.letterSpacing,
         fontFamily: "'Source Han Serif SC', 'Noto Serif SC', serif",
         format: 'a4' as AppState['format'],
-        viewMode: 'multi' as AppState['viewMode'],
+        viewMode: 'scroll' as AppState['viewMode'],
         manualPagination: false,
         showParagraphDividers: false,
         theme: 'elite',
@@ -2845,8 +3029,10 @@ function resetAll() {
     $<HTMLInputElement>('#chk-page-override').checked = false;
 
     // Reset mode buttons
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    $('#btn-multi').classList.add('active');
+    document.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.toggle('active', b.id === 'btn-scroll');
+        b.setAttribute('aria-pressed', String(b.id === 'btn-scroll'));
+    });
 
     // Reset user font override
     document.documentElement.style.removeProperty('--user-font-family');

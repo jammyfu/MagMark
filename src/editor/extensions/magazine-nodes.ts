@@ -5,6 +5,22 @@
 import { Extension, Node } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
+import type { DOMOutputSpec } from 'prosemirror-model';
+
+export interface FullBleedImageAttrs { src: string; alt?: string; caption?: string; credit?: string }
+export interface PullQuoteAttrs { attribution?: string; position?: string }
+export interface GridContainerAttrs { columns?: number }
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    magazineNodes: {
+      insertPageBreak: () => ReturnType;
+      insertChapterBreak: () => ReturnType;
+      insertFullBleedImage: (attrs: FullBleedImageAttrs) => ReturnType;
+      insertPullQuote: (attrs: PullQuoteAttrs) => ReturnType;
+      insertGridContainer: (attrs: GridContainerAttrs) => ReturnType;
+    };
+  }
+}
 
 /**
  * Full Bleed Image Node
@@ -45,16 +61,10 @@ export const FullBleedImage = Node.create({
   renderHTML({ HTMLAttributes }) {
     const { src, alt, caption, credit } = HTMLAttributes;
     
-    return [
-      'figure',
-      { 
-        'data-full-bleed': 'true',
-        class: 'mm-figure mm-figure--full-bleed'
-      },
-      ['img', { src, alt, class: 'mm-image mm-image--full-bleed' }],
-      caption && ['figcaption', { class: 'mm-caption' }, caption],
-      credit && ['cite', { class: 'mm-credit' }, credit],
-    ].filter(Boolean);
+    const children: DOMOutputSpec[] = [['img', { src, alt, class: 'mm-image mm-image--full-bleed' }]];
+    if (caption) children.push(['figcaption', { class: 'mm-caption' }, String(caption)]);
+    if (credit) children.push(['cite', { class: 'mm-credit' }, String(credit)]);
+    return ['figure', { 'data-full-bleed': 'true', class: 'mm-figure mm-figure--full-bleed' }, ...children];
   },
   
   addNodeView() {
@@ -123,15 +133,9 @@ export const PullQuote = Node.create({
   renderHTML({ HTMLAttributes }) {
     const { attribution, position } = HTMLAttributes;
     
-    return [
-      'blockquote',
-      {
-        'data-pull-quote': 'true',
-        class: `mm-pull-quote mm-pull-quote--${position}`,
-      },
-      ['div', { class: 'mm-pull-quote__content' }, 0],
-      attribution && ['cite', { class: 'mm-pull-quote__attribution' }, attribution],
-    ].filter(Boolean);
+    const children: DOMOutputSpec[] = [['div', { class: 'mm-pull-quote__content' }, 0]];
+    if (attribution) children.push(['cite', { class: 'mm-pull-quote__attribution' }, String(attribution)]);
+    return ['blockquote', { 'data-pull-quote': 'true', class: `mm-pull-quote mm-pull-quote--${position}` }, ...children];
   }
 });
 
@@ -310,7 +314,7 @@ export const MagazineNodes = Extension.create({
           set = set.map(tr.mapping, tr.doc);
           
           // Find horizontal rule decorations
-          const decorations = [];
+          const decorations: Decoration[] = [];
           tr.doc.descendants((node, pos) => {
             if (node.type.name === 'horizontalRule') {
               decorations.push(
