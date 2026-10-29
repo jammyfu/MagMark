@@ -84,3 +84,10 @@ jobs:
         run: |
           docker build --build-arg VCS_REF="$GITHUB_SHA" -t magmark-web:ci .
           docker run --rm magmark-web:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          trap 'docker rm -f magmark-ci >/dev/null 2>&1 || true' EXIT
+          docker run -d --name magmark-ci --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges --memory 128m magmark-web:ci
+          for attempt in $(seq 1 15); do
+            docker exec magmark-ci wget -q --spider http://127.0.0.1:8080/healthz && break
+            sleep 1
+          done
+          docker exec magmark-ci wget -q --spider http://127.0.0.1:8080/healthz

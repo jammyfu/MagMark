@@ -1,6 +1,7 @@
 # Package the exact dist-web artifact validated by build:web and browser checks.
 # Build with --platform linux/amd64 for the production server.
 FROM caddy:2@sha256:5e5286cb37d44086d651a5363f05f43a692ce4d649d88fb1bd844579f45fa9e8
+RUN setcap -r /usr/bin/caddy
 ARG VCS_REF
 LABEL org.opencontainers.image.source="https://github.com/jammyfu/MagMark" \
       org.opencontainers.image.revision="${VCS_REF}"
