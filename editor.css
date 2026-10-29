@@ -4,6 +4,8 @@
 
 /* ---------- CSS Variables ---------- */
 :root {
+    --mm-font-sans: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    --mm-font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', serif;
     --primary: #d4af37;
     --primary-light: #f1c40f;
     --primary-rgb: 212, 175, 55;
@@ -50,8 +52,8 @@ body[data-theme="ocean-depths"] {
     --th-bg-page: #f1faee;
     --th-text-page: #1a2332;
     --th-preview-bg: #1a2332;
-    --th-font-head: 'DejaVu Sans', 'Inter', sans-serif;
-    --th-font-body: 'DejaVu Sans', sans-serif;
+    --th-font-head: var(--mm-font-sans);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="sunset-boulevard"] {
@@ -60,8 +62,8 @@ body[data-theme="sunset-boulevard"] {
     --th-bg-page: #fff8ed;
     --th-text-page: #1d3340;
     --th-preview-bg: #3b2a1a;
-    --th-font-head: 'DejaVu Serif', serif;
-    --th-font-body: 'DejaVu Sans', sans-serif;
+    --th-font-head: var(--mm-font-serif);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="forest-canopy"] {
@@ -70,8 +72,8 @@ body[data-theme="forest-canopy"] {
     --th-bg-page: #faf9f6;
     --th-text-page: #2d4a2b;
     --th-preview-bg: #2d4a2b;
-    --th-font-head: 'FreeSerif', serif;
-    --th-font-body: 'FreeSans', sans-serif;
+    --th-font-head: var(--mm-font-serif);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="modern-minimalist"] {
@@ -80,8 +82,8 @@ body[data-theme="modern-minimalist"] {
     --th-bg-page: #ffffff;
     --th-text-page: #36454f;
     --th-preview-bg: #1a1a1f;
-    --th-font-head: 'DejaVu Sans', sans-serif;
-    --th-font-body: 'DejaVu Sans', sans-serif;
+    --th-font-head: var(--mm-font-sans);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="golden-hour"] {
@@ -90,8 +92,8 @@ body[data-theme="golden-hour"] {
     --th-bg-page: #f5ead6;
     --th-text-page: #2d1a00;
     --th-preview-bg: #4a403a;
-    --th-font-head: 'FreeSans', sans-serif;
-    --th-font-body: 'FreeSans', sans-serif;
+    --th-font-head: var(--mm-font-sans);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="arctic-frost"] {
@@ -100,8 +102,8 @@ body[data-theme="arctic-frost"] {
     --th-bg-page: #fafafa;
     --th-text-page: #4a6fa5;
     --th-preview-bg: #d4e4f7;
-    --th-font-head: 'DejaVu Sans', sans-serif;
-    --th-font-body: 'DejaVu Sans', sans-serif;
+    --th-font-head: var(--mm-font-sans);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="desert-rose"] {
@@ -110,8 +112,8 @@ body[data-theme="desert-rose"] {
     --th-bg-page: #fdf0ee;
     --th-text-page: #4a1e30;
     --th-preview-bg: #5d2e46;
-    --th-font-head: 'FreeSans', sans-serif;
-    --th-font-body: 'FreeSans', sans-serif;
+    --th-font-head: var(--mm-font-sans);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="tech-innovation"] {
@@ -120,8 +122,8 @@ body[data-theme="tech-innovation"] {
     --th-bg-page: #ffffff;
     --th-text-page: #1e1e1e;
     --th-preview-bg: #1e1e1e;
-    --th-font-head: 'DejaVu Sans', sans-serif;
-    --th-font-body: 'DejaVu Sans', sans-serif;
+    --th-font-head: var(--mm-font-sans);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="botanical-garden"] {
@@ -130,8 +132,8 @@ body[data-theme="botanical-garden"] {
     --th-bg-page: #f5f3ed;
     --th-text-page: #4a7c59;
     --th-preview-bg: #4a7c59;
-    --th-font-head: 'DejaVu Serif', serif;
-    --th-font-body: 'DejaVu Sans', sans-serif;
+    --th-font-head: var(--mm-font-serif);
+    --th-font-body: var(--mm-font-sans);
 }
 
 body[data-theme="midnight-galaxy"] {
@@ -140,8 +142,8 @@ body[data-theme="midnight-galaxy"] {
     --th-bg-page: #e6e6fa;
     --th-text-page: #2b1e3e;
     --th-preview-bg: #2b1e3e;
-    --th-font-head: 'FreeSans', sans-serif;
-    --th-font-body: 'FreeSans', sans-serif;
+    --th-font-head: var(--mm-font-sans);
+    --th-font-body: var(--mm-font-sans);
 }
 
 * {
@@ -913,8 +915,13 @@ input:checked+.slider:before {
     letter-spacing: var(--mm-letter-spacing);
     /* Priority: user-selected > theme > default mm-font-family */
     font-family: var(--user-font-family, var(--th-font-body, var(--mm-font-family)));
-    /* Smooth typography transitions — no visual flicker on slider drag */
-    transition: line-height 0.15s ease, letter-spacing 0.15s ease, font-size 0.15s ease;
+    /* The visible page and hidden measurer must use identical, stable metrics. */
+    text-autospace: normal;
+    text-spacing-trim: trim-start;
+    line-break: strict;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    hyphens: manual;
 }
 
 .magmark h1 {
@@ -924,7 +931,7 @@ input:checked+.slider:before {
     margin-bottom: calc(var(--mm-font-size) * 1);
     color: var(--th-primary);
     font-family: var(--user-font-family, var(--th-font-head, inherit));
-    letter-spacing: -0.5px;
+    letter-spacing: 0;
     border-bottom: 3px solid var(--th-accent);
     padding-bottom: 12px;
 }
@@ -961,19 +968,19 @@ input:checked+.slider:before {
 
 .magmark p {
     text-align: justify;
-    /* inter-word: 对拉丁词间距，CJK 行间由浏览器自动处理（比 inter-character 更正确）*/
-    text-justify: inter-word;
+    /* Language-aware justification distributes space across Han and word boundaries. */
+    text-justify: auto;
     /* 最后一行不拉伸——避免单行段落被撑满全宽 */
     text-align-last: left;
-    hyphens: auto;
-    -webkit-hyphens: auto;
+    hyphens: manual;
+    -webkit-hyphens: manual;
     margin-bottom: calc(var(--mm-font-size) * 1.1);
     /* CJK 正确换行：保留单词完整性，超长时再折断 */
     word-break: normal;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
     /* CJK 标点严格规则（行首/行末标点禁则） */
     line-break: strict;
-    hanging-punctuation: first last;
+    hanging-punctuation: none;
     /* Han.css 配合：开启 OpenType 字距与连字 */
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
     text-rendering: optimizeLegibility;
@@ -1083,6 +1090,8 @@ input:checked+.slider:before {
 }
 
 .magmark table {
+    table-layout: fixed;
+    max-width: 100%;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -1095,6 +1104,9 @@ input:checked+.slider:before {
 
 .magmark th,
 .magmark td {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
     border: 1px solid #e8e8ee;
     padding: 10px 14px;
     text-align: left;
@@ -1106,6 +1118,11 @@ input:checked+.slider:before {
     color: #333;
     letter-spacing: 0.2px;
 }
+
+/* Long identifiers must participate in cell sizing instead of widening paper. */
+.magmark :is(th, td) :is(code, a, span) { white-space: normal; overflow-wrap: anywhere; word-break: normal; }
+.magmark .mm-table-record { margin: 1em 0; }
+.magmark .mm-table-record th { width: 25%; }
 
 .magmark tr:nth-child(even) {
     background: #fafaff;
@@ -1337,7 +1354,9 @@ input:checked+.slider:before {
     display: flex;
     align-items: center;
     gap: 12px;
-    transform: translateY(-100%) translateY(-10px) scale(0.92);
+    box-sizing: border-box;
+    max-width: calc(100vw - 16px);
+    flex-wrap: wrap;
     opacity: 0;
     animation: toolbarEntry 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
     pointer-events: auto;
@@ -1346,7 +1365,6 @@ input:checked+.slider:before {
 
 @keyframes toolbarEntry {
     to {
-        transform: translateY(-100%) translateY(-10px) scale(1);
         opacity: 1;
     }
 }
@@ -1357,6 +1375,10 @@ input:checked+.slider:before {
     align-items: center;
     gap: 6px;
 }
+
+#toolbar-drag { align-self: stretch; min-width: 24px; padding: 0 4px; border: 1px solid #60636c; border-radius: 5px; color: #f8fafc; background: #343740; cursor: grab; touch-action: none; font-size: 22px; }
+#toolbar-drag:active { cursor: grabbing; }
+#toolbar-drag:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 .toolbar-item label {
     font-size: 10px;
@@ -1373,6 +1395,25 @@ input:checked+.slider:before {
     height: 4px;
 }
 
+.toolbar-selection-item select {
+    width: 132px;
+    height: 24px;
+    padding: 0 24px 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #f4f1e9;
+    font: 600 11px/1 var(--font-ui);
+    cursor: pointer;
+    color-scheme: dark;
+}
+
+.toolbar-selection-item select:hover,
+.toolbar-selection-item select:focus-visible {
+    border-color: var(--th-primary);
+    outline: none;
+}
+
 .toolbar-val {
     font-size: 11px;
     font-weight: 700;
@@ -1381,6 +1422,30 @@ input:checked+.slider:before {
     min-width: 30px;
     transition: color 0.4s;
 }
+
+.toolbar-size-stepper {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 2px;
+}
+
+.toolbar-size-stepper button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid #60636c;
+    border-radius: 4px;
+    background: #343740;
+    color: #f8fafc;
+    cursor: pointer;
+}
+
+.toolbar-size-stepper button:hover:not(:disabled) { background: #515563; }
+.toolbar-size-stepper button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.toolbar-size-stepper button:disabled { opacity: .35; cursor: default; }
 
 .toolbar-divider {
     width: 1px;
@@ -1609,16 +1674,7 @@ i:lang(ja) {
     line-height: 1;
 }
 
-/* 全角标点修正：句号、逗号等占半宽 */
-.magmark .biaodian-juhao,
-.magmark .biaodian-douhao {
-    letter-spacing: -0.5em;
-    margin-right: 0.5em;
-}
-
-/* 行首/行末引号悬挂优化 */
-.magmark .open-quote  { margin-left:  -0.5em; }
-.magmark .close-quote { margin-right: -0.5em; }
+/* Punctuation width is contextual: never shrink every comma or quote manually. */
 
 /* 正文 OpenType 特性：汉字字距微调 */
 .magmark {
@@ -1632,19 +1688,27 @@ i:lang(ja) {
 .magmark h1,
 .magmark h2,
 .magmark h3,
-.magmark h4 {
+.magmark h4,
+.magmark h5,
+.magmark h6 {
     text-align: left;
     text-justify: none;
-    line-break: loose;
-    word-break: keep-all;
-    overflow-wrap: break-word;
+    line-break: strict;
+    word-break: normal;
+    overflow-wrap: anywhere;
     font-feature-settings: "kern" 1, "liga" 1;
     text-rendering: optimizeLegibility;
 }
 
+/* Literal references must never acquire visual spaces inside addresses/code. */
+.magmark a, .magmark kbd, .magmark samp {
+    text-autospace: no-autospace;
+}
 /* 代码块内禁用字距调整 */
 .magmark code,
 .magmark pre {
+    text-autospace: no-autospace;
+    text-spacing-trim: space-all;
     word-break: normal;
     overflow-wrap: break-word;
     font-feature-settings: normal;
@@ -1654,7 +1718,7 @@ i:lang(ja) {
 /* 列表项：与段落保持相同的对齐规则，最后一行左对齐 */
 .magmark li {
     text-align: justify;
-    text-justify: inter-word;
+    text-justify: auto;
     text-align-last: left;
     word-break: normal;
     overflow-wrap: break-word;
@@ -1670,10 +1734,24 @@ i:lang(ja) {
 /* 引用块内文本对齐 */
 .magmark blockquote p {
     text-align: justify;
-    text-justify: inter-word;
+    text-justify: auto;
     text-align-last: left;
     word-break: normal;
     overflow-wrap: break-word;
+}
+
+/* Optical Latin sizing in CJK prose; keep English words intact and on the baseline. */
+.magmark .mm-latin-run {
+    font-size: .94em;
+    letter-spacing: normal;
+    line-height: inherit;
+    vertical-align: baseline;
+}
+/* Long bare URLs may break anywhere, so they do not force huge justified gaps. */
+.magmark .mm-reference-run {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    text-autospace: no-autospace;
 }
 
 /* ===========================================
@@ -1792,9 +1870,15 @@ i:lang(ja) {
     margin: 1.2em 0;
     page-break-inside: avoid;
     break-inside: avoid;
-    display: flow-root;
+    /* A figure is an image-sized content block by default.  `flow-root` keeps
+       its block-level width, so selection/edit outlines can span a mostly
+       empty row when the image is narrower than the page.  A table box retains
+       normal figure semantics while shrink-wrapping both axes to its contents. */
+    display: table;
     max-width: 100%;
     width: fit-content;
+    height: auto;
+    min-height: 0;
 }
 
 .magmark figure.mm-figure img {
@@ -1809,6 +1893,33 @@ i:lang(ja) {
     color: #888;
     text-align: center;
     margin-top: 0.4em;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Imported/batch image HTML commonly arrives as
+   <p><br><img><br><em>caption</em></p>. Once the image is block-level, the
+   indentation and BR nodes otherwise create several empty line boxes. */
+.magmark p.mm-image-paragraph {
+    line-height: 0;
+    margin-top: 1.1em;
+    margin-bottom: 1.1em;
+}
+
+.magmark p.mm-image-paragraph > br {
+    display: none;
+}
+
+.magmark p.mm-image-paragraph > img {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.magmark p.mm-image-paragraph > em {
+    display: block;
+    margin-top: 0.55em;
+    color: #888;
+    font-size: 0.82em;
     font-style: italic;
     line-height: 1.4;
 }
@@ -2664,3 +2775,10 @@ i:lang(ja) {
 .scroll-container figure.mm-figure .mm-fig-handles {
     display: none !important;
 }
+#workspace-language { min-width: 48px; max-width: 66px; padding: 6px; color: var(--ui-text, inherit); background: var(--ui-surface, transparent); border: 1px solid var(--ui-border, #818896); border-radius: 7px; }
+#workspace-tabs .mm-icon-only, .preview-mode .mm-icon-only { min-width: 38px; min-height: 36px; padding: 8px; }
+.mm-select-icon { position: relative; display: inline-flex; align-items: center; min-width: 0; }
+.mm-select-icon > .mm-ui-icon { position: absolute; left: 9px; width: 15px; height: 15px; pointer-events: none; z-index: 1; color: inherit; }
+.mm-select-icon > select { padding-left: 31px !important; width: 100%; }
+.mm-select-icon:has(#ctrl-theme) { display: flex; width: 100%; }
+.mm-select-icon #workspace-language { min-width: 74px; max-width: 80px; }

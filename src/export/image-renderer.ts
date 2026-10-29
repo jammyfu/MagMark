@@ -1,3 +1,4 @@
+import { UnsupportedExportError } from '../core/export-capabilities';
 /**
  * MagMark 2.0 - Image Renderer
  * Multi-format image export using Playwright/HTML-to-Image
@@ -258,34 +259,10 @@ export function generateRenderHtml(
  * Export single image
  */
 export async function exportImage(
-  html: string,
-  options: ImageRenderOptions = {}
+  _html: string,
+  _options: ImageRenderOptions = {}
 ): Promise<Buffer> {
-  const {
-    format = 'png',
-    quality = 90,
-    scale = 2,
-    width = 1200,
-    height = 800,
-    fullPage = false,
-    waitTime = 1000,
-  } = options;
-
-  // In production, this would use Playwright or Puppeteer
-  // const browser = await chromium.launch();
-  // const page = await browser.newPage();
-  // await page.setViewportSize({ width, height });
-  // await page.setContent(html);
-  // await page.waitForTimeout(waitTime);
-  // const buffer = await page.screenshot({
-  //   type: format,
-  //   quality: format === 'jpeg' || format === 'webp' ? quality : undefined,
-  //   fullPage,
-  // });
-  // await browser.close();
-
-  // Return placeholder
-  return Buffer.from('Image data would be generated here');
+  throw new UnsupportedExportError('images');
 }
 
 /**
@@ -320,7 +297,7 @@ export async function combineToLongImage(
   pages: string[],
   options: ImageRenderOptions = {}
 ): Promise<Buffer> {
-  const { width = 1080, scale = 2 } = options;
+  const { width = 1080 } = options;
 
   // Combine all pages into one HTML document
   const combinedHtml = `
@@ -402,26 +379,20 @@ export async function exportWechatLongImage(
  * Export as ZIP file
  */
 export async function exportAsZip(
-  pages: string[],
-  options: ExportFormat & { resolution?: 'quick' | 'standard' | 'print' }
+  _pages: string[],
+  _options: ExportFormat & { resolution?: 'quick' | 'standard' | 'print' }
 ): Promise<Buffer> {
-  // In production, use archiver or similar
-  // const archiver = require('archiver');
-  // const zip = archiver('zip');
-  // ...add images to zip
-
-  return Buffer.from('ZIP data would be generated here');
+  throw new UnsupportedExportError('xiaohongshu');
 }
 
 /**
  * Generate PDF with bookmarks
  */
 export async function generateBookmarkedPdf(
-  pages: string[],
-  headings: { level: number; text: string }[]
+  _pages: string[],
+  _headings: { level: number; text: string }[]
 ): Promise<Buffer> {
-  // In production, use PDF-lib or similar to add bookmarks
-  return Buffer.from('PDF with bookmarks would be generated here');
+  throw new UnsupportedExportError('prince');
 }
 
 export default {

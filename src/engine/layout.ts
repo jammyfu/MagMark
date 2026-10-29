@@ -1,8 +1,19 @@
 import { AppState, PageSetting, getFormatDefaultSetting } from '../core/state';
+import { splitContentBlock, countTextLines } from './block-fragmentation';
+import { hasGraphemeSegmentation } from './text-boundaries';
+
+export interface PaginationDiagnostic {
+    code: 'oversized-block';
+    reason: 'unsplittable' | 'grapheme-segmentation-unavailable';
+    sourceBlockIndex: number;
+    measuredHeight: number;
+    availableHeight: number;
+}
 
 export interface PageResult {
     html: string;
     settings: PageSetting;
+    diagnostics?: PaginationDiagnostic[];
 }
 
 /**
@@ -43,42 +54,12 @@ function isHrBlock(html: string): boolean {
     return /^\s*<hr\b/i.test(html);
 }
 
-function isParagraphBlock(html: string): boolean {
-    return /^\s*<p[\s>]/i.test(html);
-}
-
-function isListBlock(html: string): boolean {
-    return /^\s*<(ul|ol)[\s>]/i.test(html);
-}
-
-function isPreBlock(html: string): boolean {
-    return /^\s*<pre[\s>]/i.test(html);
-}
-
-function isTableBlock(html: string): boolean {
-    return /^\s*<table[\s>]/i.test(html);
-}
-
 /**
- * Pre-set explicit pixel dimensions on any <img> elements inside the measurement
- * container so the browser can correctly calculate `offsetHeight` before images finish
- * loading.
- *
- * Why this is needed:
- *   Images with `height: auto` report offsetHeight = 0 when their intrinsic size is
- *   not yet known (image still decoding). This makes the layout engine think an image
- *   block is negligibly small, so it places the block on the current page. When the
- *   page actually renders and the image decodes to its real dimensions, the content
- *   overflows the page boundary and gets clipped by `overflow: hidden`.
- *
- * Strategy (synchronous, no awaiting required):
- *   1. If img.complete && naturalWidth > 0  → image already decoded; use natural dims.
- *   2. If src is a data:image/svg+xml URI   → parse width/height from SVG markup.
- *   3. If src is a data:image/png;base64 URI → create a temp Image to get natural dims
- *      synchronously (base64 data URIs decode synchronously in all major browsers).
- *   4. Otherwise (remote URL not yet loaded) → leave as-is (can't know dimensions
- *      synchronously; the page-overflow fallback will push it to the next page once
- *      measured again on the second page).
+ * Best-effort image sizing for synchronous measurement, not a readiness barrier.
+ * Cached/decoded images and explicit SVG sizes can provide dimensions. An
+ * undecoded raster image cannot be assumed to load synchronously; unknown block
+ * images keep the existing 16:9 estimate. Final resource readiness remains a
+ * separate renderer task, and inline images retain their existing treatment.
  */
 function fixImageDimensions(container: HTMLElement): void {
     const containerW = container.clientWidth || 400;
@@ -145,420 +126,6 @@ function fixImageDimensions(container: HTMLElement): void {
     });
 }
 
-function collectTextNodes(root: Node): Text[] {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-        acceptNode(node) {
-            return node.textContent?.trim()
-                ? NodeFilter.FILTER_ACCEPT
-                : NodeFilter.FILTER_REJECT;
-        }
-    });
-
-    const nodes: Text[] = [];
-    let current = walker.nextNode();
-    while (current) {
-        nodes.push(current as Text);
-        current = walker.nextNode();
-    }
-    return nodes;
-}
-
-function normalizeSplitIndex(text: string, rawIndex: number): number {
-    if (rawIndex <= 0) return 0;
-    if (rawIndex >= text.length) return text.length;
-
-    const preferred = /[\s,.;:!?，。；：！？、）)\]}」』】]/;
-    for (let i = rawIndex; i >= Math.max(1, rawIndex - 24); i--) {
-        if (preferred.test(text[i - 1])) return i;
-    }
-
-    for (let i = rawIndex; i <= Math.min(text.length, rawIndex + 16); i++) {
-        if (preferred.test(text[i - 1])) return i;
-    }
-
-    return rawIndex;
-}
-
-function buildSplitFragment(
-    element: HTMLElement,
-    textNodes: Text[],
-    splitIndex: number,
-    takeBefore: boolean
-): HTMLElement | null {
-    const totalChars = textNodes.reduce((sum, node) => sum + (node.textContent?.length ?? 0), 0);
-    if (splitIndex <= 0 || splitIndex >= totalChars) return null;
-
-    const target = element.cloneNode(false) as HTMLElement;
-    const range = document.createRange();
-
-    let traversed = 0;
-    let boundaryNode: Text | null = null;
-    let boundaryOffset = 0;
-
-    for (const node of textNodes) {
-        const len = node.textContent?.length ?? 0;
-        if (splitIndex <= traversed + len) {
-            boundaryNode = node;
-            boundaryOffset = splitIndex - traversed;
-            break;
-        }
-        traversed += len;
-    }
-
-    if (!boundaryNode) return null;
-
-    if (takeBefore) {
-        range.setStart(element, 0);
-        range.setEnd(boundaryNode, boundaryOffset);
-    } else {
-        range.setStart(boundaryNode, boundaryOffset);
-        range.setEnd(element, element.childNodes.length);
-    }
-
-    target.appendChild(range.cloneContents());
-    target.classList.add(takeBefore ? 'mm-split-fragment--before' : 'mm-split-fragment--after');
-    target.dataset.splitFragment = takeBefore ? 'before' : 'after';
-    return target.textContent?.trim() ? target : null;
-}
-
-function splitParagraphBlock(
-    html: string,
-    pageBlocks: string[],      // existing blocks on current page (for combined measurement)
-    availableH: number,
-    measurer: HTMLElement,
-    settings: PageSetting,
-    blockOverride: PageSetting | undefined,
-    fontFamily: string
-): { before: string; after: string; beforeHeight: number } | null {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    const paragraph = wrapper.firstElementChild as HTMLElement | null;
-    if (!paragraph || paragraph.tagName !== 'P') return null;
-
-    const textNodes = collectTextNodes(paragraph);
-    if (textNodes.length === 0) return null;
-
-    const totalText = paragraph.textContent ?? '';
-    if (totalText.trim().length < 20) return null;
-
-    // Widow/orphan: require at least 2 lines in both the before and after fragments.
-    const minLineH = settings.fontSize * settings.lineHeight;
-    const minFragmentH = minLineH * 2;
-
-    // Compute actual remaining space using combined measurement (honours CSS margin-collapse).
-    const currentPageH = pageBlocks.length > 0
-        ? measurePageContent(pageBlocks, measurer, settings, fontFamily)
-        : 0;
-    const remainingH = availableH - currentPageH;
-    if (remainingH < minFragmentH) return null;
-
-    let low = 1;
-    let high = totalText.length - 1;
-    let bestIndex = -1;
-    let bestCombinedH = 0;
-
-    while (low <= high) {
-        const mid = Math.floor((low + high) / 2);
-        const candidateIndex = normalizeSplitIndex(totalText, mid);
-        const beforeEl = buildSplitFragment(paragraph, textNodes, candidateIndex, true);
-        const afterEl  = buildSplitFragment(paragraph, textNodes, candidateIndex, false);
-
-        if (!beforeEl || !afterEl) {
-            high = mid - 1;
-            continue;
-        }
-
-        const beforeHtml = beforeEl.outerHTML;
-        const afterHtml  = afterEl.outerHTML;
-
-        // Combined measurement correctly handles margin-collapse with existing page blocks.
-        const combinedH  = measurePageContent([...pageBlocks, beforeHtml], measurer, settings, fontFamily);
-        const afterH     = measureBlock(afterHtml, measurer, settings, blockOverride, fontFamily);
-        // Isolated before height needed only for widow/orphan check.
-        const beforeHIso = measureBlock(beforeHtml, measurer, settings, blockOverride, fontFamily);
-
-        const beforeFits  = combinedH <= availableH;
-        const afterFits   = afterH <= availableH;
-        const noOrphan    = beforeHIso >= minFragmentH;  // ≥ 2 lines at page bottom
-        const noWidow     = afterH >= minFragmentH;       // ≥ 2 lines at page top
-
-        if (beforeFits && afterFits && noOrphan && noWidow) {
-            bestIndex    = candidateIndex;
-            bestCombinedH = combinedH;
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-    }
-
-    if (bestIndex === -1) return null;
-
-    const beforeEl = buildSplitFragment(paragraph, textNodes, bestIndex, true);
-    const afterEl  = buildSplitFragment(paragraph, textNodes, bestIndex, false);
-    if (!beforeEl || !afterEl) return null;
-
-    return {
-        before: beforeEl.outerHTML,
-        after:  afterEl.outerHTML,
-        beforeHeight: bestCombinedH,  // total page height after adding before-fragment
-    };
-}
-
-function splitListBlock(
-    html: string,
-    pageBlocks: string[],      // existing blocks on current page (for combined measurement)
-    availableH: number,
-    measurer: HTMLElement,
-    settings: PageSetting,
-    blockOverride: PageSetting | undefined,
-    fontFamily: string
-): { before: string; after: string; beforeHeight: number } | null {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    const list = wrapper.firstElementChild as HTMLElement | null;
-    if (!list || !['UL', 'OL'].includes(list.tagName)) return null;
-
-    const items = Array.from(list.children).filter((child) => child.tagName === 'LI') as HTMLElement[];
-    if (items.length < 2) return null;
-
-    let low = 1;
-    let high = items.length - 1;
-    let bestCount = -1;
-    let bestCombinedH = 0;
-
-    while (low <= high) {
-        const mid = Math.floor((low + high) / 2);
-
-        const beforeList = list.cloneNode(false) as HTMLElement;
-        beforeList.append(...items.slice(0, mid).map((item) => item.cloneNode(true)));
-        const afterList = list.cloneNode(false) as HTMLElement;
-        afterList.append(...items.slice(mid).map((item) => item.cloneNode(true)));
-
-        if (beforeList.children.length === 0 || afterList.children.length === 0) {
-            high = mid - 1;
-            continue;
-        }
-
-        const beforeHtml  = beforeList.outerHTML;
-        const afterHtml   = afterList.outerHTML;
-        // Combined measurement for before: correctly handles margin-collapse.
-        const combinedH   = measurePageContent([...pageBlocks, beforeHtml], measurer, settings, fontFamily);
-        const afterH      = measureBlock(afterHtml, measurer, settings, blockOverride, fontFamily);
-
-        if (combinedH <= availableH && afterH <= availableH) {
-            bestCount    = mid;
-            bestCombinedH = combinedH;
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-    }
-
-    if (bestCount === -1) return null;
-
-    const beforeList = list.cloneNode(false) as HTMLElement;
-    beforeList.append(...items.slice(0, bestCount).map((item) => item.cloneNode(true)));
-    const afterList = list.cloneNode(false) as HTMLElement;
-    afterList.append(...items.slice(bestCount).map((item) => item.cloneNode(true)));
-
-    return {
-        before: beforeList.outerHTML,
-        after:  afterList.outerHTML,
-        beforeHeight: bestCombinedH,
-    };
-}
-
-function splitPreBlock(
-    html: string,
-    pageBlocks: string[],      // existing blocks on current page (for combined measurement)
-    availableH: number,
-    measurer: HTMLElement,
-    settings: PageSetting,
-    blockOverride: PageSetting | undefined,
-    fontFamily: string
-): { before: string; after: string; beforeHeight: number } | null {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    const pre = wrapper.firstElementChild as HTMLElement | null;
-    if (!pre || pre.tagName !== 'PRE') return null;
-
-    const code = pre.querySelector('code');
-    const contentEl = code || pre;
-    const text = contentEl.textContent || '';
-    const lines = text.split('\n');
-    if (lines.length < 4) return null;
-
-    const minLines = 2;
-    let low = minLines;
-    let high = lines.length - minLines;
-    let bestCount = -1;
-    let bestCombinedH = 0;
-
-    while (low <= high) {
-        const mid = Math.floor((low + high) / 2);
-
-        const beforePre  = pre.cloneNode(false) as HTMLElement;
-        const beforeCode = code ? (code.cloneNode(false) as HTMLElement) : beforePre;
-        beforeCode.textContent = lines.slice(0, mid).join('\n');
-        if (code) beforePre.appendChild(beforeCode);
-
-        const afterPre  = pre.cloneNode(false) as HTMLElement;
-        const afterCode = code ? (code.cloneNode(false) as HTMLElement) : afterPre;
-        afterCode.textContent = lines.slice(mid).join('\n');
-        if (code) afterPre.appendChild(afterCode);
-
-        const beforeHtml  = beforePre.outerHTML;
-        const afterHtml   = afterPre.outerHTML;
-        // Combined measurement for before: handles margin-collapse with existing page content.
-        const combinedH   = measurePageContent([...pageBlocks, beforeHtml], measurer, settings, fontFamily);
-        const afterH      = measureBlock(afterHtml, measurer, settings, blockOverride, fontFamily);
-
-        if (combinedH <= availableH && afterH <= availableH) {
-            bestCount    = mid;
-            bestCombinedH = combinedH;
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-    }
-
-    if (bestCount === -1) return null;
-
-    const beforePre  = pre.cloneNode(false) as HTMLElement;
-    const beforeCode = code ? (code.cloneNode(false) as HTMLElement) : beforePre;
-    beforeCode.textContent = lines.slice(0, bestCount).join('\n');
-    if (code) beforePre.appendChild(beforeCode);
-
-    const afterPre  = pre.cloneNode(false) as HTMLElement;
-    const afterCode = code ? (code.cloneNode(false) as HTMLElement) : afterPre;
-    afterCode.textContent = lines.slice(bestCount).join('\n');
-    if (code) afterPre.appendChild(afterCode);
-
-    return {
-        before: beforePre.outerHTML,
-        after:  afterPre.outerHTML,
-        beforeHeight: bestCombinedH,
-    };
-}
-
-function splitTableBlock(
-    html: string,
-    pageBlocks: string[],      // existing blocks on current page (for combined measurement)
-    availableH: number,
-    measurer: HTMLElement,
-    settings: PageSetting,
-    blockOverride: PageSetting | undefined,
-    fontFamily: string
-): { before: string; after: string; beforeHeight: number } | null {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    const table = wrapper.firstElementChild as HTMLTableElement | null;
-    if (!table || table.tagName !== 'TABLE') return null;
-
-    const thead = table.querySelector('thead');
-    const tbody = table.querySelector('tbody');
-    if (!tbody) return null;
-
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    if (rows.length < 2) return null;
-
-    let low = 1;
-    let high = rows.length - 1;
-    let bestCount = -1;
-    let bestCombinedH = 0;
-
-    while (low <= high) {
-        const mid = Math.floor((low + high) / 2);
-
-        // Before table: thead + first N rows
-        const beforeTable = table.cloneNode(false) as HTMLTableElement;
-        if (thead) beforeTable.appendChild(thead.cloneNode(true));
-        const beforeTbody = document.createElement('tbody');
-        rows.slice(0, mid).forEach(r => beforeTbody.appendChild(r.cloneNode(true)));
-        beforeTable.appendChild(beforeTbody);
-
-        // After table: thead (repeated for continuity) + remaining rows
-        const afterTable = table.cloneNode(false) as HTMLTableElement;
-        if (thead) afterTable.appendChild(thead.cloneNode(true));
-        const afterTbody = document.createElement('tbody');
-        rows.slice(mid).forEach(r => afterTbody.appendChild(r.cloneNode(true)));
-        afterTable.appendChild(afterTbody);
-
-        const beforeHtml  = beforeTable.outerHTML;
-        const afterHtml   = afterTable.outerHTML;
-        // Combined measurement for before: handles margin-collapse with existing page content.
-        const combinedH   = measurePageContent([...pageBlocks, beforeHtml], measurer, settings, fontFamily);
-        const afterH      = measureBlock(afterHtml, measurer, settings, blockOverride, fontFamily);
-
-        if (combinedH <= availableH && afterH <= availableH) {
-            bestCount    = mid;
-            bestCombinedH = combinedH;
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-    }
-
-    if (bestCount === -1) return null;
-
-    const beforeTable = table.cloneNode(false) as HTMLTableElement;
-    if (thead) beforeTable.appendChild(thead.cloneNode(true));
-    const beforeTbody = document.createElement('tbody');
-    rows.slice(0, bestCount).forEach(r => beforeTbody.appendChild(r.cloneNode(true)));
-    beforeTable.appendChild(beforeTbody);
-
-    const afterTable = table.cloneNode(false) as HTMLTableElement;
-    if (thead) afterTable.appendChild(thead.cloneNode(true));
-    const afterTbody = document.createElement('tbody');
-    rows.slice(bestCount).forEach(r => afterTbody.appendChild(r.cloneNode(true)));
-    afterTable.appendChild(afterTbody);
-
-    return {
-        before: beforeTable.outerHTML,
-        after:  afterTable.outerHTML,
-        beforeHeight: bestCombinedH,
-    };
-}
-
-/**
- * Measure a block's full rendered height including CSS margins (getComputedStyle).
- * The measurer must already be in the DOM with the correct width set.
- */
-function measureBlock(
-    html: string,
-    measurer: HTMLElement,
-    settings: PageSetting,
-    blockOverride: PageSetting | undefined,
-    fontFamily: string
-): number {
-    measurer.style.setProperty('--mm-font-size',      settings.fontSize + 'px');
-    measurer.style.setProperty('--mm-line-height',    String(settings.lineHeight));
-    measurer.style.setProperty('--mm-letter-spacing', settings.letterSpacing + 'em');
-    measurer.style.setProperty('--mm-font-family',    fontFamily);
-    measurer.innerHTML = html;
-
-    const el = measurer.firstElementChild as HTMLElement | null;
-    if (!el) return 0;
-
-    // Pre-set image dimensions so height:auto images measure correctly even before load.
-    fixImageDimensions(measurer);
-
-    if (blockOverride) {
-        el.style.fontSize      = blockOverride.fontSize + 'px';
-        el.style.lineHeight    = String(blockOverride.lineHeight);
-        el.style.letterSpacing = blockOverride.letterSpacing + 'em';
-    }
-
-    // Force layout recalculation
-    void el.offsetHeight;
-
-    const cs = window.getComputedStyle(el);
-    const marginTop    = parseFloat(cs.marginTop)    || 0;
-    const marginBottom = parseFloat(cs.marginBottom) || 0;
-
-    return el.offsetHeight + marginTop + marginBottom;
-}
-
 function measurePageContent(
     blocks: string[],
     measurer: HTMLElement,
@@ -592,28 +159,9 @@ function getEffectiveMeasureBase(state: AppState): PageSetting {
 }
 
 /**
- * Pre-measure all blocks with base settings for a fast first pass.
- */
-function preMeasureBlocks(
-    blocks: string[],
-    measurer: HTMLElement,
-    base: PageSetting,
-    fontFamily: string
-): number[] {
-    return blocks.map(block => isHrBlock(block) ? 0 : measureBlock(block, measurer, base, undefined, fontFamily));
-}
-
-/**
- * Main pagination engine — v1.5
- *
- * Key improvements over v1.4:
- *  1. Accurate margin measurement via getComputedStyle (replaces fontSize×1.5 hack)
- *  2. Footer-height deduction from available space
- *  3. Orphan-heading prevention: a lonely heading at page bottom moves to next page
- *  4. Oversized-block safety: a block taller than one page still gets its own page
- *  5. Two-pass approach: pre-measure then allocate, with targeted re-measurement
- *     when page settings override base settings
- *  6. Parallel height array eliminates index arithmetic bugs
+ * Pagination measures combined fragments so margins and overrides match output.
+ * Supported blocks consume a fitting prefix and keep paginating the remainder.
+ * Atomic overflow is preserved with diagnostics; resource readiness is separate.
  */
 export async function paginate(
     blocks: string[],
@@ -649,189 +197,185 @@ export async function paginate(
     measurePage.appendChild(measurer);
     document.body.appendChild(measurePage);
 
-    // Effective base must match the page-level CSS variables actually used when rendering.
-    const measureBase = getEffectiveMeasureBase(state);
+    try {
+        // Effective base must match the page-level CSS variables actually used when rendering.
+        const measureBase = getEffectiveMeasureBase(state);
 
-    // ── Pass 1: pre-measure all blocks with base settings ────────────────────
-    const preHeights = preMeasureBlocks(workBlocks, measurer, measureBase, state.fontFamily);
+        // ── Allocate blocks to pages ─────────────────────────────────────
+        const pages: PageResult[] = [];
+        let pageBlocks:  string[] = [];
+        let pageHeight = 0;
+        let pageDiagnostics: PaginationDiagnostic[] = [];
 
-    // ── Pass 2: allocate blocks to pages ─────────────────────────────────────
-    const pages: PageResult[] = [];
-    let pageBlocks:  string[] = [];
-    let pageHeights: number[] = [];
-    let pageHeight = 0;
+        const flushPage = (settings: PageSetting) => {
+            if (pageBlocks.length === 0) return;
+            pages.push({ html: pageBlocks.join(''), settings: { ...settings },
+                ...(pageDiagnostics.length ? { diagnostics: pageDiagnostics } : {}) });
+            pageDiagnostics = [];
+            pageBlocks  = [];
+            pageHeight  = 0;
+        };
 
-    const flushPage = (settings: PageSetting) => {
-        if (pageBlocks.length === 0) return;
-        pages.push({ html: pageBlocks.join(''), settings: { ...settings } });
-        pageBlocks  = [];
-        pageHeights = [];
-        pageHeight  = 0;
-    };
+        const measureCurrentPage = (settings: PageSetting): number =>
+            pageBlocks.length > 0
+                ? measurePageContent(pageBlocks, measurer, settings, state.fontFamily)
+                : 0;
 
-    const remeasure = (html: string, settings: PageSetting, over?: PageSetting): number => {
-        if (isHrBlock(html)) return 0;
-        return measureBlock(html, measurer, settings, over, state.fontFamily);
-    };
+        let idx = 0;
 
-    const measureCurrentPage = (settings: PageSetting): number =>
-        pageBlocks.length > 0
-            ? measurePageContent(pageBlocks, measurer, settings, state.fontFamily)
-            : 0;
+        while (idx < workBlocks.length) {
+            const pageNum = pages.length + 1;
+            // Use the format defaults unless there is an explicit page override.
+            const settings: PageSetting = state.pageOverrides[pageNum] ?? { ...measureBase };
 
-    let idx = 0;
+            let block = workBlocks[idx];
+            const isHr  = isHrBlock(block);
 
-    while (idx < workBlocks.length) {
-        const pageNum = pages.length + 1;
-        // Fall back to measureBase (not raw state) so xiaohongshu pages default
-        // to 32px/1.8 — matching what CSS renders — unless the user has a page override.
-        const settings: PageSetting = state.pageOverrides[pageNum] ?? { ...measureBase };
-
-        const block = workBlocks[idx];
-        const isHr  = isHrBlock(block);
-
-        // Manual page-break via HR
-        if (manualPagination && isHr) {
-            flushPage(settings);
-            idx++;
-            continue;
-        }
-
-        // Auto mode: HR is just a visual divider
-        if (!manualPagination && isHr) {
-            pageBlocks.push(block);
-            pageHeights.push(0);
-            pageHeight = measureCurrentPage(settings);
-            idx++;
-            continue;
-        }
-
-        // Determine actual height (re-measure only when page/block overrides differ from
-        // the base that was used for Pass 1 — avoids redundant DOM measurements).
-        const estBid = `p${pages.length}-b${pageBlocks.length}`;
-        const blockOver = state.blockOverrides[estBid];
-        const hasOverride =
-            blockOver ||
-            settings.fontSize      !== measureBase.fontSize      ||
-            settings.lineHeight    !== measureBase.lineHeight    ||
-            settings.letterSpacing !== measureBase.letterSpacing;
-
-        const bHeight = hasOverride ? remeasure(block, settings, blockOver) : preHeights[idx];
-        const candidateBlocks = [...pageBlocks, block];
-        const candidateHeight = measurePageContent(candidateBlocks, measurer, settings, state.fontFamily);
-
-        // Would this block cause the page to overflow?
-        if (candidateHeight > availableH && pageBlocks.length > 0) {
-            // Helper: apply a successful split result to the current page.
-            // split.beforeHeight is now the *total page height* after adding the before-fragment
-            // (measured in combined context by the split function itself).
-            const applySplit = (split: { before: string; after: string; beforeHeight: number }): boolean => {
-                // Final safety-check using combined measurement (should always pass, but be safe).
-                const verifiedH = measurePageContent([...pageBlocks, split.before], measurer, settings, state.fontFamily);
-                if (verifiedH > availableH) return false;
-
-                pageBlocks.push(split.before);
-                pageHeights.push(split.beforeHeight);
-                pageHeight = verifiedH;
-                workBlocks[idx] = split.after;
-                preHeights[idx] = remeasure(split.after, settings, blockOver);
+            // Manual page-break via HR
+            if (manualPagination && isHr) {
                 flushPage(settings);
-                return true;
-            };
-
-            if (isPreBlock(block)) {
-                const split = splitPreBlock(block, pageBlocks, availableH, measurer, settings, blockOver, state.fontFamily);
-                if (split && applySplit(split)) continue;
+                idx++;
+                continue;
             }
 
-            if (isListBlock(block)) {
-                const split = splitListBlock(block, pageBlocks, availableH, measurer, settings, blockOver, state.fontFamily);
-                if (split && applySplit(split)) continue;
+            // Auto mode: HR is just a visual divider
+            if (!manualPagination && isHr) {
+                pageBlocks.push(block);
+                pageHeight = measureCurrentPage(settings);
+                idx++;
+                continue;
             }
 
-            if (isParagraphBlock(block)) {
-                const split = splitParagraphBlock(block, pageBlocks, availableH, measurer, settings, blockOver, state.fontFamily);
-                if (split && applySplit(split)) continue;
+            // Apply the same page/block typography used by the visible preview.
+            const estBid = `p${pages.length}-b${pageBlocks.length}`;
+            const blockOver = state.blockOverrides[estBid];
+            // Measure the same effective inline typography that the final pass renders.
+            if (blockOver) {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = block;
+                const element = wrapper.firstElementChild as HTMLElement | null;
+                if (element) {
+                    element.style.fontSize = blockOver.fontSize + 'px';
+                    element.style.lineHeight = String(blockOver.lineHeight);
+                    element.style.letterSpacing = blockOver.letterSpacing + 'em';
+                    block = element.outerHTML;
+                }
             }
+            const candidateBlocks = [...pageBlocks, block];
+            const candidateHeight = measurePageContent(candidateBlocks, measurer, settings, state.fontFamily);
 
-            if (isTableBlock(block)) {
-                const split = splitTableBlock(block, pageBlocks, availableH, measurer, settings, blockOver, state.fontFamily);
+            // Would this block cause the page to overflow?
+            if (candidateHeight > availableH) {
+                // Helper: apply a successful split result to the current page.
+                // split.beforeHeight is now the *total page height* after adding the before-fragment
+                // (measured in combined context by the split function itself).
+                const applySplit = (split: { before: string; after: string; beforeHeight: number }): boolean => {
+                    // Final safety-check using combined measurement (should always pass, but be safe).
+                    const verifiedH = measurePageContent([...pageBlocks, split.before], measurer, settings, state.fontFamily);
+                    if (verifiedH > availableH) return false;
+
+                    pageBlocks.push(split.before);
+                    pageHeight = verifiedH;
+                    workBlocks[idx] = split.after;
+                    flushPage(settings);
+                    return true;
+                };
+
+                const split = splitContentBlock(block, {
+                    availableHeight: availableH,
+                    measurePrefix: html => {
+                        const height = measurePageContent([...pageBlocks, html], measurer, settings, state.fontFamily);
+                        return { height, lines: countTextLines(measurer.lastElementChild as HTMLElement | null, 2) };
+                    },
+                    measureRemainder: html => {
+                        const height = measurePageContent([html], measurer, settings, state.fontFamily);
+                        return { height, lines: countTextLines(measurer.firstElementChild as HTMLElement | null, 2) };
+                    },
+                });
                 if (split && applySplit(split)) continue;
-            }
 
-            // Figure/image blocks are never split — always push intact to the next page.
-            // (No split function is attempted; fall through to standard overflow below.)
-
-            // Orphan-heading prevention: if the last block already added is a heading,
-            // pull it off the current page and push it to the next one so the heading
-            // stays with the content that follows it.
-            // Require at least 2 lines of follow-space — 1 line is not enough for readability.
-            if (isHeadingBlock(pageBlocks[pageBlocks.length - 1])) {
-                const remainingAfterHeading = availableH - pageHeight;
-                const minFollowSpace = Math.max(settings.fontSize * settings.lineHeight * 2.2, 80);
-
-                if (remainingAfterHeading >= minFollowSpace) {
+                // An atomic block cannot make progress by flushing an empty page.
+                // Keep the content and report the overflow instead of claiming a fit.
+                if (pageBlocks.length === 0) {
+                    pageBlocks.push(block);
+                    pageDiagnostics.push({ code: 'oversized-block', sourceBlockIndex: idx,
+                        reason: !hasGraphemeSegmentation() && /^\s*<p(?:\s|>)/i.test(block)
+                            ? 'grapheme-segmentation-unavailable' : 'unsplittable',
+                        measuredHeight: candidateHeight, availableHeight: availableH });
+                    idx++;
                     flushPage(settings);
                     continue;
                 }
 
-                const orphanHtml   = pageBlocks.pop()!;
-                pageHeights.pop()!;
-                pageHeight = measureCurrentPage(settings);
+                // Figure/image blocks are never split — always push intact to the next page.
+                // (No split function is attempted; fall through to standard overflow below.)
 
+                // Orphan-heading prevention: if the last block already added is a heading,
+                // pull it off the current page and push it to the next one so the heading
+                // stays with the content that follows it.
+                // Require at least 2 lines of follow-space — 1 line is not enough for readability.
+                if (pageBlocks.length > 1 && isHeadingBlock(pageBlocks[pageBlocks.length - 1])) {
+                    const remainingAfterHeading = availableH - pageHeight;
+                    const minFollowSpace = Math.max(settings.fontSize * settings.lineHeight * 2.2, 80);
+
+                    if (remainingAfterHeading >= minFollowSpace) {
+                        flushPage(settings);
+                        continue;
+                    }
+
+                    const orphanHtml   = pageBlocks.pop()!;
+                    pageHeight = measureCurrentPage(settings);
+
+                    flushPage(settings);
+
+                    // Orphan heading is first block of the new page
+                    pageBlocks.push(orphanHtml);
+                    pageHeight = measureCurrentPage(settings);
+
+                    // Re-process current block on next iteration (don't increment idx)
+                    continue;
+                }
+
+                // Standard overflow: flush and reprocess on new page
                 flushPage(settings);
-
-                // Orphan heading is first block of the new page
-                pageBlocks.push(orphanHtml);
-                pageHeights.push(remeasure(orphanHtml, settings));
-                pageHeight = measureCurrentPage(settings);
-
-                // Re-process current block on next iteration (don't increment idx)
-                continue;
+                continue; // don't increment idx
             }
 
-            // Standard overflow: flush and reprocess on new page
-            flushPage(settings);
-            continue; // don't increment idx
+            // This complete block fits; preserve its effective typography.
+            pageBlocks.push(block);
+            pageHeight = candidateHeight;
+            idx++;
+
+
         }
 
-        // Block fits (or is the first block — always add regardless of height)
-        pageBlocks.push(block);
-        pageHeights.push(bHeight);
-        pageHeight = candidateHeight;
-        idx++;
-
-        // Oversized single block: flush it immediately and move on
-        if (pageHeight > availableH && pageBlocks.length === 1) {
-            flushPage(settings);
+        // Flush remaining content
+        if (pageBlocks.length > 0) {
+            const finalSettings: PageSetting = state.pageOverrides[pages.length + 1] ?? { ...measureBase };
+            flushPage(finalSettings);
         }
-    }
 
-    // Flush remaining content
-    if (pageBlocks.length > 0) {
-        const finalSettings: PageSetting = state.pageOverrides[pages.length + 1] ?? { ...measureBase };
-        pages.push({ html: pageBlocks.join(''), settings: finalSettings });
-    }
+        // ── Inject block IDs and restore saved overrides ─────────────────
+        pages.forEach((p, pageIdx) => {
+            const temp = document.createElement('div');
+            temp.innerHTML = p.html;
+            Array.from(temp.children).forEach((child, bIdx) => {
+                const bid = `p${pageIdx}-b${bIdx}`;
+                (child as HTMLElement).dataset.blockId = bid;
 
-    // ── Pass 3: inject block IDs and restore saved overrides ─────────────────
-    pages.forEach((p, pageIdx) => {
-        const temp = document.createElement('div');
-        temp.innerHTML = p.html;
-        Array.from(temp.children).forEach((child, bIdx) => {
-            const bid = `p${pageIdx}-b${bIdx}`;
-            (child as HTMLElement).dataset.blockId = bid;
-
-            const over = state.blockOverrides[bid];
-            if (over) {
-                const el = child as HTMLElement;
-                el.style.setProperty('font-size',      over.fontSize + 'px');
-                el.style.setProperty('line-height',    String(over.lineHeight));
-                el.style.setProperty('letter-spacing', over.letterSpacing + 'em');
-            }
+                const over = state.blockOverrides[bid];
+                if (over) {
+                    const el = child as HTMLElement;
+                    el.style.setProperty('font-size',      over.fontSize + 'px');
+                    el.style.setProperty('line-height',    String(over.lineHeight));
+                    el.style.setProperty('letter-spacing', over.letterSpacing + 'em');
+                }
+            });
+            p.html = temp.innerHTML;
         });
-        p.html = temp.innerHTML;
-    });
 
-    document.body.removeChild(measurePage);
-    return pages;
+        return pages;
+    } finally {
+        measurePage.remove();
+    }
 }

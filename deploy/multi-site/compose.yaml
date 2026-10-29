@@ -1,0 +1,25 @@
+# Run only after inspecting existing server listeners and allocating gateway ports.
+name: magamark-edge
+services:
+  edge:
+    image: ${CADDY_IMAGE:?Set a reviewed Caddy image tag or digest in the private environment}
+    restart: unless-stopped
+    ports:
+      - "${EDGE_HTTP_PORT:?Set the registered HTTP gateway port}:80"
+      - "${EDGE_HTTPS_PORT:?Set the registered HTTPS gateway port}:443"
+    environment:
+      MAGMARK_DOMAIN: ${MAGMARK_DOMAIN:?Set the public domain}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sites:/etc/caddy/sites:ro
+      - ./www:/srv/sites:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  caddy_data:
+  caddy_config:

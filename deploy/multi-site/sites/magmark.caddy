@@ -1,0 +1,14 @@
+{$MAGMARK_DOMAIN} {
+    encode zstd gzip
+    root * /srv/sites/magmark/current
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+        Cache-Control "no-cache"
+    }
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+    file_server
+    log
+}

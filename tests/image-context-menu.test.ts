@@ -1,8 +1,22 @@
 /** @vitest-environment jsdom */
 import {describe, expect, it} from 'vitest';
-import {findImageReferences, replaceImageReference, formatEditedImage} from '../src/image/image-context-menu';
+import {findImageReferences, replaceImageReference, formatEditedImage, installImageContextMenu} from '../src/image/image-context-menu';
 
 describe('in-place image editing', () => {
+    it('opens picture editing using fallback identity when the browser displays a different theme source', () => {
+        const preview = document.createElement('div');
+        preview.innerHTML = '<picture><source srcset="white.svg"><img src="black.svg" alt="Logo"></picture>';
+        const input = document.createElement('textarea');
+        input.value = preview.innerHTML;
+        const image = preview.querySelector('img')!;
+        Object.defineProperty(image, 'currentSrc', {value: 'http://localhost:3000/white.svg'});
+        const reports: string[] = [];
+        installImageContextMenu({preview, input, resolve: s => s, storeImage: s => s, onChange: () => {}, report: s => reports.push(s)});
+        image.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true}));
+        expect(reports).toEqual([]);
+        expect(document.getElementById('mm-image-context-menu')?.hidden).toBe(false);
+        document.getElementById('mm-image-context-menu')?.remove();
+    });
     it('round-trips spaces, parentheses and bracketed alt text after editing', () => {
         const ref = findImageReferences('![old](<assets/a (1).png>)')[0];
         const result = formatEditedImage(ref, {src:ref.src,alt:'说明[一]',layout:'center',width:50});

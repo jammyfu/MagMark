@@ -1,0 +1,2 @@
+# Shared HTTPS entry. Add one independent file per future website.
+import /etc/caddy/sites/*.caddy

@@ -1,3 +1,5 @@
+import { inertImageElements, sanitizeInlineStyle } from '../security/article-html';
+import { serializeInertHtml } from '../security/inert-html';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import { ImagePanel, buildImageMarkdown, type ImageInsertOptions } from './image-panel';
@@ -35,14 +37,13 @@ export function findImageReferences(markdown: string): ImageReference[] {
             refs.push({start, end: end + attrs.length, src: node.url || '', alt: node.alt || '', title: node.title || '',
                 raw: markdown.slice(start, end + attrs.length), kind: 'markdown'});
         } else if (start !== undefined && node.type === 'html') {
-            for (const match of (node.value || '').matchAll(/<img\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi)) {
-                const holder = document.createElement('div');
-                holder.innerHTML = match[0];
-                const img = holder.querySelector('img');
-                if (!img) continue;
-                const from = start + match.index!;
-                refs.push({start: from, end: from + match[0].length, src: img.getAttribute('src') || '',
-                    alt: img.alt, raw: match[0], kind: 'html'});
+            for (const image of inertImageElements(node.value || '')) {
+                const localStart = image.position?.start.offset;
+                const localEnd = image.position?.end.offset;
+                if (localStart === undefined || localEnd === undefined) continue;
+                const from = start + localStart, to = start + localEnd;
+                refs.push({start: from, end: to, src: String(image.properties.src || ''),
+                    alt: String(image.properties.alt || ''), raw: markdown.slice(from, to), kind: 'html'});
             }
         }
         node.children?.forEach(visit);
@@ -53,29 +54,36 @@ export function findImageReferences(markdown: string): ImageReference[] {
 
 export function replaceImageReference(markdown: string, ref: ImageReference, replacement: string): string {
     if (markdown.slice(ref.start, ref.end) !== ref.raw) throw new Error('文章已变化，请重新右键选择图片。');
+    // An edited picture must use the chosen image, not a system-theme source override.
+    const opening = markdown.lastIndexOf('<picture', ref.start);
+    const closing = markdown.indexOf('</picture>', ref.end);
+    if (opening >= 0 && closing >= 0 && markdown.lastIndexOf('</picture>', ref.start) < opening
+        && !markdown.slice(ref.end, closing).includes('<img')) {
+        return markdown.slice(0, opening) + replacement + markdown.slice(closing + 10);
+    }
     return markdown.slice(0, ref.start) + replacement + markdown.slice(ref.end);
 }
 
 export function formatEditedImage(ref: ImageReference, opts: ImageInsertOptions): string {
     if (ref.kind === 'markdown') return buildImageMarkdown(opts).trim();
-    const holder = document.createElement('div');
-    holder.innerHTML = ref.raw;
-    const img = holder.querySelector('img')!;
-    img.setAttribute('src', opts.src);
-    img.alt = opts.alt;
-    img.removeAttribute('width');
-    img.removeAttribute('height');
-    img.style.width = `${opts.width ?? 100}%`;
-    img.style.maxWidth = '100%';
-    img.style.height = 'auto';
-    img.style.float = 'none';
-    img.style.display = opts.layout === 'inline' ? 'inline' : 'block';
-    img.style.marginLeft = opts.layout === 'float-left' ? '0' : 'auto';
-    img.style.marginRight = opts.layout === 'float-right' ? '0' : 'auto';
-    if (opts.layout === 'full') img.style.width = '100%';
-    if (opts.caption) img.title = opts.caption;
-    else img.removeAttribute('title');
-    return img.outerHTML;
+    const image = inertImageElements(ref.raw)[0];
+    if (!image) throw new Error('图片源码无效，请重新选择图片。');
+    image.properties.src = opts.src;
+    image.properties.alt = opts.alt;
+    delete image.properties.width;
+    delete image.properties.height;
+    // CSS is edited as data too: parsing raw source must never create a native img.
+    const styles = new Map(sanitizeInlineStyle(String(image.properties.style || '')).split(';').filter(Boolean).map(part => {
+        const colon = part.indexOf(':'); return [part.slice(0, colon).trim(), part.slice(colon + 1).trim()];
+    }));
+    styles.set('width', `${opts.layout === 'full' ? 100 : opts.width ?? 100}%`);
+    styles.set('max-width', '100%'); styles.set('height', 'auto'); styles.set('float', 'none');
+    styles.set('display', opts.layout === 'inline' ? 'inline' : 'block');
+    styles.set('margin-left', opts.layout === 'float-left' ? '0px' : 'auto');
+    styles.set('margin-right', opts.layout === 'float-right' ? '0px' : 'auto');
+    image.properties.style = [...styles].map(([property, value]) => `${property}: ${value};`).join(' ');
+    if (opts.caption) image.properties.title = opts.caption; else delete image.properties.title;
+    return serializeInertHtml(image);
 }
 
 interface ContextOptions {
@@ -99,11 +107,13 @@ export function installImageContextMenu(options: ContextOptions) {
     let selected: {ref: ImageReference; snapshot: string; image: HTMLImageElement} | null = null;
     const close = () => { menu.hidden = true; };
     const absolute = (src: string) => { try { return new URL(resolve(src), document.baseURI).href; } catch { return src; } };
+    // Source identity is the img fallback, while currentSrc may be a picture/srcset variant.
+    const sourceIdentity = (image: HTMLImageElement) => absolute(image.dataset.mmOriginalSrc || image.getAttribute('src') || '');
     const select = (image: HTMLImageElement) => {
         const snapshot = input.value;
-        const url = imageSourceForEditing(image);
+        const url = sourceIdentity(image);
         const candidates = findImageReferences(snapshot).filter(ref => absolute(ref.src) === url);
-        const rendered = [...preview.querySelectorAll<HTMLImageElement>('img')].filter(img => imageSourceForEditing(img) === url);
+        const rendered = [...preview.querySelectorAll<HTMLImageElement>('img')].filter(img => sourceIdentity(img) === url);
         const ref = candidates.length === rendered.length ? candidates[rendered.indexOf(image)] : undefined;
         if (!ref) { report('无法唯一定位这张图片的源码，请在 Markdown 中编辑。'); return false; }
         selected = {ref, snapshot, image};
@@ -119,7 +129,12 @@ export function installImageContextMenu(options: ContextOptions) {
         const widthStyle = (figure as HTMLElement | null)?.style.width || image.style.width;
         const width = widthStyle?.endsWith('%') ? parseFloat(widthStyle) :
             image.offsetWidth / Math.max(1, (figure?.parentElement || image.parentElement)!.clientWidth) * 100;
-        return {layout, width: Math.max(1, Math.min(100, Math.round(width || 100))), alt: ref.alt,
+        let paperBackground = 'rgb(255,255,255)';
+        for (let parent: HTMLElement | null = image; parent; parent = parent.parentElement) {
+            const bg = getComputedStyle(parent).backgroundColor;
+            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') { paperBackground = bg; break; }
+        }
+        return {paperBackground, layout, width: Math.max(1, Math.min(100, Math.round(width || 100))), alt: ref.alt,
             caption: figure?.querySelector('figcaption')?.textContent || (image.dataset.mmMissing ? '' : image.title) || ''};
     };
     const commit = (replacement: string) => {

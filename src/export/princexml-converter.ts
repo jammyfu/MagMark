@@ -375,17 +375,11 @@ export function generatePrinceConfig(options: PrinceOptions = {}): string {
  * Note: Requires PrinceXML to be installed
  */
 export async function convertWithPrince(
-  html: string,
-  outputPath: string,
-  options: PrinceOptions = {}
+  _input: string,
+  _outputPath: string,
+  _options: PrinceOptions = {}
 ): Promise<{ success: boolean; output?: string; error?: string }> {
-  // In production, this would call the Prince CLI
-  // prince input.html -o output.pdf
-  
-  return {
-    success: true,
-    output: generatePrinceHtml(html, options),
-  };
+  return { success: false, error: 'No compiler backend is configured. Use the template/HTML generator separately or the web editor print preview.' };
 }
 
 export default {
