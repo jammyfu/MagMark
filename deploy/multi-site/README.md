@@ -1,49 +1,53 @@
-# Shared multi-site gateway
+# Docker websites behind a shared HTTPS gateway
 
-Build the browser application locally or in CI; the 1 GB server serves static files and does not need Node, npm, or a database.
+MagMark runs in an independent, read-only, non-root Docker container. A separate Caddy container handles public HTTP/HTTPS for every site. Only the gateway publishes host ports; MagMark listens at `magmark:8080` on the shared Docker network. Both containers have a 128 MB memory limit, suitable for this static website on the 1 GB server.
+
+## Build an application image
+
+Build and test off-server with the repository-pinned Node version:
 
 ```sh
-MAGMARK_SITE_URL=https://magamark.cn/ npm run build:web
+MAGMARK_SITE_URL=https://magmark.cn/ npm run build:web
+MAGMARK_SITE_URL=https://magmark.cn/ node scripts/check-web-release.cjs
+docker build --platform linux/amd64 --build-arg VCS_REF="$(git rev-parse HEAD)" -t magmark-web:RELEASE .
 ```
 
-The default build without this variable keeps the existing Bubufu beta path. `MAGMARK_BASE_PATH`, if explicitly set, must match the URL pathname. Canonical URLs, social images, guides, robots.txt and sitemap use the selected site URL.
+The default site URL is https://magmark.cn/. Set MAGMARK_SITE_URL only when intentionally building another deployment identity. The Dockerfile packages the exact verified `dist-web` artifact. `.dockerignore` allows only that artifact and the container Caddy config; source drafts, credentials, server configuration and node_modules cannot enter the image build context. Check the image revision label and release manifest, then transfer using a registry or `docker save` / `docker load` with SHA256 verification. The server does not need Node, npm or a database.
 
-## Before installation
+## Server installation
 
-Inspect server identity, listeners, Docker containers, existing proxies, disk and memory. Reuse an existing proxy where appropriate; do not replace it or stop unknown services. Reserve the remote gateway's HTTP/HTTPS ports in the owner's service inventory before startup. The shared local workspace registry remains the source for local preview ports. Do not start a local copy of this gateway on unallocated ports.
+Inspect server identity, listeners, Docker containers and resources. Reuse existing proxies when appropriate; never replace one or stop an unknown service. Record the server gateway's HTTP/HTTPS port ownership before startup. Use the shared workspace registry for local test ports, with no host ports published for internal app containers.
 
-Copy these templates to an owner-controlled deployment directory, outside the Git checkout. Keep the actual `.env` there, never in Git or an application artifact. Required variables: `CADDY_IMAGE` (reviewed tag/digest), `EDGE_HTTP_PORT`, `EDGE_HTTPS_PORT`, `MAGMARK_DOMAIN`. The public hostname for this release is `magamark.cn`. Confirm public DNS points to the server and the selected ingress ports are accessible before requesting certificates.
-
-Layout (relative to the deployment directory):
+Copy these deployment templates outside the Git checkout to an owner-controlled directory. Keep the real `.env` and release history there, never in Git or build artifacts. Required environment values: `CADDY_IMAGE` (reviewed digest), `MAGMARK_IMAGE` (verified image identity), `EDGE_HTTP_PORT`, `EDGE_HTTPS_PORT`, `MAGMARK_DOMAIN` (`magmark.cn` for this release). DNS must point to the server before automatic public HTTPS can work.
 
 ```text
 compose.yaml
 Caddyfile
 sites/
   magmark.caddy
-www/
-  magmark/
-    releases/<commit>/   # contents of dist-web, plus release manifest
-    current -> releases/<commit>
+.env                  # owner-local only
+releases/             # owner-local image/hash records and rollback identities
 ```
 
-Keep the certificate volumes persistent. Validate before starting/reloading:
+Validate and launch:
 
 ```sh
 docker compose config --quiet
 docker compose run --rm --no-deps edge caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-docker compose up -d edge
+docker compose up -d magmark edge
 ```
 
-Publish by extracting the verified artifact to a NEW release directory and atomically replacing the relative `current` symlink. Keep the previous target for rollback. Do not copy local environment files, drafts, uploads or node_modules into releases. Verify `/`, `/guide/`, `/guide/en/`, `/robots.txt`, `/sitemap.xml`, logo decoding, editing and cover interactions at desktop/mobile widths; confirm HTTPS and the served HTML hash.
+Keep certificate volumes persistent. Confirm app health, homepage, bilingual guides, robots/sitemap, decoded logo, desktop/mobile editing and cover controls. Match served HTML against the verified artifact. Retain the previous app image and environment backup for rollback; update only MAGMARK_IMAGE to select a new image, then `docker compose up -d magmark`. Do not overwrite existing server secrets, databases or uploads.
 
-## Add another website
+## Additional websites
 
-Add `sites/<site>.caddy` with its own hostname and root, plus `www/<site>/releases/<commit>` and its own `current` symlink. For a backend, connect its container to the gateway network and use `reverse_proxy <service>:<internal-port>`; do not publish its database or internal API to the host. Only the shared edge owns public HTTP/HTTPS ports. Validate all site configs, then reload:
+Add a service with its own image and no host ports to `compose.yaml`, connected to `edge`. Add `sites/<site>.caddy` with its explicit hostname and `reverse_proxy <service>:<internal-port>`. Each website has independent containers, image versions and rollback history; only the gateway owns the public ports. Databases remain on private networks without host ports. The `shared-web-edge` network also supports separate project Compose stacks via an external network declaration.
+
+Validate all configs, launch the added service, then reload the gateway:
 
 ```sh
 docker compose exec -T edge caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 docker compose exec -T edge caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
-Hostnames are explicit. No catch-all points an unknown domain at MagMark. Configure `www` redirects only after its DNS is ready. Avoid a wildcard certificate or a domain routing to another site by accident.
+No catch-all hostname routes unknown domains to MagMark. Add www redirects only when their DNS is ready. Reserve resource headroom for future sites rather than running build toolchains on the server.

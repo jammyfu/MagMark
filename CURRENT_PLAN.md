@@ -1,3 +1,11 @@
+# 2026-10-29 — Docker deployment and final magmark.cn identity
+
+User confirms the final domain is magmark.cn (superseding the initial magamark.cn spelling) and requests every related link, including starter article text, use it. Root SSH access is established through the user's interactive login. Deploy an independent MagMark Docker image behind a shared HTTPS Caddy gateway, leaving independent services/configs for additional websites. Main integration 950dc02 and CI 40812932781 succeeded. Build/package off-server, inspect public DNS and ports, record gateway ownership, verify Docker health and public HTTPS before completion.
+
+Previous execution context follows.
+
+---
+
 # 2026-10-29 — MagMark 2 main integration and magamark.cn deployment
 
 User explicitly requests merging the latest GitHub MagMark 2 branch into main, deploying to 82.156.172.219 at https://magamark.cn/, and retaining room for additional independent websites on the same server. This supersedes earlier branch-only/no-deployment boundaries for this release. Preserve main metadata and existing local working trees. Never include owner credentials, server environment or drafts in Git/build artifacts.

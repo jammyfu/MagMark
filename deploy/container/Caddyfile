@@ -1,0 +1,20 @@
+{
+    admin off
+    auto_https off
+    persist_config off
+}
+:8080 {
+    root * /srv
+    encode gzip
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+    @documents not path /assets/*
+    header @documents Cache-Control "no-cache"
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+    respond /healthz "ok" 200
+    file_server
+}

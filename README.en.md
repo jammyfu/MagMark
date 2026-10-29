@@ -7,20 +7,20 @@
 
 MagMark is a Markdown editing, typesetting and export workspace for Chinese and mixed Chinese–English writing. Keep the source editable, inspect the layout, and take the same article to paginated pages, PNG, browser-printed PDF or WeChat-compatible rich text.
 
-> **2.0.0-beta.1 — `codex/2.0.0-beta`** is a testing branch with an independently published [2.0 beta editor](https://bubufu.com/tools/magmark2/). `main` and the [stable editor](https://bubufu.com/tools/magmark/) remain at 1.6.0. Keep separate Markdown backups.
+> **2.0.0-beta.1 is integrated into main.** Online editor: [magmark.cn](https://magmark.cn/). Keep separate Markdown backups.
 
 ## Run the beta
 
 Use Node.js 22 to match repository CI:
 
 ```bash
-git clone --branch codex/2.0.0-beta --single-branch https://github.com/jammyfu/MagMark.git
+git clone --branch main --single-branch https://github.com/jammyfu/MagMark.git
 cd MagMark
 npm ci
 npm run dev
 ```
 
-Open the address printed by Vite, normally port 5173. Import or paste Markdown, switch between writing / comparison / preview, adjust the article in the typography inspector, then open the export dialog.
+Open the address printed by Vite, using your assigned workspace port. Import or paste Markdown, switch between writing / comparison / preview, adjust the article in the typography inspector, then open the export dialog.
 
 ## What is available
 

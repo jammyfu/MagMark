@@ -1,3 +1,8 @@
+## 2026-10-29 — Docker website and final domain
+
+- Package the verified web artifact as a non-root, read-only Docker website behind a separate shared HTTPS gateway; reserve independent containers/configs for future sites.
+- Use magmark.cn as the final default domain, including editor metadata, bilingual guides, localized starter article links, package homepage and QR code. Update README main-branch status after integration.
+
 ## 2026-10-29
 
 - Integrate MagMark 2 beta into current main, retaining repository exposure metadata.

@@ -4,7 +4,7 @@ const path = require('node:path');
 const { tmpdir } = require('node:os');
 const assert = require('node:assert/strict');
 (async () => {
-  const base = new URL(process.env.MAGMARK_SITE_URL || 'https://bubufu.com/tools/magmark2/').href;
+  const base = new URL(process.env.MAGMARK_SITE_URL || 'https://magmark.cn/').href;
   const engine=process.env.BROWSER_ENGINE==='webkit'?webkit:chromium;
   const browser = await engine.launch({headless:true, channel:process.env.CHROME_CHANNEL || undefined});
   try {

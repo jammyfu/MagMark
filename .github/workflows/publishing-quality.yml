@@ -74,7 +74,20 @@ jobs:
       - name: Standalone domain build and metadata
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         env:
-          MAGMARK_SITE_URL: https://magamark.cn/
+          MAGMARK_SITE_URL: https://magmark.cn/
         run: |
           npm run build:web
           node scripts/check-web-release.cjs
+
+      - name: Package standalone Docker website
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          docker build --build-arg VCS_REF="$GITHUB_SHA" -t magmark-web:ci .
+          docker run --rm magmark-web:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          trap 'docker rm -f magmark-ci >/dev/null 2>&1 || true' EXIT
+          docker run -d --name magmark-ci --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges --memory 128m magmark-web:ci
+          for attempt in $(seq 1 15); do
+            docker exec magmark-ci wget -q --spider http://127.0.0.1:8080/healthz && break
+            sleep 1
+          done
+          docker exec magmark-ci wget -q --spider http://127.0.0.1:8080/healthz

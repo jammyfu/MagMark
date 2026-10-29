@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-const base = new URL(process.env.MAGMARK_SITE_URL || 'https://bubufu.com/tools/magmark2/').href;
+const base = new URL(process.env.MAGMARK_SITE_URL || 'https://magmark.cn/').href;
 for (const path of ['', 'guide/', 'guide/en/']) {
   const html = readFileSync(`dist-web/${path}index.html`, 'utf8');
   const doc = new JSDOM(html).window.document;
@@ -30,6 +30,12 @@ for (const path of ['', 'guide/', 'guide/en/']) {
 }
 assert.ok(readFileSync('dist-web/robots.txt', 'utf8').includes(`Sitemap: ${base}sitemap.xml`));
 const sitemap = readFileSync('dist-web/sitemap.xml','utf8');
+if (base === 'https://magmark.cn/') {
+  for (const file of (await import('node:fs')).readdirSync('dist-web/assets').filter(f => /\.(js|css)$/.test(f))) {
+    const content = readFileSync(`dist-web/assets/${file}`, 'utf8');
+    assert.ok(!/bubufu\.com\/tools\/magmark|magamark\.cn/.test(content), `Old MagMark URL in ${file}`);
+  }
+}
 for (const path of ['', 'guide/', 'guide/en/']) assert.ok(sitemap.includes(`<loc>${base+path}</loc>`));
 assert.ok(readFileSync('dist-web/llms.txt','utf8').includes(base+'guide/en/'));
 console.log('SEO checks passed: canonical, crawlable guides, alternates, metadata, schema, sitemap and local assets.');

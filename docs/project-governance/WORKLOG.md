@@ -1,3 +1,12 @@
+## 2026-10-29 — Docker and final domain follow-up
+
+- Main integration 950dc02 completed after CI 40812932781 passed. User subsequently requests an independent Docker website and changes the final domain to magmark.cn, including article hyperlinks.
+- Root SSH access established through a user-entered password and a private control socket; password is not recorded. Read-only inspection found Docker 29.6.1 / Compose v5.3.1, no existing containers or website proxy, free public 80/443, 961 MB RAM, 2 GB swap and 32 GB disk available.
+- Google Public DNS resolves magmark.cn to 82.156.172.219. www is absent and will not be added without a DNS record. The earlier magamark.cn identity is superseded.
+- Added allowlisted artifact-only Docker packaging, non-root app on an unexposed internal port, shared network, separate TLS edge and 128 MB limits per container. Migrated public/editor/starter links and generated a QR encoding https://magmark.cn/.
+- Docker integration testing found the upstream Caddy binary carries cap_net_bind_service, which conflicts with the deliberately empty capability bounding set. Strip that unnecessary file capability in the app image (it listens on 8080) and add a CI health smoke test with production read-only/cap-drop flags.
+- Updated source passed typecheck, 267 unit tests, 59 text cases, 6 SDK guards and standalone build/SEO (including scanning runtime bundles for old MagMark URLs). Docker/browser/live deployment checks are recorded below after execution.
+
 ## 2026-10-29 — Main integration and standalone deployment preparation
 
 - User explicitly authorizes merging latest remote MagMark 2 into main and deploying to magamark.cn on 82.156.172.219, with multi-site capacity. Integrated beta head 72ca416 into main base 17cac6b without conflicts in an isolated checkout; original worktrees preserved.

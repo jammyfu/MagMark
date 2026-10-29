@@ -1,3 +1,7 @@
+## 2026-10-29 — User-confirmed Docker and magmark.cn
+
+Final public identity is https://magmark.cn/; this supersedes magamark.cn. Related links in starter articles and QR artwork use the same identity. Package verified dist-web into a standalone Docker image; the shared HTTPS gateway proxies to a separate app container. Other websites receive independent images/configs on shared-web-edge. Do not add www while DNS is absent. Server credentials and deployment environment remain outside Git/build contexts.
+
 ## 2026-10-29 — Standalone domain and multi-site hosting
 
 User authorizes main integration and deployment at magamark.cn. Keep Bubufu's default build identity available; use MAGMARK_SITE_URL for the standalone artifact. Build off-server and serve static files through a shared gateway to fit the 1 GB host. Other websites get explicit virtual hosts and independent roots rather than extra public service ports. Actual server settings remain owner-local.
