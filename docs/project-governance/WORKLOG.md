@@ -1,3 +1,12 @@
+## 2026-10-29 — Docker production deployment verified
+
+- PR #11 integrated MagMark 2 into main (950dc02); PR #12 integrated Docker packaging and final magmark.cn identity (cb468fe). Latest code candidate 11316bf passed complete CI 40814059154 and is an ancestor of main with matching source tree.
+- Deployed the validated amd64 magmark-web:11316bf image behind shared Caddy HTTPS. Compose project shared-websites uses independent edge/app containers, per-site config, persistent certificates, shared-web-edge network, no app host-port publication, and 128 MB limits per container. Owner environment and release/image identity records remain outside source control.
+- Verified transferred archive SHA256 before Docker load; server app image manifest cc9ec0b85e9bdc828a874b39358d6a1f77566ea420f018511c748d663a51355b and revision label 11316bf574c9d849c106b8861bff23e45a288763. Live HTML SHA256 a0d33a3de6e969634ab992fd8516d2d89752cbe491ffecf3ba2fbd6fdf79e760 matches the tested build.
+- Let’s Encrypt certificate issued. Public TLS initially failed because the cloud firewall had no 443 rule. Following the user's explicit action-time confirmation, added IPv4 TCP 443 for the shared HTTPS gateway. Public HTTPS now returns 200; HTTP redirects to HTTPS. Existing SSH/HTTP/Ping rules preserved.
+- Live Chrome acceptance passes at 390px and 1280px: editor, decoded logo, icons, mobile touch/viewport containment, panels, six cover formats, four layers and bilingual guides. Guide content remains available with JavaScript disabled. Homepage, both guides, robots, sitemap and QR asset return 200.
+- Native Vision barcode detection decoded the regenerated QR as https://magmark.cn/. Default article URLs, public metadata and GitHub About/homepage use the final domain. Local temporary container was stopped and removed. No passwords, private SSH material, actual deployment environment or user drafts were committed or included in the image.
+
 ## 2026-10-29 — Docker and final domain follow-up
 
 - Main integration 950dc02 completed after CI 40812932781 passed. User subsequently requests an independent Docker website and changes the final domain to magmark.cn, including article hyperlinks.
