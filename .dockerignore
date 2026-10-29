@@ -1,0 +1,7 @@
+**
+!Dockerfile
+!dist-web/
+!dist-web/**
+!deploy/
+!deploy/container/
+!deploy/container/Caddyfile

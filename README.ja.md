@@ -7,20 +7,20 @@
 
 MagMark は、中国語と中国語・英語混在文書を主な対象とした Markdown 編集・組版・書き出しツールです。原文を編集可能なまま保持し、レイアウトを確認して、ページ分割された記事、PNG、ブラウザー印刷による PDF、WeChat 向けリッチテキストに出力します。
 
-> **2.0.0-beta.1 / `codex/2.0.0-beta` はテスト用ブランチです。** [2.0 beta オンライン版](https://bubufu.com/tools/magmark2/)は独立して公開されています。`main` と[安定版エディター](https://bubufu.com/tools/magmark/)は 1.6.0 のままです。重要な原稿は Markdown ファイルとして別途保存してください。
+> **2.0.0-beta.1 は main に統合されています。** オンライン版：[magmark.cn](https://magmark.cn/)。重要な原稿は Markdown ファイルとして別途保存してください。
 
 ## ローカルで起動
 
 リポジトリの CI に合わせて Node.js 22 を推奨します。
 
 ```bash
-git clone --branch codex/2.0.0-beta --single-branch https://github.com/jammyfu/MagMark.git
+git clone --branch main --single-branch https://github.com/jammyfu/MagMark.git
 cd MagMark
 npm ci
 npm run dev
 ```
 
-Vite が表示する URL を開きます。通常のポートは 5173 です。Markdown を貼り付けるか開き、執筆・比較・プレビューを切り替え、組版パネルで調整してから書き出します。現在の UI の主要ラベルは中国語です。
+Vite が表示する URL を開きます。ワークスペースで割り当てたポートを使用してください。Markdown を貼り付けるか開き、執筆・比較・プレビューを切り替え、組版パネルで調整してから書き出します。現在の UI の主要ラベルは中国語です。
 
 ## 利用できる機能
 

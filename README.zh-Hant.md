@@ -7,20 +7,20 @@
 
 MagMark 是面向中文與中英混排的 Markdown 編輯、排版與匯出工具。保留可編輯的原文，預覽並調整版面，再將同一篇文章帶到分頁雜誌、PNG、瀏覽器列印 PDF 或微信公眾號。
 
-> **2.0.0-beta.1 / `codex/2.0.0-beta` 是測試分支。** [2.0 beta 線上版](https://bubufu.com/tools/magmark2/)已獨立發布；`main` 與[穩定版編輯器](https://bubufu.com/tools/magmark/)維持 1.6.0。重要稿件請另外保存 Markdown 原檔。
+> **2.0.0-beta.1 已合入 main。** 線上入口：[magmark.cn](https://magmark.cn/)。重要稿件請另外保存 Markdown 原檔。
 
 ## 開始使用
 
 建議使用與倉庫 CI 一致的 Node.js 22：
 
 ```bash
-git clone --branch codex/2.0.0-beta --single-branch https://github.com/jammyfu/MagMark.git
+git clone --branch main --single-branch https://github.com/jammyfu/MagMark.git
 cd MagMark
 npm ci
 npm run dev
 ```
 
-開啟 Vite 顯示的地址，預設連接埠為 5173。貼上或開啟 Markdown，在「寫作 / 對照 / 預覽」之間切換，透過排版面板調整文章，再開啟匯出面板。
+開啟 Vite 顯示的地址，使用工作區分配的連接埠。貼上或開啟 Markdown，在「寫作 / 對照 / 預覽」之間切換，透過排版面板調整文章，再開啟匯出面板。
 
 ## 已有能力
 

@@ -62,13 +62,13 @@ git clone https://github.com/jammyfu/MagMark.git
 cd MagMark && npm install && npm run dev
 ```
 
-或直接体验 [MagMark 在线工作区](https://bubufu.com/tools/magmark2/)。
+或直接体验 [MagMark 在线工作区](https://magmark.cn/)。
 
 ---
 
 <p align="center">
-  <img src="public/brand/bubufu-url.svg" width="130" alt="扫码查看 MagMark 在线版"><br>
-  <sub>扫码查看：<a href="https://bubufu.com/tools/magmark2/">https://bubufu.com/tools/magmark2/</a></sub>
+  <img src="public/brand/magmark-url.svg" width="130" alt="扫码查看 MagMark 在线版"><br>
+  <sub>扫码查看：<a href="https://magmark.cn/">https://magmark.cn/</a></sub>
 </p>
 
 <p align="center">让每一段文字，都被认真对待。</p>

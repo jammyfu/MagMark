@@ -11,7 +11,7 @@ MagMark 是面向中文与中英混排的 Markdown 编辑、排版与导出工�
 它关注的不是再做一个 Markdown 预览框，而是**从写完一篇文章，到得到一份可交付的版面**：字距、标点、分页、图片位置和输出方式，都应该有明确的控制与反馈。
 
 > **当前分支：2.0.0-beta.1**
-> 这是 `codex/2.0.0-beta` 测试分支，不是已发布的稳定版。`main` 保持 1.6.0；[在线编辑器](https://bubufu.com/tools/magmark/)不代表本分支已经部署。重要稿件请另外保存 Markdown 原文件。
+> **2.0.0-beta.1 已合入 main。** 在线入口：[magmark.cn](https://magmark.cn/)。重要稿件请另外保存 Markdown 原文件。
 
 [开始使用](#开始使用) · [功能与工作流](#功能与工作流) · [导出说明](#导出说明) · [已知边界](#已知边界) · [开发与贡献](#开发与贡献)
 
@@ -25,10 +25,10 @@ MagMark 不提供文档托管、多人实时协作或自动发布。它也不把
 
 ### 直接体验
 
-打开[在线编辑器](https://bubufu.com/tools/magmark/)可以体验已部署版本。要检查 **2.0 beta 的新界面和行为**，请在本地运行本分支：
+打开[在线编辑器](https://magmark.cn/)体验 MagMark 2。要在本地运行，请使用 main 分支：
 
 ```bash
-git clone --branch codex/2.0.0-beta --single-branch https://github.com/jammyfu/MagMark.git
+git clone --branch main --single-branch https://github.com/jammyfu/MagMark.git
 cd MagMark
 npm ci
 npm run dev

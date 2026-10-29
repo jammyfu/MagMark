@@ -74,7 +74,13 @@ jobs:
       - name: Standalone domain build and metadata
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         env:
-          MAGMARK_SITE_URL: https://magamark.cn/
+          MAGMARK_SITE_URL: https://magmark.cn/
         run: |
           npm run build:web
           node scripts/check-web-release.cjs
+
+      - name: Package standalone Docker website
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          docker build --build-arg VCS_REF="$GITHUB_SHA" -t magmark-web:ci .
+          docker run --rm magmark-web:ci caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-const siteUrl = new URL(process.env.MAGMARK_SITE_URL || 'https://bubufu.com/tools/magmark2/');
+const siteUrl = new URL(process.env.MAGMARK_SITE_URL || 'https://magmark.cn/');
 const base = process.env.MAGMARK_BASE_PATH || siteUrl.pathname;
 if (!siteUrl.pathname.endsWith('/') || siteUrl.search || siteUrl.hash || siteUrl.protocol !== 'https:') {
   throw new Error('MAGMARK_SITE_URL must be an HTTPS URL ending in / without query or fragment');
@@ -16,7 +16,7 @@ export default defineConfig({
     name: 'magmark-site-identity',
     transformIndexHtml: {
       order: 'pre',
-      handler: html => html.replaceAll('https://bubufu.com/tools/magmark2/', siteUrl.href),
+      handler: html => html.replaceAll('https://magmark.cn/', siteUrl.href),
     },
   }],
   publicDir: 'web-public',
