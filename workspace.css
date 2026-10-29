@@ -602,3 +602,12 @@ body[data-workspace] #ctrl-theme { color-scheme:var(--ws-scheme); accent-color:v
   body[data-workspace] .export-dialog { max-height:calc(var(--mm-visible-height, 100dvh) - 32px); }
   body[data-workspace] .file-popover { top:calc(var(--mm-visible-top, 0px) + 62px); max-height:calc(var(--mm-visible-height, 100dvh) - 144px); }
 }
+
+/* Site registration belongs to the website shell, never to exported articles. */
+body[data-workspace] .site-registration { flex:0 0 28px; min-height:28px; display:flex; align-items:center; justify-content:center; box-sizing:border-box; border-top:1px solid var(--ws-line); background:var(--ws-surface); color:var(--ws-muted); font:11px/1.5 var(--ws-ui); }
+.site-registration a { color:inherit; text-decoration:none; padding:4px 10px; }
+.site-registration a:hover { text-decoration:underline; }
+@media (max-width:800px) {
+  body[data-workspace] .site-registration { position:fixed; z-index:149; left:0; right:0; top:calc(var(--mm-visible-top, 0px) + var(--mm-visible-height, 100dvh) - 86px - env(safe-area-inset-bottom)); height:26px; min-height:26px; }
+  body[data-workspace] #workspace-main { margin-bottom:calc(86px + env(safe-area-inset-bottom)); }
+}

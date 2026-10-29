@@ -5,6 +5,9 @@ const base = new URL(process.env.MAGMARK_SITE_URL || 'https://magmark.cn/').href
 for (const path of ['', 'guide/', 'guide/en/']) {
   const html = readFileSync(`dist-web/${path}index.html`, 'utf8');
   const doc = new JSDOM(html).window.document;
+  const registration = doc.querySelector('.site-registration a');
+  assert.equal(registration?.textContent, '京ICP备2026065859号-1');
+  assert.equal(registration?.href, 'https://beian.miit.gov.cn/');
   assert.equal(doc.querySelectorAll('link[rel="canonical"]').length, 1);
   assert.equal(doc.querySelector('link[rel="canonical"]').href, base + path);
   assert.ok(doc.title.length > 15);

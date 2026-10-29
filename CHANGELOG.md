@@ -1,3 +1,7 @@
+## 2026-10-29 — Website ICP footer
+
+- Display the owner-confirmed 京ICP备2026065859号-1 with an official MIIT query link on the editor shell and both static guides. Keep mobile navigation accessible and the site registration outside exported article content.
+
 ## 2026-10-29 — Docker website and final domain
 
 - Package the verified web artifact as a non-root, read-only Docker website behind a separate shared HTTPS gateway; reserve independent containers/configs for future sites.

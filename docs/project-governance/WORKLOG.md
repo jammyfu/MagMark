@@ -1,3 +1,9 @@
+## 2026-10-29 — ICP display and requested verification-file inspection
+
+- User requests the website filing number and the platform verification file. Read the exact Tencent filing entry: magmark.cn, status normal, 京ICP备2026065859号-1. The supplied detail page provides no site-root verification filename, token or download; no arbitrary file or private registration material is published.
+- Added a centered site-shell registration footer and MIIT link, plus both static guide footers. Mobile footer reserves space above the persistent navigation. Site registration stays outside article preview/export content.
+- Build/SEO and production-entry browser checks pass; footer visibility at desktop/mobile widths and reduced viewport heights is verified before deployment. Repackage only the MagMark app container; keep the shared edge and private environment intact with previous image available for rollback.
+
 ## 2026-10-29 — Docker production deployment verified
 
 - PR #11 integrated MagMark 2 into main (950dc02); PR #12 integrated Docker packaging and final magmark.cn identity (cb468fe). Latest code candidate 11316bf passed complete CI 40814059154 and is an ancestor of main with matching source tree.
