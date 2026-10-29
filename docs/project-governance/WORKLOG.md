@@ -4,6 +4,7 @@
 - Added MAGMARK_SITE_URL-driven entry identity, static guides, sitemap, robots and build/browser verification. Default Bubufu build remains supported. Added main CI and standalone-domain build/browser checks.
 - Fixed the pre-existing logo test's stale public-path expectation to match Vite's bundled source image; actual logo decoding passes in browser tests. No product logic changed by this correction.
 - Node 22.23.4: typecheck, 267 unit tests, 59 text compatibility cases, 6 SDK guards and standalone web build/SEO pass. Chrome checks at 390px and 1280px pass editor loading, logo decode, mobile scroll containment, panels, six cover formats, four layers and static bilingual guides. Existing Vite bundle-size/CJS warnings remain.
+- CI run 40812602446 passed all existing checks and the standalone build/SEO, but screenshot saving failed because the pre-existing web-release script hardcoded macOS /private/tmp. Use os.tmpdir() for Linux/macOS portability and rerun the complete candidate checks.
 - Prepared shared Caddy gateway templates with per-site configuration, release roots, persistent certificates and rollback. No actual server environment or credentials included. SSH TCP/22 is reachable; login details still required. No server installation or public deployment has occurred at this point.
 
 # WORKLOG.md

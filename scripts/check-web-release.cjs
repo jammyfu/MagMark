@@ -1,6 +1,7 @@
 const { chromium, webkit } = require('@playwright/test');
 const { readFileSync, existsSync } = require('node:fs');
 const path = require('node:path');
+const { tmpdir } = require('node:os');
 const assert = require('node:assert/strict');
 (async () => {
   const base = new URL(process.env.MAGMARK_SITE_URL || 'https://bubufu.com/tools/magmark2/').href;
@@ -74,7 +75,7 @@ const assert = require('node:assert/strict');
       await page.emulateMedia({colorScheme:'dark'});
       assert.equal(await page.locator('table tbody tr').count(),6);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-      await page.screenshot({path:`/private/tmp/magmark2-guide-${process.env.LIVE_SITE?'live':'local'}-${width}.png`,fullPage:true});
+      await page.screenshot({path:path.join(tmpdir(),`magmark2-guide-${process.env.LIVE_SITE?'live':'local'}-${width}.png`),fullPage:true});
       await page.locator('nav a[lang="en"]').click();
       assert.equal(await page.locator('html').getAttribute('lang'),'en');
       assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),base+'guide/en/');
