@@ -1,3 +1,10 @@
+## 2026-11-05 — GSC evidence and hosted README compatibility
+
+- Live GSC: 443 indexed / 745 excluded; 159 of 166 crawled exclusions are OG images or llms.txt. These are not 159 missing content pages.
+- Main/tools sitemap downloads succeed (306/544 URLs); image-converter passes Google live fetch/indexability. Index request is waiting for Google reCAPTCHA; no successful indexing request claimed.
+- MagMark nested sitemap submitted and processed successfully (3 URLs). Restore actual public README documents only, preserving editor assets and server/account configuration.
+- Validation: focused Node tests plus repository governance verifier; deployment evidence is kept outside source control.
+
 # WORKLOG.md
 
 2026-09-20: Production header brand URL returned HTTP 404 after the previous selectively assembled archive omitted brand/. Isolated this correction from ongoing local cover edits. Added image decode verification; retain existing SEO/GEO documents.

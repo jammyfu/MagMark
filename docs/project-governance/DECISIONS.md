@@ -1,3 +1,7 @@
+## 2026-11-05 — Restore documents, retain intentional exclusions
+
+Preserve private/account noindex/robots rules, genuine redirects and removed blog URLs. Do not redirect unrelated lost blog posts to the homepage, fabricate translations, or block OG images to reduce the exclusion count. Legacy MagMark README URLs serve their actual public documentation; the existing editor/guide canonical pages remain the search targets.
+
 # DECISIONS.md
 
 2026-09-20: Header logo uses a bundled SVG import through HTML instead of an unchecked public path. Existing public brand URLs remain compatible for open sessions.

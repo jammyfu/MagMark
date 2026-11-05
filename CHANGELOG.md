@@ -1,3 +1,7 @@
+## 2026-11-05
+
+- Fix hosted beta README language links returning 404; generate four public documents and resolve repository-only links at web build time. Editor bundle and sitemap canonical URLs are unchanged.
+
 # CHANGELOG
 
 修复 Beta 顶部 Logo：改为构建工具管理的带哈希资源，并检查实际图片解码，避免发布漏掉 brand 目录。

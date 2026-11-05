@@ -1,4 +1,7 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {writeLegacyReadmes} from './legacy-readmes.mjs';
+
+writeLegacyReadmes();
 
 const base = 'https://bubufu.com/tools/magmark2/';
 const updated = '2026-09-19';

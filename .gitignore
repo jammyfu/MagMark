@@ -28,3 +28,9 @@ tmp/
 !screenshots/*.png
 .claude/worktrees/
 !web-public/og/*.png
+
+# Public README compatibility artifacts are regenerated from root documentation.
+/web-public/README.md
+/web-public/README.en.md
+/web-public/README.zh-Hant.md
+/web-public/README.ja.md
