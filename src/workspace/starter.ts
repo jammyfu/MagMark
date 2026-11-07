@@ -5,6 +5,9 @@ import japaneseReadme from '../../README.ja.md?raw';
 import englishReadme from '../../README.en.md?raw';
 import { savedLocale, type Locale } from './locale';
 import hero from '../../screenshots/magmark-brand-hero.webp?url';
+import mainShot from '../../screenshots/magmark-main.png?url';
+import printShot from '../../screenshots/print-preview.png?url';
+import wechatShot from '../../screenshots/wechat-paste-preview.png?url';
 import logo from '../../public/brand/magmark-monochrome.svg?url';
 import qr from '../../public/brand/magmark-url.svg?url';
 
@@ -13,6 +16,9 @@ export function starterForLocale(locale: Locale): string {
   return ({'zh-Hans': promo, 'zh-Hant': traditionalReadme, ja: japaneseReadme, en: englishReadme})[locale]
     .replace(/<picture>[\s\S]*?<\/picture>/g, `<img src="${logo}" width="220" alt="MagMark 标志">`)
     .replaceAll('screenshots/magmark-brand-hero.png', hero)
+    .replaceAll('screenshots/magmark-main.png', mainShot)
+    .replaceAll('screenshots/print-preview.png', printShot)
+    .replaceAll('screenshots/wechat-paste-preview.png', wechatShot)
     .replaceAll('public/brand/magmark-url.svg', qr);
 }
 export const STARTER_MARKDOWN = starterForLocale(savedLocale());

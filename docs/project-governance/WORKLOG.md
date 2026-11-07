@@ -1,3 +1,10 @@
+## 2026-11-07 — README first-screen product showcase
+
+- Optimized only this repository’s four-language README first screens on a branch from current `main`. No CI workflow edits, no profile/other-repo access, no new artwork or badges.
+- First screen now leads with Markdown → Chinese magazine layout/export, https://magmark.cn/, and existing screenshots: MagMark 2 comparison view (`screenshots/magmark-main.png`), print preview, and WeChat paste preview. Older 1.6.0 chrome on the WeChat capture and the earlier print-preview window are captioned.
+- `starter.ts` only gained URL rewrites for those existing screenshot paths so en / ja / zh-Hant first-run articles, which already load localized READMEs, still resolve images. README assertions in `tests/brand-icons.test.ts` and `tests/locale.test.ts` match the new first screen.
+- Verified local README targets, screenshot files, HTTPS 200 from magmark.cn, and `python3 tools/verify.py --deep`. Open a PR; do not merge.
+
 ## 2026-10-29 — ICP display and requested verification-file inspection
 
 - User requests the website filing number and the platform verification file. Read the exact Tencent filing entry: magmark.cn, status normal, 京ICP备2026065859号-1. The supplied detail page provides no site-root verification filename, token or download; no arbitrary file or private registration material is published.

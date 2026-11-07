@@ -1,13 +1,21 @@
-<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="光る本のシンボルと MagMark のブランドビジュアル"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark ロゴ"></picture></p>
 <h1 align="center">MagMark</h1>
+<p align="center"><strong>Markdown → 中国語雑誌組版 / 書き出し</strong></p>
 <p align="center">Markdown で書き、雑誌のように整える。</p>
 <p align="center"><a href="README.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.en.md">English</a> · 日本語</p>
+<p align="center"><a href="https://magmark.cn/"><strong>オンライン体験 magmark.cn</strong></a></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark ロゴ"></picture></p>
+<p align="center"><img src="screenshots/magmark-main.png" width="880" alt="MagMark 2 の比較ビュー：左が Markdown、右が中国語雑誌のページ分割プレビュー"></p>
+<p align="center"><em>現在の MagMark 2 メイン画面（比較ビュー）。左に Markdown、右に中国語雑誌のページ分割表示。</em></p>
+
+| 雑誌 / 印刷プレビュー | WeChat 貼り付けプレビュー |
+| :---: | :---: |
+| ![印刷プレビューに表示されたページ分割済みの中国語本文](screenshots/print-preview.png) | ![WeChat テーマのスマートフォン枠プレビュー](screenshots/wechat-paste-preview.png) |
+| ページ分割された本文出力。以前の印刷プレビューウィンドウのスクリーンショットです。組版結果は雑誌 / 印刷経路を表しますが、エディター枠は MagMark 2 と異なる場合があります。 | **1.6.0** エディターのスクリーンショット（ヘッダーにバージョンあり）。MagMark 2 でも WeChat 向けリッチテキストのコピーはできますが、ツールバー・パネル・プレビュー枠は変わっています。 |
 
 MagMark は、中国語と中国語・英語混在文書を主な対象とした Markdown 編集・組版・書き出しツールです。原文を編集可能なまま保持し、レイアウトを確認して、ページ分割された記事、PNG、ブラウザー印刷による PDF、WeChat 向けリッチテキストに出力します。
 
-> **2.0.0-beta.1 は main に統合されています。** オンライン版：[magmark.cn](https://magmark.cn/)。重要な原稿は Markdown ファイルとして別途保存してください。
+> **2.0.0-beta.1 は `main` に統合**されており、[magmark.cn](https://magmark.cn/) で利用できます。まだ beta です。他ブラウザー、実 OS の中国語 IME、モバイル WebView、WeChat へ貼り付けて保存したあとの画像と書式は、対象環境での確認が必要です。重要な原稿は Markdown ファイルとして別途保存してください。MagMark は文書ホスティングでも共同編集でも自動公開でもなく、WeChat へのログインや投稿代行も行いません。
 
 ## ローカルで起動
 

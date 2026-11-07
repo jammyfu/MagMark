@@ -21,13 +21,16 @@ describe('Monochrome brand and functional icons', () => {
     expect(svg).toContain('fill="#000000"');
     expect(html).toContain('href="%BASE_URL%favicon.svg"');
   });
-  it('uses the supplied hero in every localized README', () => {
+  it('uses product screenshots and the theme-aware logo in every localized README', () => {
     for (const file of ['README.md', 'README.en.md', 'README.zh-Hant.md', 'README.ja.md']) {
       const readme = readFileSync(file, 'utf8');
       expect(readme).toContain('public/brand/magmark-monochrome.svg');
       expect(readme).toContain('public/brand/magmark-monochrome-dark.svg');
       expect(readme).toContain('prefers-color-scheme: dark');
-      expect(readme).toContain('screenshots/magmark-brand-hero.png');
+      expect(readme).toContain('screenshots/magmark-main.png');
+      expect(readme).toContain('screenshots/print-preview.png');
+      expect(readme).toContain('screenshots/wechat-paste-preview.png');
+      expect(readme).toContain('https://magmark.cn/');
     }
     const darkLogo = readFileSync('public/brand/magmark-monochrome-dark.svg', 'utf8');
     expect(darkLogo).toContain('fill: #f6f8fa');

@@ -1,3 +1,7 @@
+## 2026-11-07 — README first screen uses product screenshots
+
+GitHub README first screens in this repository lead with the MagMark 2 workspace screenshot and the live editor https://magmark.cn/, not the cinematic brand banner. Keep existing export screenshots when they still show a real output path, and caption any older editor chrome instead of generating replacement artwork. Do not add badges, analytics, or unverified metrics. Other-language READMEs already in the repo follow the same first-screen structure; do not invent extra locales.
+
 ## 2026-10-29 — User-confirmed Docker and magmark.cn
 
 Final public identity is https://magmark.cn/; this supersedes magamark.cn. Related links in starter articles and QR artwork use the same identity. Package verified dist-web into a standalone Docker image; the shared HTTPS gateway proxies to a separate app container. Other websites receive independent images/configs on shared-web-edge. Do not add www while DNS is absent. Server credentials and deployment environment remain outside Git/build contexts.

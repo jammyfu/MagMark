@@ -1,13 +1,21 @@
-<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="MagMark brand artwork with a luminous open-page emblem"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark logo"></picture></p>
 <h1 align="center">MagMark</h1>
+<p align="center"><strong>Markdown → Chinese magazine layout / export</strong></p>
 <p align="center">Write in Markdown. Shape it into a magazine.</p>
 <p align="center"><a href="README.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · English · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="https://magmark.cn/"><strong>Try it online at magmark.cn</strong></a></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark logo"></picture></p>
+<p align="center"><img src="screenshots/magmark-main.png" width="880" alt="MagMark 2 comparison view: Markdown source on the left, paginated Chinese magazine preview on the right"></p>
+<p align="center"><em>Current MagMark 2 workspace (comparison view): Markdown on the left, a paginated Chinese magazine page on the right.</em></p>
+
+| Magazine / print preview | WeChat paste preview |
+| :---: | :---: |
+| ![Paginated Chinese article in the print-preview window](screenshots/print-preview.png) | ![WeChat-themed paste preview in a phone frame](screenshots/wechat-paste-preview.png) |
+| Paginated print output. This capture is from an earlier print-preview window: the page still represents the magazine / print path, but the editor chrome may differ from MagMark 2. | Screenshot of the **1.6.0** editor (version visible in the header). MagMark 2 still copies WeChat-compatible rich text, but the toolbar, panels and preview chrome have changed. |
 
 MagMark is a Markdown editing, typesetting and export workspace for Chinese and mixed Chinese–English writing. Keep the source editable, inspect the layout, and take the same article to paginated pages, PNG, browser-printed PDF or WeChat-compatible rich text.
 
-> **2.0.0-beta.1 is integrated into main.** Online editor: [magmark.cn](https://magmark.cn/). Keep separate Markdown backups.
+> **2.0.0-beta.1 is on `main`** and available at [magmark.cn](https://magmark.cn/). This is still a beta: other browsers, real OS Chinese IME, mobile WebViews, and whether WeChat keeps images and styles after paste-and-save still need acceptance in the target environment. Keep separate Markdown backups. MagMark is not document hosting, real-time collaboration, or automated publishing, and it will not log in or publish to WeChat for you.
 
 ## Run the beta
 
