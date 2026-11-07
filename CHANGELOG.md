@@ -1,3 +1,7 @@
+## 2026-11-07 — README first-screen showcase
+
+- Four-language README first screens now open with Markdown → Chinese magazine layout/export, the live editor at https://magmark.cn/, and existing product screenshots. Older 1.6.0 / print-preview captures are labeled. `starter.ts` rewrites those screenshot URLs so localized first-run articles still load. No editor/export or CI workflow change.
+
 ## 2026-10-29 — Website ICP footer
 
 - Display the owner-confirmed 京ICP备2026065859号-1 with an official MIIT query link on the editor shell and both static guides. Keep mobile navigation accessible and the site registration outside exported article content.

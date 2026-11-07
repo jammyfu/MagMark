@@ -25,7 +25,12 @@ describe('workspace languages', () => {
   it('selects distinct bundled READMEs with local artwork', () => {
     const docs = ['zh-Hans','zh-Hant','ja','en'].map(locale => starterForLocale(locale as Parameters<typeof starterForLocale>[0]));
     expect(new Set(docs).size).toBe(4);
-    for (const doc of docs) { expect(doc).toContain('magmark-brand-hero'); expect(doc).not.toContain('<picture>'); }
+    expect(docs[0]).toContain('magmark-brand-hero');
+    for (const doc of docs.slice(1)) {
+      expect(doc).toContain('magmark-main');
+      expect(doc).toContain('https://magmark.cn/');
+    }
+    for (const doc of docs) { expect(doc).not.toContain('<picture>'); }
     expect(docs[3]).toContain('Write in Markdown.');
   });
   it('translates changing counters without modifying their values', () => {

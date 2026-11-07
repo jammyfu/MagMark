@@ -1,17 +1,24 @@
-<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="MagMark 品牌头图：金色光影中的书页与品牌字标"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark 标志"></picture></p>
 
 <h1 align="center">MagMark</h1>
+<p align="center"><strong>Markdown → 中文杂志排版 / 导出</strong></p>
 <p align="center">写 Markdown，让版面像杂志。</p>
 <p align="center">简体中文 · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="https://magmark.cn/"><strong>在线体验 magmark.cn</strong></a></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark 标志"></picture></p>
+<p align="center"><img src="screenshots/magmark-main.png" width="880" alt="MagMark 2 对照视图：左侧 Markdown 原文，右侧中文杂志分页预览"></p>
+<p align="center"><em>当前 MagMark 2 主界面（对照视图）：左侧写 Markdown，右侧看中文杂志分页。</em></p>
+
+| 杂志 / 打印预览 | 公众号粘贴预览 |
+| :---: | :---: |
+| ![分页中文正文的打印预览](screenshots/print-preview.png) | ![公众号主题下的手机框粘贴预览](screenshots/wechat-paste-preview.png) |
+| 分页正文输出。截图来自较早的打印预览窗口：版式仍代表杂志 / 打印路径，编辑器外壳可能与 MagMark 2 不同。 | 截图来自 **1.6.0** 编辑器（顶栏可见版本号）。MagMark 2 仍可复制公众号富文本，但顶栏、面板与预览外壳已改。 |
 
 MagMark 是面向中文与中英混排的 Markdown 编辑、排版与导出工具。你在左侧写原文，在右侧调整版面，再把同一篇内容带到杂志页、PDF、长图或微信公众号。
 
 它关注的不是再做一个 Markdown 预览框，而是**从写完一篇文章，到得到一份可交付的版面**：字距、标点、分页、图片位置和输出方式，都应该有明确的控制与反馈。
 
-> **当前分支：2.0.0-beta.1**
-> **2.0.0-beta.1 已合入 main。** 在线入口：[magmark.cn](https://magmark.cn/)。重要稿件请另外保存 Markdown 原文件。
+> **2.0.0-beta.1 已合入 main**，可在 [magmark.cn](https://magmark.cn/) 直接使用。仍是 beta：跨浏览器、真实中文输入法、移动 WebView，以及公众号粘贴后是否保留图片与样式，都需要在目标环境验收。重要稿件请另外保存 Markdown 原文件。MagMark 不托管文档、不多人实时协作，也不会替你登录或发布到公众号。
 
 [开始使用](#开始使用) · [功能与工作流](#功能与工作流) · [导出说明](#导出说明) · [已知边界](#已知边界) · [开发与贡献](#开发与贡献)
 

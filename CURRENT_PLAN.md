@@ -1,3 +1,11 @@
+# 2026-11-07 — GitHub README first-screen showcase
+
+Use current `main` as the baseline. Change this repository’s four-language README first screens. Lead with Markdown → Chinese magazine layout/export, the live editor at https://magmark.cn/, and existing screenshots `screenshots/magmark-main.png`, `print-preview.png`, `wechat-paste-preview.png`. Caption MagMark 2 versus older 1.6.0 chrome; do not invent artwork, badges, tracking, or metrics. Keep getting-started steps and capability/limit text below the first screen. Rewrite those existing screenshot URLs in `starter.ts` so localized README starters still load images; do not change editor/export behavior, CI workflows, or other repositories. Open a PR; do not merge.
+
+Previous context follows.
+
+---
+
 # 2026-10-29 — ICP footer and Tencent verification file
 
 User requests displaying 京ICP备2026065859号-1 and deploying the platform verification file from their Tencent filing details. Add a visible shell footer on desktop/mobile and the static guides, link the supplied number to https://beian.miit.gov.cn/, preserve article exports and drafts, inspect the exact owner-provided platform file before copying it to the public root. Do not publish registration PDFs, identity certificates or private materials. Build, verify and update only the MagMark Docker service, retaining rollback and the shared gateway.

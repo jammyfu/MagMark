@@ -1,13 +1,21 @@
-<p align="center"><img src="screenshots/magmark-brand-hero.png" width="1000" alt="MagMark 品牌頭圖：金色光影中的書頁與品牌字標"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark 標誌"></picture></p>
 <h1 align="center">MagMark</h1>
+<p align="center"><strong>Markdown → 中文雜誌排版 / 匯出</strong></p>
 <p align="center">寫 Markdown，讓版面像雜誌。</p>
 <p align="center"><a href="README.md">简体中文</a> · 繁體中文 · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center"><a href="https://magmark.cn/"><strong>線上體驗 magmark.cn</strong></a></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="public/brand/magmark-monochrome-dark.svg"><source media="(prefers-color-scheme: light)" srcset="public/brand/magmark-monochrome.svg"><img src="public/brand/magmark-monochrome.svg" width="220" alt="MagMark 標誌"></picture></p>
+<p align="center"><img src="screenshots/magmark-main.png" width="880" alt="MagMark 2 對照視圖：左側 Markdown 原文，右側中文雜誌分頁預覽"></p>
+<p align="center"><em>目前 MagMark 2 主介面（對照視圖）：左側寫 Markdown，右側看中文雜誌分頁。</em></p>
+
+| 雜誌 / 列印預覽 | 公眾號貼上預覽 |
+| :---: | :---: |
+| ![分頁中文正文的列印預覽](screenshots/print-preview.png) | ![公眾號主題下的手機框貼上預覽](screenshots/wechat-paste-preview.png) |
+| 分頁正文輸出。截圖來自較早的列印預覽視窗：版式仍代表雜誌 / 列印路徑，編輯器外殼可能與 MagMark 2 不同。 | 截圖來自 **1.6.0** 編輯器（頂欄可見版本號）。MagMark 2 仍可複製公眾號富文本，但頂欄、面板與預覽外殼已改。 |
 
 MagMark 是面向中文與中英混排的 Markdown 編輯、排版與匯出工具。保留可編輯的原文，預覽並調整版面，再將同一篇文章帶到分頁雜誌、PNG、瀏覽器列印 PDF 或微信公眾號。
 
-> **2.0.0-beta.1 已合入 main。** 線上入口：[magmark.cn](https://magmark.cn/)。重要稿件請另外保存 Markdown 原檔。
+> **2.0.0-beta.1 已合入 `main`**，可在 [magmark.cn](https://magmark.cn/) 直接使用。仍是 beta：跨瀏覽器、真實中文輸入法、行動 WebView，以及公眾號貼上後是否保留圖片與樣式，都需要在目標環境驗收。重要稿件請另外保存 Markdown 原檔。MagMark 不託管文件、不多人即時協作，也不會替你登入或發布到公眾號。
 
 ## 開始使用
 
