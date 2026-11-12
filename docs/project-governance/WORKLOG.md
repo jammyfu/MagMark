@@ -92,3 +92,8 @@ The previous worklog is preserved byte-for-byte in [2026-09-19-before-responsive
 ## 2026-10-22
 
 Node 22 构建环境固定至安全版本 22.23.4；自动质量检查从 .node-version 读取，保持静态应用、用户本地数据和现有发布地址不变。
+
+
+## 2026-11-12 — Five-language discovery review
+
+Added Korean README and five-language navigation; preserved existing screenshots and feature scope. Added metadata proposal and locale/link validation. Typecheck, 267 tests, governance and five README static checks pass. GitHub render review pending. See docs/discovery-review.md.

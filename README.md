@@ -3,7 +3,7 @@
 <h1 align="center">MagMark</h1>
 <p align="center"><strong>Markdown → 中文杂志排版 / 导出</strong></p>
 <p align="center">写 Markdown，让版面像杂志。</p>
-<p align="center">简体中文 · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a></p>
+<p align="center">简体中文 · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a></p>
 <p align="center"><a href="https://magmark.cn/"><strong>在线体验 magmark.cn</strong></a></p>
 
 <p align="center"><img src="screenshots/magmark-main.png" width="880" alt="MagMark 2 对照视图：左侧 Markdown 原文，右侧中文杂志分页预览"></p>
