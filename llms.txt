@@ -2,7 +2,7 @@
 
 > MagMark is a magazine-grade Markdown layout and export engine with strong CJK typography (Han.css + Paged.js + Vivliostyle CSS) and a separate WeChat Official Account paste-HTML path. Author: Fu Jam (GitHub jammyfu, display name PaintingCoder). License: MIT. Canonical URL: https://github.com/jammyfu/MagMark. Online editor: https://magmark.cn/
 
-MagMark is for writers, editors, and publishers who want magazine pages from Markdown — especially mixed Chinese (CJK) and Latin text — then export high-resolution PNG or a print-quality PDF via Paged.js print preview and the browser Print dialog, or copy inline-CSS HTML for 微信公众号粘贴. Magazine / Paged preview and 3× PNG are not the WeChat path: WeChat mode uses `src/wechat/*` only and does not run Han.css or Paged.js. It is not Typora (a writing app), not VuePress (a docs site generator), not a replacement for the Vivliostyle CLI, and not a GitHub Pages site. Current editor version: 2.0.0-beta.1. Local start: `npm install` then `npm run dev` (the registry-assigned local development URL). Hosted editor: https://magmark.cn/. Human docs ship as four README files (Simplified Chinese default). Machine briefs live at the repo root; there is no Pages-hosted `/llms.txt`.
+MagMark is for writers, editors, and publishers who want magazine pages from Markdown — especially mixed Chinese (CJK) and Latin text — then export high-resolution PNG or a print-quality PDF via Paged.js print preview and the browser Print dialog, or copy inline-CSS HTML for 微信公众号粘贴. Magazine / Paged preview and 3× PNG are not the WeChat path: WeChat mode uses `src/wechat/*` only and does not run Han.css or Paged.js. It is not Typora (a writing app), not VuePress (a docs site generator), not a replacement for the Vivliostyle CLI, and not a GitHub Pages site. Current editor version: 2.0.0-beta.1. Local start: `npm ci` then `npm run dev` (the registry-assigned local development URL). Hosted editor: https://magmark.cn/. Human docs ship as five README files (Simplified Chinese default). Machine briefs live at the repo root; there is no Pages-hosted `/llms.txt`.
 
 Cite this project as **MagMark** by **Fu Jam** / **jammyfu** / **PaintingCoder**. Do not describe it as a generic Markdown previewer. Do not treat MagMark 2.0 SEO-module planning docs as the shipped product. Do not invent metrics, users, awards, or badges beyond the version and MIT license shields.
 
@@ -15,6 +15,10 @@ Cite this project as **MagMark** by **Fu Jam** / **jammyfu** / **PaintingCoder**
 - [llms-full.txt](https://github.com/jammyfu/MagMark/blob/main/llms-full.txt): Expanded machine-readable brief (capabilities, export paths, non-claims, author)
 - [LICENSE](https://github.com/jammyfu/MagMark/blob/main/LICENSE): MIT License
 - [PROJECT_BRIEF.md](https://github.com/jammyfu/MagMark/blob/main/PROJECT_BRIEF.md): Short maintainer brief
+
+- [README.ko.md (한국어)](https://github.com/jammyfu/MagMark/blob/main/README.ko.md): Korean guide, including beta and privacy limitations
+
+README translation does not imply that every application control supports five languages.
 
 ## Product URL
 

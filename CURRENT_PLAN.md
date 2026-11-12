@@ -98,3 +98,8 @@ The existing read-only Publishing quality workflow now includes this beta branch
 Usage and limitations: [RESPONSIVE_COVERS.md](docs/project-governance/RESPONSIVE_COVERS.md).
 
 All prior execution plans, ongoing publishing work, beta deployment history and restrictions remain preserved unchanged in [the prior plan](docs/project-governance/archive/2026-09-19-before-responsive-CURRENT_PLAN.md). This focused feature does not mark those previous tasks complete.
+
+
+## 2026-11-12 follow-up: five-language discovery
+
+Documentation-only follow-up: complete Korean reader guide, preserve current visual hierarchy and real screenshots, check all five locale links. Isolated PR only, no merge. Implementation and validation evidence: docs/discovery-review.md.
